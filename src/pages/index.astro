@@ -1,17 +1,22 @@
 ---
-
+import Layout from '../layouts/Layout.astro';
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<Layout title="spdw">
+	<div class="p-4">
+		<nav aria-label="breadcrumb">
+			<ol class="text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm break-words sm:gap-2.5">
+				<li class="inline-flex items-center gap-1.5">
+					<span class="text-foreground font-normal" role="link" aria-disabled="true" aria-current="page">
+						Home
+					</span>
+				</li>
+			</ol>
+		</nav>
+	</div>
+	<div class="content-area">
+		<h1>spdw</h1>
+		<br />
+		<a href="/sel" class="spdw-link">sel</a>
+	</div>
+</Layout>

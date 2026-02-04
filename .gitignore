@@ -29,4 +29,6 @@ pnpm-debug.log*
 !.dev.vars.example
 !.env.example
 
-sel*
+sel.sql*
+
+TODO*

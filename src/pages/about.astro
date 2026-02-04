@@ -1,0 +1,107 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="About - spdw">
+	<div class="p-4">
+		<nav aria-label="breadcrumb">
+			<ol class="text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm break-words sm:gap-2.5">
+				<li class="inline-flex items-center gap-1.5">
+					<a href="/" class="hover:text-foreground transition-colors">
+						Home
+					</a>
+				</li>
+				<li role="presentation" aria-hidden="true" class="[&>svg]:size-3.5">
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="m9 18 6-6-6-6"/>
+					</svg>
+				</li>
+				<li class="inline-flex items-center gap-1.5">
+					<span class="text-foreground font-normal" role="link" aria-disabled="true" aria-current="page">
+						About
+					</span>
+				</li>
+			</ol>
+		</nav>
+	</div>
+	<div class="content-area">
+		<h1>About</h1>
+		<br />
+
+		<div class="prose prose-neutral max-w-none space-y-6">
+			<section>
+				<h2 class="text-xl font-semibold mb-3">About SPDW</h2>
+				<p class="text-muted-foreground leading-relaxed">
+					SPDW is a statistics and data analysis site.
+				</p>
+			</section>
+
+			<section>
+				<h2 class="text-xl font-semibold mb-3">Open Source</h2>
+				<p class="text-muted-foreground leading-relaxed">
+					This project is fully open source, the complete source code is available
+					on <a
+						href="https://github.com/resheku/spdw-site"
+						class="about-link"
+						target="_blank"
+						rel="noopener noreferrer"
+					>
+						GitHub.
+					</a>
+				</p>
+			</section>
+
+			<section>
+				<h2 class="text-xl font-semibold mb-3">Purpose and Disclaimer</h2>
+
+				<div class="bg-muted/50 rounded-lg p-6 space-y-4">
+					<div>
+						<h3 class="font-medium mb-2">Educational and Research Purpose</h3>
+						<p class="text-muted-foreground text-sm leading-relaxed">
+							This site is created and maintained exclusively for learning and research purposes.
+							It serves as an educational platform for data analysis, web development, and
+							statistical visualization techniques.
+						</p>
+					</div>
+
+					<div>
+						<h3 class="font-medium mb-2">Data Rights and Ownership</h3>
+						<p class="text-muted-foreground text-sm leading-relaxed">
+							All data collected and presented on this site belongs to its respective owners.
+							This platform exists solely for educational and informational value.
+							We do not claim any rights to the data presented on this site. All copyrights,
+							trademarks, and intellectual property rights mentioned in or related to this data
+							remain with their respective owners.
+						</p>
+					</div>
+
+					<div>
+						<h3 class="font-medium mb-2">Data Collection and Fair Use</h3>
+						<p class="text-muted-foreground text-sm leading-relaxed">
+							All data is collected from publicly available sources in a responsible manner,
+							following fair use principles. We respect the terms of service of source websites
+							and follow responsible data collection practices.
+						</p>
+					</div>
+
+					<div>
+						<h3 class="font-medium mb-2">Accuracy and Reliability</h3>
+						<p class="text-muted-foreground text-sm leading-relaxed">
+							While we strive to present accurate information, we make no guarantees about the
+							completeness, accuracy, or timeliness of the data.
+						</p>
+					</div>
+				</div>
+			</section>
+
+			<section>
+				<h2 class="text-xl font-semibold mb-3">Contact and Contributions</h2>
+				<p class="text-muted-foreground leading-relaxed">
+					If you notice any issues with the data, have suggestions for improvements, or would
+					like to contribute to the project, please feel free to open an issue or submit a
+					pull request on our GitHub repository.
+				</p>
+			</section>
+		</div>
+	</div>
+</Layout>

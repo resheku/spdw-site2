@@ -1,0 +1,464 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+export const prerender = false;
+
+// Read URL params for initial state
+const urlParams = Astro.url.searchParams;
+const initialSearch = urlParams.get('search') || '';
+const initialTeam = urlParams.get('team') || '';
+const initialLeague = urlParams.get('league') || '';
+const initialSeason = urlParams.get('season') || '';
+const initialSortColumn = urlParams.get('sortColumn') || '';
+const initialSortDirection = urlParams.get('sortDirection') || '';
+
+// Fetch initial data from API endpoints with URL params
+let stats: any[] = [];
+let teams: string[] = [];
+let leagues: string[] = [];
+let seasons: number[] = [];
+let error: string | null = null;
+
+try {
+	// Build stats URL with query params
+	const statsUrl = new URL('/api/sel/stats', Astro.url);
+	if (initialSearch) statsUrl.searchParams.set('search', initialSearch);
+	if (initialTeam) statsUrl.searchParams.set('team', initialTeam);
+	if (initialLeague) statsUrl.searchParams.set('league', initialLeague);
+	if (initialSeason) statsUrl.searchParams.set('season', initialSeason);
+	if (initialSortColumn) statsUrl.searchParams.set('sortColumn', initialSortColumn);
+	if (initialSortDirection) statsUrl.searchParams.set('sortDirection', initialSortDirection);
+
+	// Fetch stats and filter options in parallel
+	const [statsResponse, filtersResponse] = await Promise.all([
+		fetch(statsUrl.toString()),
+		fetch(new URL('/api/sel/stats/filters', Astro.url).toString())
+	]);
+	
+	if (statsResponse.ok && filtersResponse.ok) {
+		const statsData = await statsResponse.json();
+		const filtersData = await filtersResponse.json();
+		
+		stats = statsData.stats || [];
+		teams = filtersData.teams || [];
+		leagues = filtersData.leagues || [];
+		seasons = filtersData.seasons || [];
+	} else {
+		error = 'Failed to load stats';
+	}
+} catch (err) {
+	console.error('Error fetching stats:', err);
+	error = 'Failed to load stats';
+}
+---
+
+<Layout title="SEL Stats - spdw">
+	<div class="p-4">
+		<nav aria-label="breadcrumb">
+			<ol class="text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm break-words sm:gap-2.5">
+				<li class="inline-flex items-center gap-1.5">
+					<a href="/" class="hover:text-foreground transition-colors">
+						Home
+					</a>
+				</li>
+				<li role="presentation" aria-hidden="true" class="[&>svg]:size-3.5">
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="m9 18 6-6-6-6"/>
+					</svg>
+				</li>
+				<li class="inline-flex items-center gap-1.5">
+					<a href="/sel" class="hover:text-foreground transition-colors">
+						sel
+					</a>
+				</li>
+				<li role="presentation" aria-hidden="true" class="[&>svg]:size-3.5">
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="m9 18 6-6-6-6"/>
+					</svg>
+				</li>
+				<li class="inline-flex items-center gap-1.5">
+					<span class="text-foreground font-normal" role="link" aria-disabled="true" aria-current="page">
+						stats
+					</span>
+				</li>
+			</ol>
+		</nav>
+	</div>
+	<div class="px-4 pb-8 max-w-full">
+		<h1 class="text-2xl font-bold mb-6">SEL Stats</h1>
+		
+		<!-- Controls -->
+		<div class="mb-4 flex flex-wrap gap-3">
+			<!-- Search -->
+			<div class="flex-1 min-w-[200px]">
+				<input 
+					type="text" 
+					id="searchInput" 
+					placeholder="Search by name..."
+					value={initialSearch}
+					class="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-muted"
+				/>
+			</div>
+			
+			<!-- Team Filter -->
+			<div class="min-w-[150px]">
+				<select 
+					id="teamFilter" 
+					class="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-muted"
+				>
+					<option value="">All Teams</option>
+					{teams.map(team => <option value={team} selected={team === initialTeam}>{team}</option>)}
+				</select>
+			</div>
+			
+			<!-- League Filter -->
+			<div class="min-w-[150px]">
+				<select 
+					id="leagueFilter" 
+					class="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-muted"
+				>
+					<option value="">All Leagues</option>
+					{leagues.map(league => <option value={league} selected={league === initialLeague}>{league}</option>)}
+				</select>
+			</div>
+			
+			<!-- Season Filter -->
+			<div class="min-w-[150px]">
+				<select 
+					id="seasonFilter" 
+					class="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-muted"
+				>
+					<option value="">All Seasons</option>
+					{seasons.map(season => <option value={season} selected={season.toString() === initialSeason}>{season}</option>)}
+				</select>
+			</div>
+		</div>
+
+		<!-- Results Count -->
+		<div class="mb-2 text-sm text-muted-foreground">
+			Showing <span id="resultCount">{stats.length}</span> of {stats.length} results
+		</div>
+
+		<!-- Table Container -->
+		<div class="overflow-x-auto border border-border rounded-lg">
+			<table class="w-full text-sm" id="statsTable">
+				<thead class="bg-muted sticky top-0">
+					<tr>
+						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80" data-column="Season">
+							Season <span class="sort-indicator"></span>
+						</th>
+						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80 min-w-[150px]" data-column="Name">
+							Name <span class="sort-indicator"></span>
+						</th>
+						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80" data-column="Team">
+							Team <span class="sort-indicator"></span>
+						</th>
+						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Average">
+							Avg. <span class="sort-indicator"></span>
+						</th>
+						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Match">
+							M <span class="sort-indicator"></span>
+						</th>
+						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Heats">
+							H <span class="sort-indicator"></span>
+						</th>
+						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Points">
+							Pts <span class="sort-indicator"></span>
+						</th>
+						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Bonus">
+							Bon <span class="sort-indicator"></span>
+						</th>
+						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Home Avg.">
+							H Avg. <span class="sort-indicator"></span>
+						</th>
+						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Away Avg.">
+							A Avg. <span class="sort-indicator"></span>
+						</th>
+						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="I">
+							I <span class="sort-indicator"></span>
+						</th>
+						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="II">
+							II <span class="sort-indicator"></span>
+						</th>
+						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="III">
+							III <span class="sort-indicator"></span>
+						</th>
+						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="IV">
+							IV <span class="sort-indicator"></span>
+						</th>
+						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="R">
+							R <span class="sort-indicator"></span>
+						</th>
+						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="T">
+							T <span class="sort-indicator"></span>
+						</th>
+						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="M">
+							M <span class="sort-indicator"></span>
+						</th>
+						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="X">
+							X <span class="sort-indicator"></span>
+						</th>
+						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="F">
+							F <span class="sort-indicator"></span>
+						</th>
+						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Warn">
+							W <span class="sort-indicator"></span>
+						</th>
+						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Max Speed">
+							Max Spd <span class="sort-indicator"></span>
+						</th>
+						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80" data-column="League">
+							League <span class="sort-indicator"></span>
+						</th>
+					</tr>
+				</thead>
+				<tbody id="statsBody">
+					{stats.map((stat) => (
+						<tr class="border-t border-border hover:bg-muted/50">
+							<td class="px-3 py-2">{stat.Season}</td>
+							<td class="px-3 py-2 font-medium">{stat.Name}</td>
+							<td class="px-3 py-2">{stat.Team}</td>
+							<td class="px-3 py-2 text-right">{stat.Average?.toFixed(2) || '-'}</td>
+							<td class="px-3 py-2 text-right">{stat.Match || 0}</td>
+							<td class="px-3 py-2 text-right">{stat.Heats || 0}</td>
+							<td class="px-3 py-2 text-right">{stat.Points || 0}</td>
+							<td class="px-3 py-2 text-right">{stat.Bonus || 0}</td>
+							<td class="px-3 py-2 text-right">{stat['Home Avg.']?.toFixed(2) || '-'}</td>
+							<td class="px-3 py-2 text-right">{stat['Away Avg.']?.toFixed(2) || '-'}</td>
+							<td class="px-3 py-2 text-right">{stat.I || 0}</td>
+							<td class="px-3 py-2 text-right">{stat.II || 0}</td>
+							<td class="px-3 py-2 text-right">{stat.III || 0}</td>
+							<td class="px-3 py-2 text-right">{stat.IV || 0}</td>
+							<td class="px-3 py-2 text-right">{stat.R || 0}</td>
+							<td class="px-3 py-2 text-right">{stat.T || 0}</td>
+							<td class="px-3 py-2 text-right">{stat.M || 0}</td>
+							<td class="px-3 py-2 text-right">{stat.X || 0}</td>
+							<td class="px-3 py-2 text-right">{stat.F || 0}</td>
+							<td class="px-3 py-2 text-right">{stat.Warn || 0}</td>
+							<td class="px-3 py-2 text-right">{stat['Max Speed']?.toFixed(1) || '-'}</td>
+							<td class="px-3 py-2">{stat.League}</td>
+						</tr>
+					))}
+				</tbody>
+			</table>
+		</div>
+
+		{error && (
+			<div class="mt-4 p-4 bg-muted rounded-md text-muted-foreground">
+				<p>{error}</p>
+			</div>
+		)}
+	</div>
+</Layout>
+
+<script>
+	// Current filter and sort state
+	let currentFilters = {
+		search: '',
+		team: '',
+		league: '',
+		season: '',
+		sortColumn: '',
+		sortDirection: ''
+	};
+	let debounceTimer: number;
+	let isLoading = false;
+
+	// Initialize from URL params
+	function initializeFromURL() {
+		const urlParams = new URLSearchParams(window.location.search);
+		currentFilters.search = urlParams.get('search') || '';
+		currentFilters.team = urlParams.get('team') || '';
+		currentFilters.league = urlParams.get('league') || '';
+		currentFilters.season = urlParams.get('season') || '';
+		currentFilters.sortColumn = urlParams.get('sortColumn') || '';
+		currentFilters.sortDirection = urlParams.get('sortDirection') || '';
+
+		// Update sort indicators if sorting is active
+		if (currentFilters.sortColumn) {
+			updateSortIndicators();
+		}
+	}
+
+	// Update URL with current filter state
+	function updateURL() {
+		const params = new URLSearchParams();
+		if (currentFilters.search) params.set('search', currentFilters.search);
+		if (currentFilters.team) params.set('team', currentFilters.team);
+		if (currentFilters.league) params.set('league', currentFilters.league);
+		if (currentFilters.season) params.set('season', currentFilters.season);
+		if (currentFilters.sortColumn) params.set('sortColumn', currentFilters.sortColumn);
+		if (currentFilters.sortDirection) params.set('sortDirection', currentFilters.sortDirection);
+
+		const newURL = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;
+		window.history.pushState({}, '', newURL);
+	}
+
+	// Initialize
+	document.addEventListener('DOMContentLoaded', () => {
+		// Initialize state from URL
+		initializeFromURL();
+
+		// Setup search with debounce
+		const searchInput = document.getElementById('searchInput') as HTMLInputElement;
+		searchInput?.addEventListener('input', (e) => {
+			clearTimeout(debounceTimer);
+			debounceTimer = setTimeout(() => {
+				currentFilters.search = (e.target as HTMLInputElement).value;
+				updateURL();
+				fetchStats();
+			}, 300);
+		});
+
+		// Setup filters
+		const teamFilter = document.getElementById('teamFilter') as HTMLSelectElement;
+		const leagueFilter = document.getElementById('leagueFilter') as HTMLSelectElement;
+		const seasonFilter = document.getElementById('seasonFilter') as HTMLSelectElement;
+		
+		teamFilter?.addEventListener('change', (e) => {
+			currentFilters.team = (e.target as HTMLSelectElement).value;
+			updateURL();
+			fetchStats();
+		});
+		leagueFilter?.addEventListener('change', (e) => {
+			currentFilters.league = (e.target as HTMLSelectElement).value;
+			updateURL();
+			fetchStats();
+		});
+		seasonFilter?.addEventListener('change', (e) => {
+			currentFilters.season = (e.target as HTMLSelectElement).value;
+			updateURL();
+			fetchStats();
+		});
+
+		// Setup sorting
+		const sortableHeaders = document.querySelectorAll('.sortable');
+		sortableHeaders.forEach(header => {
+			header.addEventListener('click', handleSort);
+		});
+	});
+
+	async function fetchStats() {
+		if (isLoading) return;
+		isLoading = true;
+
+		// Build query string
+		const params = new URLSearchParams();
+		if (currentFilters.search) params.set('search', currentFilters.search);
+		if (currentFilters.team) params.set('team', currentFilters.team);
+		if (currentFilters.league) params.set('league', currentFilters.league);
+		if (currentFilters.season) params.set('season', currentFilters.season);
+		if (currentFilters.sortColumn) params.set('sortColumn', currentFilters.sortColumn);
+		if (currentFilters.sortDirection) params.set('sortDirection', currentFilters.sortDirection);
+
+		try {
+			const response = await fetch(`/api/sel/stats?${params.toString()}`);
+			if (!response.ok) {
+				throw new Error('Failed to fetch stats');
+			}
+
+			const data = await response.json();
+			updateTable(data.stats);
+			updateResultCount(data.totalCount);
+		} catch (error) {
+			console.error('Error fetching stats:', error);
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	function updateTable(stats: any[]) {
+		const tbody = document.getElementById('statsBody');
+		if (!tbody) return;
+
+		// Clear existing rows
+		tbody.innerHTML = '';
+
+		// Add new rows
+		stats.forEach((stat: any) => {
+			const row = document.createElement('tr');
+			row.className = 'border-t border-border hover:bg-muted/50';
+			row.innerHTML = `
+				<td class="px-3 py-2">${stat.Season || ''}</td>
+				<td class="px-3 py-2 font-medium">${stat.Name || ''}</td>
+				<td class="px-3 py-2">${stat.Team || ''}</td>
+				<td class="px-3 py-2 text-right">${stat.Average ? stat.Average.toFixed(2) : '-'}</td>
+				<td class="px-3 py-2 text-right">${stat.Match || 0}</td>
+				<td class="px-3 py-2 text-right">${stat.Heats || 0}</td>
+				<td class="px-3 py-2 text-right">${stat.Points || 0}</td>
+				<td class="px-3 py-2 text-right">${stat.Bonus || 0}</td>
+				<td class="px-3 py-2 text-right">${stat['Home Avg.'] ? stat['Home Avg.'].toFixed(2) : '-'}</td>
+				<td class="px-3 py-2 text-right">${stat['Away Avg.'] ? stat['Away Avg.'].toFixed(2) : '-'}</td>
+				<td class="px-3 py-2 text-right">${stat.I || 0}</td>
+				<td class="px-3 py-2 text-right">${stat.II || 0}</td>
+				<td class="px-3 py-2 text-right">${stat.III || 0}</td>
+				<td class="px-3 py-2 text-right">${stat.IV || 0}</td>
+				<td class="px-3 py-2 text-right">${stat.R || 0}</td>
+				<td class="px-3 py-2 text-right">${stat.T || 0}</td>
+				<td class="px-3 py-2 text-right">${stat.M || 0}</td>
+				<td class="px-3 py-2 text-right">${stat.X || 0}</td>
+				<td class="px-3 py-2 text-right">${stat.F || 0}</td>
+				<td class="px-3 py-2 text-right">${stat.Warn || 0}</td>
+				<td class="px-3 py-2 text-right">${stat['Max Speed'] ? stat['Max Speed'].toFixed(1) : '-'}</td>
+				<td class="px-3 py-2">${stat.League || ''}</td>
+			`;
+			tbody.appendChild(row);
+		});
+	}
+
+	function updateResultCount(count: number) {
+		const resultCount = document.getElementById('resultCount');
+		if (resultCount) {
+			resultCount.textContent = count.toString();
+		}
+	}
+
+	function updateSortIndicators() {
+		// Clear all indicators
+		document.querySelectorAll('.sort-indicator').forEach(indicator => {
+			indicator.textContent = '';
+		});
+
+		// Set active indicator
+		if (currentFilters.sortColumn) {
+			const header = document.querySelector(`[data-column="${currentFilters.sortColumn}"]`);
+			const indicator = header?.querySelector('.sort-indicator');
+			if (indicator) {
+				indicator.textContent = currentFilters.sortDirection === 'desc' ? ' ▼' : ' ▲';
+			}
+		}
+	}
+
+	function handleSort(event: Event) {
+		const header = event.currentTarget as HTMLElement;
+		const column = header.dataset.column;
+		if (!column) return;
+
+		// Toggle sort direction: none -> desc -> asc -> none
+		if (currentFilters.sortColumn === column) {
+			if (currentFilters.sortDirection === 'desc') {
+				currentFilters.sortDirection = 'asc';
+			} else if (currentFilters.sortDirection === 'asc') {
+				currentFilters.sortColumn = '';
+				currentFilters.sortDirection = '';
+			}
+		} else {
+			currentFilters.sortColumn = column;
+			currentFilters.sortDirection = 'desc';
+		}
+
+		updateSortIndicators();
+		updateURL();
+		fetchStats();
+	}
+</script>
+
+<style>
+	.sort-indicator {
+		display: inline-block;
+		width: 1em;
+		text-align: center;
+		font-size: 0.75em;
+		opacity: 0.7;
+	}
+</style>

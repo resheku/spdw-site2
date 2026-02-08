@@ -33,8 +33,9 @@ export const GET: APIRoute = async ({ locals, url }) => {
 		}
 
 		if (teams.length > 0) {
-			query += ` AND Team IN (${teams.map(() => '?').join(', ')})`;
-			params.push(...teams);
+			const teamConditions = teams.map(() => 'Team LIKE ?').join(' OR ');
+			query += ` AND (${teamConditions})`;
+			params.push(...teams.map(t => `%${t}%`));
 		}
 
 		if (leagues.length > 0) {

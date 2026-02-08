@@ -592,9 +592,12 @@ try {
 	function filterAndSortClientSide(sourceData: any[]) {
 		let filteredData = [...sourceData];
 
-		// Apply team filter (client-side)
+		// Apply team filter (client-side) - handle split teams like TAR/GOR
 		if (currentFilters.teams.length > 0) {
-			filteredData = filteredData.filter(stat => currentFilters.teams.includes(stat.Team));
+			filteredData = filteredData.filter(stat => {
+				const teamParts = stat.Team.split('/').map((t: string) => t.trim());
+				return teamParts.some((team: string) => currentFilters.teams.includes(team));
+			});
 		}
 
 		// Apply league filter (client-side)

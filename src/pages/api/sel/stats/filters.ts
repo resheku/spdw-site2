@@ -36,55 +36,68 @@ export const GET: APIRoute = async ({ locals }) => {
 
 		// Process all rows to build mappings
 		rows.forEach((row: any) => {
-			const team = row.Team;
+			const teamValue = row.Team;
 			const league = row.League;
 			const season = row.Season;
 
-			if (!team || !league || !season) return;
+			if (!teamValue || !league || !season) return;
 
-			allTeams.add(team);
+			// Split combined team values (e.g., "TAR/GOR" becomes ["TAR", "GOR"])
+			const individualTeams = teamValue.split('/').map((t: string) => t.trim());
+			
+			individualTeams.forEach((team: string) => {
+				allTeams.add(team);
+				
+				// By Team
+				if (!byTeam[team]) {
+					byTeam[team] = { seasons: new Set(), leagues: new Set() };
+				}
+				byTeam[team].seasons.add(season);
+				byTeam[team].leagues.add(league);
+
+				// Combinations
+				const teamSeasonKey = `${team}:${season}`;
+				if (!teamSeasonToLeagues[teamSeasonKey]) {
+					teamSeasonToLeagues[teamSeasonKey] = new Set();
+				}
+				teamSeasonToLeagues[teamSeasonKey].add(league);
+
+				const teamLeagueKey = `${team}:${league}`;
+				if (!teamLeagueToSeasons[teamLeagueKey]) {
+					teamLeagueToSeasons[teamLeagueKey] = new Set();
+				}
+				teamLeagueToSeasons[teamLeagueKey].add(season);
+			});
+
 			allLeagues.add(league);
 			allSeasons.add(season);
 
-			// By Team
-			if (!byTeam[team]) {
-				byTeam[team] = { seasons: new Set(), leagues: new Set() };
-			}
-			byTeam[team].seasons.add(season);
-			byTeam[team].leagues.add(league);
-
-			// By Season
+			// By Season - add individual teams to season mapping
 			if (!bySeason[season]) {
 				bySeason[season] = { teams: new Set(), leagues: new Set() };
 			}
-			bySeason[season].teams.add(team);
+			individualTeams.forEach((team: string) => {
+				bySeason[season].teams.add(team);
+			});
 			bySeason[season].leagues.add(league);
 
-			// By League
+			// By League - add individual teams to league mapping
 			if (!byLeague[league]) {
 				byLeague[league] = { teams: new Set(), seasons: new Set() };
 			}
-			byLeague[league].teams.add(team);
+			individualTeams.forEach((team: string) => {
+				byLeague[league].teams.add(team);
+			});
 			byLeague[league].seasons.add(season);
 
-			// Combinations
-			const teamSeasonKey = `${team}:${season}`;
-			if (!teamSeasonToLeagues[teamSeasonKey]) {
-				teamSeasonToLeagues[teamSeasonKey] = new Set();
-			}
-			teamSeasonToLeagues[teamSeasonKey].add(league);
-
-			const teamLeagueKey = `${team}:${league}`;
-			if (!teamLeagueToSeasons[teamLeagueKey]) {
-				teamLeagueToSeasons[teamLeagueKey] = new Set();
-			}
-			teamLeagueToSeasons[teamLeagueKey].add(season);
-
+			// Season+League combinations
 			const seasonLeagueKey = `${season}:${league}`;
 			if (!seasonLeagueToTeams[seasonLeagueKey]) {
 				seasonLeagueToTeams[seasonLeagueKey] = new Set();
 			}
-			seasonLeagueToTeams[seasonLeagueKey].add(team);
+			individualTeams.forEach((team: string) => {
+				seasonLeagueToTeams[seasonLeagueKey].add(team);
+			});
 		});
 
 		// Convert Sets to sorted arrays

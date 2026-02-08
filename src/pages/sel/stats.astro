@@ -144,87 +144,65 @@ try {
 			<table class="w-full text-sm" id="statsTable">
 				<thead class="bg-muted sticky top-0">
 					<tr>
-						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80" data-column="Season">
-							Season <span class="sort-indicator"></span>
+						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80" data-column="Season">Season<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80 min-w-[150px]" data-column="Name">
-							Name <span class="sort-indicator"></span>
+						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80 min-w-[150px]" data-column="Name">Name<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80" data-column="Team">
-							Team <span class="sort-indicator"></span>
+						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80" data-column="Team">Team<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Average">
-							Avg. <span class="sort-indicator"></span>
+						<th class="sortable px-1 py-2 text-center font-medium cursor-pointer hover:bg-muted/80" data-column="Average">Average<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Match">
-							M <span class="sort-indicator"></span>
+						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Match">M<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Heats">
-							H <span class="sort-indicator"></span>
+						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Heats">H<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Points">
-							Pts <span class="sort-indicator"></span>
+						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Points">Pts<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Bonus">
-							Bon <span class="sort-indicator"></span>
+						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Bonus">Bon<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Home Avg.">
-							H Avg. <span class="sort-indicator"></span>
+						<th class="sortable px-1 py-2 text-center font-medium cursor-pointer hover:bg-muted/80" data-column="Home Avg.">Home<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Away Avg.">
-							A Avg. <span class="sort-indicator"></span>
+						<th class="sortable px-1 py-2 text-center font-medium cursor-pointer hover:bg-muted/80" data-column="Away Avg.">Away<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="I">
-							I <span class="sort-indicator"></span>
+						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="I"> I <span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="II">
-							II <span class="sort-indicator"></span>
+						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="II"> II <span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="III">
-							III <span class="sort-indicator"></span>
+						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="III">III<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="IV">
-							IV <span class="sort-indicator"></span>
+						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="IV">IV <span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="R">
-							R <span class="sort-indicator"></span>
+						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="R">R <span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="T">
-							T <span class="sort-indicator"></span>
+						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="T">T<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="M">
-							M <span class="sort-indicator"></span>
+						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="M">M<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="X">
-							X <span class="sort-indicator"></span>
+						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="X">X<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="F">
-							F <span class="sort-indicator"></span>
+						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="F">F<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Warn">
-							W <span class="sort-indicator"></span>
+						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Warn">W<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Max Speed">
-							Max Spd <span class="sort-indicator"></span>
+						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Max Speed">Mx Speed<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80" data-column="League">
-							League <span class="sort-indicator"></span>
+						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80" data-column="League">League<span class="sort-indicator"></span>
 						</th>
 					</tr>
 				</thead>
 				<tbody id="statsBody">
 					{stats.map((stat) => (
 						<tr class="border-t border-border hover:bg-muted/50">
-							<td class="px-3 py-2">{stat.Season}</td>
-							<td class="px-3 py-2 font-medium">{stat.Name}</td>
-							<td class="px-3 py-2">{stat.Team}</td>
-							<td class="px-3 py-2 text-right">{stat.Average?.toFixed(2) || '-'}</td>
+							<td class="px-3 py-2 text-left">{stat.Season}</td>
+							<td class="px-3 py-2 text-left font-medium">{stat.Name}</td>
+							<td class="px-3 py-2 text-left">{stat.Team}</td>
+							<td class="px-3 py-2 text-left">{stat.Average?.toFixed(3) || '-'}</td>
 							<td class="px-3 py-2 text-right">{stat.Match || 0}</td>
 							<td class="px-3 py-2 text-right">{stat.Heats || 0}</td>
 							<td class="px-3 py-2 text-right">{stat.Points || 0}</td>
 							<td class="px-3 py-2 text-right">{stat.Bonus || 0}</td>
-							<td class="px-3 py-2 text-right">{stat['Home Avg.']?.toFixed(2) || '-'}</td>
-							<td class="px-3 py-2 text-right">{stat['Away Avg.']?.toFixed(2) || '-'}</td>
+							<td class="px-3 py-2 text-right">{stat['Home Avg.']?.toFixed(3) || '-'}</td>
+							<td class="px-3 py-2 text-right">{stat['Away Avg.']?.toFixed(3) || '-'}</td>
 							<td class="px-3 py-2 text-right">{stat.I || 0}</td>
 							<td class="px-3 py-2 text-right">{stat.II || 0}</td>
 							<td class="px-3 py-2 text-right">{stat.III || 0}</td>
@@ -235,8 +213,8 @@ try {
 							<td class="px-3 py-2 text-right">{stat.X || 0}</td>
 							<td class="px-3 py-2 text-right">{stat.F || 0}</td>
 							<td class="px-3 py-2 text-right">{stat.Warn || 0}</td>
-							<td class="px-3 py-2 text-right">{stat['Max Speed']?.toFixed(1) || '-'}</td>
-							<td class="px-3 py-2">{stat.League}</td>
+							<td class="px-3 py-2 text-right">{stat['Max Speed']?.toFixed(2) || '-'}</td>
+							<td class="px-3 py-2 text-left">{stat.League}</td>
 						</tr>
 					))}
 				</tbody>
@@ -379,16 +357,16 @@ try {
 			const row = document.createElement('tr');
 			row.className = 'border-t border-border hover:bg-muted/50';
 			row.innerHTML = `
-				<td class="px-3 py-2">${stat.Season || ''}</td>
-				<td class="px-3 py-2 font-medium">${stat.Name || ''}</td>
-				<td class="px-3 py-2">${stat.Team || ''}</td>
-				<td class="px-3 py-2 text-right">${stat.Average ? stat.Average.toFixed(2) : '-'}</td>
+				<td class="px-3 py-2 text-left">${stat.Season || ''}</td>
+				<td class="px-3 py-2 text-left font-medium">${stat.Name || ''}</td>
+				<td class="px-3 py-2 text-left">${stat.Team || ''}</td>
+				<td class="px-3 py-2 text-right">${stat.Average ? stat.Average.toFixed(3) : '-'}</td>
 				<td class="px-3 py-2 text-right">${stat.Match || 0}</td>
 				<td class="px-3 py-2 text-right">${stat.Heats || 0}</td>
 				<td class="px-3 py-2 text-right">${stat.Points || 0}</td>
 				<td class="px-3 py-2 text-right">${stat.Bonus || 0}</td>
-				<td class="px-3 py-2 text-right">${stat['Home Avg.'] ? stat['Home Avg.'].toFixed(2) : '-'}</td>
-				<td class="px-3 py-2 text-right">${stat['Away Avg.'] ? stat['Away Avg.'].toFixed(2) : '-'}</td>
+				<td class="px-3 py-2 text-right">${stat['Home Avg.'] ? stat['Home Avg.'].toFixed(3) : '-'}</td>
+				<td class="px-3 py-2 text-right">${stat['Away Avg.'] ? stat['Away Avg.'].toFixed(3) : '-'}</td>
 				<td class="px-3 py-2 text-right">${stat.I || 0}</td>
 				<td class="px-3 py-2 text-right">${stat.II || 0}</td>
 				<td class="px-3 py-2 text-right">${stat.III || 0}</td>
@@ -399,8 +377,8 @@ try {
 				<td class="px-3 py-2 text-right">${stat.X || 0}</td>
 				<td class="px-3 py-2 text-right">${stat.F || 0}</td>
 				<td class="px-3 py-2 text-right">${stat.Warn || 0}</td>
-				<td class="px-3 py-2 text-right">${stat['Max Speed'] ? stat['Max Speed'].toFixed(1) : '-'}</td>
-				<td class="px-3 py-2">${stat.League || ''}</td>
+				<td class="px-3 py-2 text-right">${stat['Max Speed'] ? stat['Max Speed'].toFixed(2) : '-'}</td>
+				<td class="px-3 py-2 text-left">${stat.League || ''}</td>
 			`;
 			tbody.appendChild(row);
 		});

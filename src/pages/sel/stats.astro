@@ -6,14 +6,15 @@ export const prerender = false;
 // Read URL params for initial state
 const urlParams = Astro.url.searchParams;
 const initialSearch = urlParams.get('search') || '';
-const initialTeam = urlParams.get('team') || '';
-const initialLeague = urlParams.get('league') || '';
-const initialSeason = urlParams.get('season') || '';
+const initialTeams = urlParams.get('team')?.split(',').filter(Boolean) || [];
+const initialLeagues = urlParams.get('league')?.split(',').filter(Boolean) || [];
+const initialSeasons = urlParams.get('season')?.split(',').filter(Boolean) || [];
 const initialSortColumn = urlParams.get('sortColumn') || '';
 const initialSortDirection = urlParams.get('sortDirection') || '';
 
 // Fetch initial data from API endpoints with URL params
 let stats: any[] = [];
+let filterMapping: any = null;
 let teams: string[] = [];
 let leagues: string[] = [];
 let seasons: number[] = [];
@@ -23,9 +24,9 @@ try {
 	// Build stats URL with query params
 	const statsUrl = new URL('/api/sel/stats', Astro.url);
 	if (initialSearch) statsUrl.searchParams.set('search', initialSearch);
-	if (initialTeam) statsUrl.searchParams.set('team', initialTeam);
-	if (initialLeague) statsUrl.searchParams.set('league', initialLeague);
-	if (initialSeason) statsUrl.searchParams.set('season', initialSeason);
+	if (initialTeams.length > 0) statsUrl.searchParams.set('team', initialTeams.join(','));
+	if (initialLeagues.length > 0) statsUrl.searchParams.set('league', initialLeagues.join(','));
+	if (initialSeasons.length > 0) statsUrl.searchParams.set('season', initialSeasons.join(','));
 	if (initialSortColumn) statsUrl.searchParams.set('sortColumn', initialSortColumn);
 	if (initialSortDirection) statsUrl.searchParams.set('sortDirection', initialSortDirection);
 
@@ -37,12 +38,12 @@ try {
 	
 	if (statsResponse.ok && filtersResponse.ok) {
 		const statsData = await statsResponse.json();
-		const filtersData = await filtersResponse.json();
+		filterMapping = await filtersResponse.json();
 		
 		stats = statsData.stats || [];
-		teams = filtersData.teams || [];
-		leagues = filtersData.leagues || [];
-		seasons = filtersData.seasons || [];
+		teams = filterMapping.all?.teams || [];
+		leagues = filterMapping.all?.leagues || [];
+		seasons = filterMapping.all?.seasons || [];
 	} else {
 		error = 'Failed to load stats';
 	}
@@ -101,36 +102,60 @@ try {
 			</div>
 			
 			<!-- Team Filter -->
-			<div class="min-w-[150px]">
-				<select 
-					id="teamFilter" 
-					class="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-muted"
+			<div class="min-w-[200px] relative">
+				<button 
+					id="teamFilterBtn" 
+					class="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-muted text-left flex justify-between items-center"
 				>
-					<option value="">All Teams</option>
-					{teams.map(team => <option value={team} selected={team === initialTeam}>{team}</option>)}
-				</select>
+					<span id="teamFilterLabel">Teams</span>
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+					</svg>
+				</button>
+				<div id="teamFilterDropdown" class="hidden absolute z-50 mt-1 w-full max-h-64 overflow-y-auto rounded-md border border-border bg-background shadow-lg">
+					<div class="sticky top-0 bg-background border-b border-border p-2">
+						<button id="teamClearBtn" class="text-sm px-3 py-2 rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 hover:text-red-700 active:bg-red-500/30 disabled:bg-muted/50 disabled:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150 w-full font-medium cursor-pointer" data-action="clear" data-filter="team" disabled>Clear Filter</button>
+					</div>
+					<div id="teamFilterOptions" class="p-2"></div>
+				</div>
 			</div>
 			
 			<!-- League Filter -->
-			<div class="min-w-[150px]">
-				<select 
-					id="leagueFilter" 
-					class="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-muted"
+			<div class="min-w-[200px] relative">
+				<button 
+					id="leagueFilterBtn" 
+					class="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-muted text-left flex justify-between items-center"
 				>
-					<option value="">All Leagues</option>
-					{leagues.map(league => <option value={league} selected={league === initialLeague}>{league}</option>)}
-				</select>
+					<span id="leagueFilterLabel">Leagues</span>
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+					</svg>
+				</button>
+				<div id="leagueFilterDropdown" class="hidden absolute z-50 mt-1 w-full max-h-64 overflow-y-auto rounded-md border border-border bg-background shadow-lg">
+					<div class="sticky top-0 bg-background border-b border-border p-2">
+						<button id="leagueClearBtn" class="text-sm px-3 py-2 rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 hover:text-red-700 active:bg-red-500/30 disabled:bg-muted/50 disabled:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150 w-full font-medium cursor-pointer" data-action="clear" data-filter="league" disabled>Clear Filter</button>
+					</div>
+					<div id="leagueFilterOptions" class="p-2"></div>
+				</div>
 			</div>
 			
 			<!-- Season Filter -->
-			<div class="min-w-[150px]">
-				<select 
-					id="seasonFilter" 
-					class="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-muted"
+			<div class="min-w-[200px] relative">
+				<button 
+					id="seasonFilterBtn" 
+					class="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-muted text-left flex justify-between items-center"
 				>
-					<option value="">All Seasons</option>
-					{seasons.map(season => <option value={season} selected={season.toString() === initialSeason}>{season}</option>)}
-				</select>
+					<span id="seasonFilterLabel">Seasons</span>
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+					</svg>
+				</button>
+				<div id="seasonFilterDropdown" class="hidden absolute z-50 mt-1 w-full max-h-64 overflow-y-auto rounded-md border border-border bg-background shadow-lg">
+					<div class="sticky top-0 bg-background border-b border-border p-2">
+						<button id="seasonClearBtn" class="text-sm px-3 py-2 rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 hover:text-red-700 active:bg-red-500/30 disabled:bg-muted/50 disabled:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150 w-full font-medium cursor-pointer" data-action="clear" data-filter="season" disabled>Clear Filter</button>
+					</div>
+					<div id="seasonFilterOptions" class="p-2"></div>
+				</div>
 			</div>
 		</div>
 
@@ -150,41 +175,41 @@ try {
 						</th>
 						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80" data-column="Team">Team<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-1 py-2 text-center font-medium cursor-pointer hover:bg-muted/80" data-column="Average">Average<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-center font-medium cursor-pointer hover:bg-muted/80" data-column="Average">Average<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Match">M<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Match">M<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Heats">H<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Heats">H<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Points">Pts<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Points">Pts<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Bonus">Bon<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Bonus">Bon<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-1 py-2 text-center font-medium cursor-pointer hover:bg-muted/80" data-column="Home Avg.">Home<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Home Avg.">Home<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-1 py-2 text-center font-medium cursor-pointer hover:bg-muted/80" data-column="Away Avg.">Away<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Away Avg.">Away<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="I"> I <span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="I">I<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="II"> II <span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="II">II<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="III">III<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="III">III<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="IV">IV <span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="IV">IV<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="R">R <span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="R">R<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="T">T<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="T">T<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="M">M<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="M">M<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="X">X<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="X">X<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="F">F<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="F">F<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Warn">W<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Warn">W<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-1 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Max Speed">Mx Speed<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Max Speed">Mx Speed<span class="sort-indicator"></span>
 						</th>
 						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80" data-column="League">League<span class="sort-indicator"></span>
 						</th>
@@ -229,9 +254,13 @@ try {
 	</div>
 
 	<!-- Pass initial data to client-side script -->
-	<script define:vars={{ initialStats: stats, initialHasAllData: !initialTeam && !initialLeague && !initialSeason }}>
+	<script define:vars={{ initialStats: stats, initialHasAllData: initialTeams.length === 0 && initialLeagues.length === 0 && initialSeasons.length === 0, filterMapping: filterMapping, initialTeams: initialTeams, initialLeagues: initialLeagues, initialSeasons: initialSeasons }}>
 		window.__INITIAL_STATS__ = initialStats;
 		window.__HAS_ALL_DATA__ = initialHasAllData;
+		window.__FILTER_MAPPING__ = filterMapping;
+		window.__INITIAL_TEAMS__ = initialTeams;
+		window.__INITIAL_LEAGUES__ = initialLeagues;
+		window.__INITIAL_SEASONS__ = initialSeasons;
 	</script>
 </Layout>
 
@@ -239,9 +268,9 @@ try {
 	// Current filter and sort state
 	let currentFilters = {
 		search: '',
-		team: '',
-		league: '',
-		season: '',
+		teams: [] as string[],
+		leagues: [] as string[],
+		seasons: [] as string[],
 		sortColumn: '',
 		sortDirection: ''
 	};
@@ -249,46 +278,159 @@ try {
 	let isLoading = false;
 
 	// Cache to store data for different filter combinations
-	// Key format: "team:league:season"
+	// Key format: "team1,team2:league1,league2:season1,season2"
 	const dataCache = new Map<string, any[]>();
 	let totalDataCount = 0;
 
+	// Get the filter mapping from the window
+	const filterMapping = (window as any).__FILTER_MAPPING__;
+
 	// Helper to create cache key from filters
-	function getCacheKey(team: string, league: string, season: string): string {
-		return `${team}:${league}:${season}`;
+	function getCacheKey(teams: string[], leagues: string[], seasons: string[]): string {
+		return `${teams.sort().join(',')}:${leagues.sort().join(',')}:${seasons.sort().join(',')}`;
+	}
+
+	// Update dropdown options based on current filter selections
+	function updateDropdownOptions() {
+		if (!filterMapping) return;
+
+		const currentTeams = currentFilters.teams;
+		const currentLeagues = currentFilters.leagues;
+		const currentSeasons = currentFilters.seasons;
+
+		// Always show all available options
+		const availableTeams = filterMapping.all?.teams || [];
+		const availableLeagues = filterMapping.all?.leagues || [];
+		const availableSeasons = filterMapping.all?.seasons || [];
+
+		// Render the options
+		renderFilterOptions('team', availableTeams, currentTeams);
+		renderFilterOptions('league', availableLeagues, currentLeagues);
+		renderFilterOptions('season', availableSeasons.map(String), currentSeasons);
+
+		// Update button labels
+		updateFilterButtonLabel('team', currentTeams);
+		updateFilterButtonLabel('league', currentLeagues);
+		updateFilterButtonLabel('season', currentSeasons);
+	}
+
+	// Render filter options with checkboxes and links
+	function renderFilterOptions(filterType: string, options: string[], selectedValues: string[]) {
+		const container = document.getElementById(`${filterType}FilterOptions`);
+		if (!container) return;
+
+		container.innerHTML = '';
+
+		options.forEach(option => {
+			const isChecked = selectedValues.includes(option);
+			
+			const itemDiv = document.createElement('div');
+			itemDiv.className = 'flex items-center gap-2 py-1 hover:bg-muted/50 rounded px-1';
+			
+			// Checkbox
+			const checkbox = document.createElement('input');
+			checkbox.type = 'checkbox';
+			checkbox.id = `${filterType}-${option}`;
+			checkbox.value = option;
+			checkbox.checked = isChecked;
+			checkbox.className = 'cursor-pointer';
+			checkbox.addEventListener('change', (e) => {
+				handleCheckboxChange(filterType, option, (e.target as HTMLInputElement).checked);
+			});
+			
+			// Link label
+			const link = document.createElement('a');
+			link.href = '#';
+			link.textContent = option;
+			link.className = 'flex-1 text-sm hover:underline cursor-pointer';
+			link.addEventListener('click', (e) => {
+				e.preventDefault();
+				handleLinkClick(filterType, option);
+			});
+			
+			itemDiv.appendChild(checkbox);
+			itemDiv.appendChild(link);
+			container.appendChild(itemDiv);
+		});
+	}
+
+	// Update filter button label to show selected count
+	function updateFilterButtonLabel(filterType: string, selectedValues: string[]) {
+		const label = document.getElementById(`${filterType}FilterLabel`);
+		if (!label) return;
+
+		const filterName = filterType.charAt(0).toUpperCase() + filterType.slice(1) + 's';
+		
+		if (selectedValues.length === 0) {
+			label.textContent = filterName;
+		} else if (selectedValues.length === 1) {
+			label.textContent = selectedValues[0];
+		} else {
+			label.textContent = `${filterName} (${selectedValues.length})`;
+		}
+		
+		// Update clear button state
+		const clearBtn = document.getElementById(`${filterType}ClearBtn`) as HTMLButtonElement;
+		if (clearBtn) {
+			clearBtn.disabled = selectedValues.length === 0;
+		}
+	}
+
+	// Handle checkbox change
+	function handleCheckboxChange(filterType: string, value: string, checked: boolean) {
+		const filterKey = `${filterType}s` as 'teams' | 'leagues' | 'seasons';
+		
+		if (checked) {
+			if (!currentFilters[filterKey].includes(value)) {
+				currentFilters[filterKey].push(value);
+			}
+		} else {
+			currentFilters[filterKey] = currentFilters[filterKey].filter(v => v !== value);
+		}
+		
+		updateFilterButtonLabel(filterType, currentFilters[filterKey]);
+		updateDropdownOptions();
+		updateURL();
+		applyFiltersAndSort();
+	}
+
+	// Handle link click (select only this item)
+	function handleLinkClick(filterType: string, value: string) {
+		const filterKey = `${filterType}s` as 'teams' | 'leagues' | 'seasons';
+		currentFilters[filterKey] = [value];
+		
+		// Close the dropdown
+		const dropdown = document.getElementById(`${filterType}FilterDropdown`);
+		if (dropdown) {
+			dropdown.classList.add('hidden');
+		}
+		
+		updateFilterButtonLabel(filterType, currentFilters[filterKey]);
+		updateDropdownOptions();
+		updateURL();
+		applyFiltersAndSort();
 	}
 
 	// Check if cached data is a superset of requested filters
 	// Returns the cached data if it contains all rows we need, null otherwise
 	function findSupersetInCache(): any[] | null {
+		// For multi-select, we need exact match or all data
 		const target = {
-			team: currentFilters.team,
-			league: currentFilters.league,
-			season: currentFilters.season
+			teams: currentFilters.teams,
+			leagues: currentFilters.leagues,
+			seasons: currentFilters.seasons
 		};
 
-		// Try to find the broadest cached dataset that contains what we need
-		// Priority: check progressively broader filter combinations
-		const candidateKeys = [
-			// Exact match
-			getCacheKey(target.team, target.league, target.season),
-			// One filter removed
-			getCacheKey('', target.league, target.season),
-			getCacheKey(target.team, '', target.season),
-			getCacheKey(target.team, target.league, ''),
-			// Two filters removed
-			getCacheKey('', '', target.season),
-			getCacheKey('', target.league, ''),
-			getCacheKey(target.team, '', ''),
-			// All data
-			getCacheKey('', '', '')
-		];
+		// Check for exact match
+		const exactKey = getCacheKey(target.teams, target.leagues, target.seasons);
+		if (dataCache.has(exactKey)) {
+			return dataCache.get(exactKey)!;
+		}
 
-		for (const key of candidateKeys) {
-			const cached = dataCache.get(key);
-			if (cached) {
-				return cached;
-			}
+		// Check if we have all data cached
+		const allDataKey = getCacheKey([], [], []);
+		if (dataCache.has(allDataKey)) {
+			return dataCache.get(allDataKey)!;
 		}
 
 		return null;
@@ -298,16 +440,19 @@ try {
 	function initializeFromURL() {
 		const urlParams = new URLSearchParams(window.location.search);
 		currentFilters.search = urlParams.get('search') || '';
-		currentFilters.team = urlParams.get('team') || '';
-		currentFilters.league = urlParams.get('league') || '';
-		currentFilters.season = urlParams.get('season') || '';
+		currentFilters.teams = urlParams.get('team')?.split(',').filter(Boolean) || [];
+		currentFilters.leagues = urlParams.get('league')?.split(',').filter(Boolean) || [];
+		currentFilters.seasons = urlParams.get('season')?.split(',').filter(Boolean) || [];
 		currentFilters.sortColumn = urlParams.get('sortColumn') || '';
 		currentFilters.sortDirection = urlParams.get('sortDirection') || '';
 
 		// Get initial data from window and cache it
 		if ((window as any).__INITIAL_STATS__) {
 			const initialData = (window as any).__INITIAL_STATS__;
-			const cacheKey = getCacheKey(currentFilters.team, currentFilters.league, currentFilters.season);
+			const initialTeams = (window as any).__INITIAL_TEAMS__ || [];
+			const initialLeagues = (window as any).__INITIAL_LEAGUES__ || [];
+			const initialSeasons = (window as any).__INITIAL_SEASONS__ || [];
+			const cacheKey = getCacheKey(initialTeams, initialLeagues, initialSeasons);
 			dataCache.set(cacheKey, initialData);
 			
 			// If we loaded all data, set totalDataCount
@@ -326,9 +471,9 @@ try {
 	function updateURL() {
 		const params = new URLSearchParams();
 		if (currentFilters.search) params.set('search', currentFilters.search);
-		if (currentFilters.team) params.set('team', currentFilters.team);
-		if (currentFilters.league) params.set('league', currentFilters.league);
-		if (currentFilters.season) params.set('season', currentFilters.season);
+		if (currentFilters.teams.length > 0) params.set('team', currentFilters.teams.join(','));
+		if (currentFilters.leagues.length > 0) params.set('league', currentFilters.leagues.join(','));
+		if (currentFilters.seasons.length > 0) params.set('season', currentFilters.seasons.join(','));
 		if (currentFilters.sortColumn) params.set('sortColumn', currentFilters.sortColumn);
 		if (currentFilters.sortDirection) params.set('sortDirection', currentFilters.sortDirection);
 
@@ -341,6 +486,9 @@ try {
 		// Initialize state from URL
 		initializeFromURL();
 
+		// Initialize dropdown options
+		updateDropdownOptions();
+
 		// Setup search with debounce
 		const searchInput = document.getElementById('searchInput') as HTMLInputElement;
 		searchInput?.addEventListener('input', (e) => {
@@ -352,25 +500,30 @@ try {
 			}, 300);
 		});
 
-		// Setup filters
-		const teamFilter = document.getElementById('teamFilter') as HTMLSelectElement;
-		const leagueFilter = document.getElementById('leagueFilter') as HTMLSelectElement;
-		const seasonFilter = document.getElementById('seasonFilter') as HTMLSelectElement;
-		
-		teamFilter?.addEventListener('change', (e) => {
-			currentFilters.team = (e.target as HTMLSelectElement).value;
-			updateURL();
-			applyFiltersAndSort();
+		// Setup filter dropdown toggles
+		const teamFilterBtn = document.getElementById('teamFilterBtn');
+		const leagueFilterBtn = document.getElementById('leagueFilterBtn');
+		const seasonFilterBtn = document.getElementById('seasonFilterBtn');
+
+		teamFilterBtn?.addEventListener('click', () => toggleDropdown('team'));
+		leagueFilterBtn?.addEventListener('click', () => toggleDropdown('league'));
+		seasonFilterBtn?.addEventListener('click', () => toggleDropdown('season'));
+
+		// Close dropdowns when clicking outside
+		document.addEventListener('click', (e) => {
+			const target = e.target as HTMLElement;
+			if (!target.closest('.relative')) {
+				closeAllDropdowns();
+			}
 		});
-		leagueFilter?.addEventListener('change', (e) => {
-			currentFilters.league = (e.target as HTMLSelectElement).value;
-			updateURL();
-			applyFiltersAndSort();
-		});
-		seasonFilter?.addEventListener('change', (e) => {
-			currentFilters.season = (e.target as HTMLSelectElement).value;
-			updateURL();
-			applyFiltersAndSort();
+
+		// Setup clear buttons
+		document.querySelectorAll('[data-action="clear"]').forEach(btn => {
+			btn.addEventListener('click', (e) => {
+				e.stopPropagation();
+				const filterType = (btn as HTMLElement).dataset.filter;
+				if (filterType) handleClear(filterType);
+			});
 		});
 
 		// Setup sorting
@@ -379,6 +532,49 @@ try {
 			header.addEventListener('click', handleSort);
 		});
 	});
+
+	// Toggle dropdown visibility
+	function toggleDropdown(filterType: string) {
+		const dropdown = document.getElementById(`${filterType}FilterDropdown`);
+		if (!dropdown) return;
+
+		const isHidden = dropdown.classList.contains('hidden');
+		
+		// Close all dropdowns first
+		closeAllDropdowns();
+		
+		// Toggle this dropdown
+		if (isHidden) {
+			dropdown.classList.remove('hidden');
+		}
+	}
+
+	// Close all dropdowns
+	function closeAllDropdowns() {
+		document.getElementById('teamFilterDropdown')?.classList.add('hidden');
+		document.getElementById('leagueFilterDropdown')?.classList.add('hidden');
+		document.getElementById('seasonFilterDropdown')?.classList.add('hidden');
+	}
+
+	// Handle clear (deselect all items)
+	function handleClear(filterType: string) {
+		const filterKey = `${filterType}s` as 'teams' | 'leagues' | 'seasons';
+		const container = document.getElementById(`${filterType}FilterOptions`);
+		if (!container) return;
+
+		// Get all checkboxes and uncheck them
+		const checkboxes = container.querySelectorAll('input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+		
+		checkboxes.forEach(checkbox => {
+			checkbox.checked = false;
+		});
+
+		currentFilters[filterKey] = [];
+		updateFilterButtonLabel(filterType, []);
+		updateDropdownOptions();
+		updateURL();
+		applyFiltersAndSort();
+	}
 
 	async function applyFiltersAndSort() {
 		// Check if we have cached data that contains what we need
@@ -397,19 +593,19 @@ try {
 		let filteredData = [...sourceData];
 
 		// Apply team filter (client-side)
-		if (currentFilters.team) {
-			filteredData = filteredData.filter(stat => stat.Team === currentFilters.team);
+		if (currentFilters.teams.length > 0) {
+			filteredData = filteredData.filter(stat => currentFilters.teams.includes(stat.Team));
 		}
 
 		// Apply league filter (client-side)
-		if (currentFilters.league) {
-			filteredData = filteredData.filter(stat => stat.League === currentFilters.league);
+		if (currentFilters.leagues.length > 0) {
+			filteredData = filteredData.filter(stat => currentFilters.leagues.includes(stat.League));
 		}
 
 		// Apply season filter (client-side)
-		if (currentFilters.season) {
+		if (currentFilters.seasons.length > 0) {
 			filteredData = filteredData.filter(stat => 
-				stat.Season === parseInt(currentFilters.season)
+				currentFilters.seasons.includes(stat.Season.toString())
 			);
 		}
 
@@ -458,9 +654,9 @@ try {
 
 		// Build query string (excluding search - that's client-side only)
 		const params = new URLSearchParams();
-		if (currentFilters.team) params.set('team', currentFilters.team);
-		if (currentFilters.league) params.set('league', currentFilters.league);
-		if (currentFilters.season) params.set('season', currentFilters.season);
+		if (currentFilters.teams.length > 0) params.set('team', currentFilters.teams.join(','));
+		if (currentFilters.leagues.length > 0) params.set('league', currentFilters.leagues.join(','));
+		if (currentFilters.seasons.length > 0) params.set('season', currentFilters.seasons.join(','));
 		// Note: We don't send search, sortColumn, sortDirection to API
 		// Those will be applied client-side
 
@@ -473,11 +669,11 @@ try {
 			const data = await response.json();
 			
 			// Cache the fetched data
-			const cacheKey = getCacheKey(currentFilters.team, currentFilters.league, currentFilters.season);
+			const cacheKey = getCacheKey(currentFilters.teams, currentFilters.leagues, currentFilters.seasons);
 			dataCache.set(cacheKey, data.stats);
 			
 			// If this is all data (no filters), update totalDataCount
-			if (!currentFilters.team && !currentFilters.league && !currentFilters.season) {
+			if (currentFilters.teams.length === 0 && currentFilters.leagues.length === 0 && currentFilters.seasons.length === 0) {
 				totalDataCount = data.stats.length;
 			}
 			
@@ -536,9 +732,9 @@ try {
 		}
 		
 		// Update total count for "X of Y" display
-		const allDataKey = getCacheKey('', '', '');
+		const allDataKey = getCacheKey([], [], []);
 		const hasAllData = dataCache.has(allDataKey);
-		const currentCacheKey = getCacheKey(currentFilters.team, currentFilters.league, currentFilters.season);
+		const currentCacheKey = getCacheKey(currentFilters.teams, currentFilters.leagues, currentFilters.seasons);
 		const currentData = dataCache.get(currentCacheKey);
 		const totalCount = currentData ? currentData.length : count;
 		

@@ -15,11 +15,11 @@ export const GET: APIRoute = async ({ locals, url }) => {
 	}
 
 	try {
-		// Get query parameters
+		// Get query parameters (comma-separated values for filters)
 		const search = url.searchParams.get('search')?.toLowerCase() || '';
-		const team = url.searchParams.get('team') || '';
-		const league = url.searchParams.get('league') || '';
-		const season = url.searchParams.get('season') || '';
+		const teams = url.searchParams.get('team')?.split(',').filter(Boolean) || [];
+		const leagues = url.searchParams.get('league')?.split(',').filter(Boolean) || [];
+		const seasons = url.searchParams.get('season')?.split(',').filter(Boolean) || [];
 		const sortColumn = url.searchParams.get('sortColumn') || '';
 		const sortDirection = url.searchParams.get('sortDirection') || 'desc';
 
@@ -32,19 +32,19 @@ export const GET: APIRoute = async ({ locals, url }) => {
 			params.push(`%${search}%`);
 		}
 
-		if (team) {
-			query += ' AND Team = ?';
-			params.push(team);
+		if (teams.length > 0) {
+			query += ` AND Team IN (${teams.map(() => '?').join(', ')})`;
+			params.push(...teams);
 		}
 
-		if (league) {
-			query += ' AND League = ?';
-			params.push(league);
+		if (leagues.length > 0) {
+			query += ` AND League IN (${leagues.map(() => '?').join(', ')})`;
+			params.push(...leagues);
 		}
 
-		if (season) {
-			query += ' AND Season = ?';
-			params.push(parseInt(season));
+		if (seasons.length > 0) {
+			query += ` AND Season IN (${seasons.map(() => '?').join(', ')})`;
+			params.push(...seasons.map(s => parseInt(s)));
 		}
 
 		// Add sorting

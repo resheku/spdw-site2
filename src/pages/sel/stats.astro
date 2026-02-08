@@ -112,7 +112,7 @@ try {
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
 					</svg>
 				</button>
-				<div id="teamFilterDropdown" class="hidden absolute z-50 mt-1 w-full max-h-64 overflow-y-auto rounded-md border border-border bg-background shadow-lg">
+				<div id="teamFilterDropdown" class="hidden absolute z-50 mt-1 w-full max-h-[75vh] overflow-y-auto rounded-md border border-border bg-background shadow-lg">
 					<div class="sticky top-0 bg-background border-b border-border p-2">
 						<button id="teamClearBtn" class="text-sm px-3 py-2 rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 hover:text-red-700 active:bg-red-500/30 disabled:bg-muted/50 disabled:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150 w-full font-medium cursor-pointer" data-action="clear" data-filter="team" disabled>Clear Filter</button>
 					</div>
@@ -131,7 +131,7 @@ try {
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
 					</svg>
 				</button>
-				<div id="leagueFilterDropdown" class="hidden absolute z-50 mt-1 w-full max-h-64 overflow-y-auto rounded-md border border-border bg-background shadow-lg">
+				<div id="leagueFilterDropdown" class="hidden absolute z-50 mt-1 w-full max-h-[70vh] overflow-y-auto rounded-md border border-border bg-background shadow-lg">
 					<div class="sticky top-0 bg-background border-b border-border p-2">
 						<button id="leagueClearBtn" class="text-sm px-3 py-2 rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 hover:text-red-700 active:bg-red-500/30 disabled:bg-muted/50 disabled:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150 w-full font-medium cursor-pointer" data-action="clear" data-filter="league" disabled>Clear Filter</button>
 					</div>
@@ -150,7 +150,7 @@ try {
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
 					</svg>
 				</button>
-				<div id="seasonFilterDropdown" class="hidden absolute z-50 mt-1 w-full max-h-64 overflow-y-auto rounded-md border border-border bg-background shadow-lg">
+				<div id="seasonFilterDropdown" class="hidden absolute z-50 mt-1 w-full max-h-[70vh] overflow-y-auto rounded-md border border-border bg-background shadow-lg">
 					<div class="sticky top-0 bg-background border-b border-border p-2">
 						<button id="seasonClearBtn" class="text-sm px-3 py-2 rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 hover:text-red-700 active:bg-red-500/30 disabled:bg-muted/50 disabled:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150 w-full font-medium cursor-pointer" data-action="clear" data-filter="season" disabled>Clear Filter</button>
 					</div>
@@ -303,10 +303,15 @@ try {
 		const availableLeagues = filterMapping.all?.leagues || [];
 		const availableSeasons = filterMapping.all?.seasons || [];
 
-		// Render the options
-		renderFilterOptions('team', availableTeams, currentTeams);
-		renderFilterOptions('league', availableLeagues, currentLeagues);
-		renderFilterOptions('season', availableSeasons.map(String), currentSeasons);
+		// Calculate valid options based on current selections
+		const validTeams = getValidOptions('team', currentLeagues, currentSeasons);
+		const validLeagues = getValidOptions('league', currentTeams, currentSeasons);
+		const validSeasons = getValidOptions('season', currentTeams, currentLeagues);
+
+		// Render the options with valid ones highlighted
+		renderFilterOptions('team', availableTeams, currentTeams, validTeams);
+		renderFilterOptions('league', availableLeagues, currentLeagues, validLeagues);
+		renderFilterOptions('season', availableSeasons.map(String), currentSeasons, validSeasons.map(String));
 
 		// Update button labels
 		updateFilterButtonLabel('team', currentTeams);
@@ -314,8 +319,108 @@ try {
 		updateFilterButtonLabel('season', currentSeasons);
 	}
 
+	// Get valid options for a filter based on other filter selections
+	function getValidOptions(targetFilter: string, otherFilter1: string[], otherFilter2: string[]): string[] {
+		if (!filterMapping) return [];
+
+		// If no filters are selected, all options are valid
+		if (otherFilter1.length === 0 && otherFilter2.length === 0) {
+			if (targetFilter === 'team') return filterMapping.all?.teams || [];
+			if (targetFilter === 'league') return filterMapping.all?.leagues || [];
+			if (targetFilter === 'season') return filterMapping.all?.seasons || [];
+			return [];
+		}
+
+		const validSet = new Set<string>();
+
+		if (targetFilter === 'team') {
+			// Calculate valid teams based on selected leagues and seasons
+			const leagues = otherFilter1; // currentLeagues
+			const seasons = otherFilter2; // currentSeasons
+
+			if (leagues.length === 0 && seasons.length > 0) {
+				// Only seasons selected - get teams from bySeason
+				seasons.forEach(season => {
+					const teams = filterMapping.bySeason?.[season]?.teams;
+					if (teams) teams.forEach(t => validSet.add(t));
+				});
+			} else if (leagues.length > 0 && seasons.length === 0) {
+				// Only leagues selected - get teams from byLeague
+				leagues.forEach(league => {
+					const teams = filterMapping.byLeague?.[league]?.teams;
+					if (teams) teams.forEach(t => validSet.add(t));
+				});
+			} else {
+				// Both selected - get intersection
+				seasons.forEach(season => {
+					leagues.forEach(league => {
+						const key = `${season}:${league}`;
+						const teams = filterMapping.combinations?.seasonLeague?.[key];
+						if (teams) teams.forEach(t => validSet.add(t));
+					});
+				});
+			}
+		} else if (targetFilter === 'league') {
+			// Calculate valid leagues based on selected teams and seasons
+			const teams = otherFilter1; // currentTeams
+			const seasons = otherFilter2; // currentSeasons
+
+			if (teams.length === 0 && seasons.length > 0) {
+				// Only seasons selected - get leagues from bySeason
+				seasons.forEach(season => {
+					const leagues = filterMapping.bySeason?.[season]?.leagues;
+					if (leagues) leagues.forEach(l => validSet.add(l));
+				});
+			} else if (teams.length > 0 && seasons.length === 0) {
+				// Only teams selected - get leagues from byTeam
+				teams.forEach(team => {
+					const leagues = filterMapping.byTeam?.[team]?.leagues;
+					if (leagues) leagues.forEach(l => validSet.add(l));
+				});
+			} else {
+				// Both selected - get intersection
+				teams.forEach(team => {
+					seasons.forEach(season => {
+						const key = `${team}:${season}`;
+						const leagues = filterMapping.combinations?.teamSeason?.[key];
+						if (leagues) leagues.forEach(l => validSet.add(l));
+					});
+				});
+			}
+		} else if (targetFilter === 'season') {
+			// Calculate valid seasons based on selected teams and leagues
+			const teams = otherFilter1; // currentTeams
+			const leagues = otherFilter2; // currentLeagues
+
+			if (teams.length === 0 && leagues.length > 0) {
+				// Only leagues selected - get seasons from byLeague
+				leagues.forEach(league => {
+					const seasons = filterMapping.byLeague?.[league]?.seasons;
+					if (seasons) seasons.forEach(s => validSet.add(s));
+				});
+			} else if (teams.length > 0 && leagues.length === 0) {
+				// Only teams selected - get seasons from byTeam
+				teams.forEach(team => {
+					const seasons = filterMapping.byTeam?.[team]?.seasons;
+					if (seasons) seasons.forEach(s => validSet.add(s));
+				});
+			} else {
+				// Both selected - get intersection
+				teams.forEach(team => {
+					leagues.forEach(league => {
+						const key = `${team}:${league}`;
+						const seasons = filterMapping.combinations?.teamLeague?.[key];
+						if (seasons) seasons.forEach(s => validSet.add(s));
+					});
+				});
+			}
+		}
+
+		return Array.from(validSet);
+	}
+
 	// Render filter options with checkboxes and links
-	function renderFilterOptions(filterType: string, options: string[], selectedValues: string[]) {
+	function renderFilterOptions(filterType: string, options: string[], selectedValues: string[], validOptions: string[]) {
 		const container = document.getElementById(`${filterType}FilterOptions`);
 		if (!container) return;
 
@@ -323,9 +428,10 @@ try {
 
 		options.forEach(option => {
 			const isChecked = selectedValues.includes(option);
+			const isValid = validOptions.includes(option);
 			
 			const itemDiv = document.createElement('div');
-			itemDiv.className = 'flex items-center gap-2 py-1 hover:bg-muted/50 rounded px-1';
+			itemDiv.className = `flex items-center gap-2 py-1 rounded px-1 ${isValid ? 'hover:bg-muted/50' : 'opacity-40'}`;
 			
 			// Checkbox
 			const checkbox = document.createElement('input');
@@ -333,7 +439,7 @@ try {
 			checkbox.id = `${filterType}-${option}`;
 			checkbox.value = option;
 			checkbox.checked = isChecked;
-			checkbox.className = 'cursor-pointer';
+			checkbox.className = isValid ? 'cursor-pointer' : 'cursor-not-allowed';
 			checkbox.addEventListener('change', (e) => {
 				handleCheckboxChange(filterType, option, (e.target as HTMLInputElement).checked);
 			});
@@ -342,10 +448,12 @@ try {
 			const link = document.createElement('a');
 			link.href = '#';
 			link.textContent = option;
-			link.className = 'flex-1 text-sm hover:underline cursor-pointer';
+			link.className = `flex-1 text-sm ${isValid ? 'hover:underline cursor-pointer' : 'cursor-not-allowed'}`;
 			link.addEventListener('click', (e) => {
 				e.preventDefault();
-				handleLinkClick(filterType, option);
+				if (isValid) {
+					handleLinkClick(filterType, option);
+				}
 			});
 			
 			itemDiv.appendChild(checkbox);
@@ -414,23 +522,40 @@ try {
 	// Check if cached data is a superset of requested filters
 	// Returns the cached data if it contains all rows we need, null otherwise
 	function findSupersetInCache(): any[] | null {
-		// For multi-select, we need exact match or all data
 		const target = {
 			teams: currentFilters.teams,
 			leagues: currentFilters.leagues,
 			seasons: currentFilters.seasons
 		};
 
-		// Check for exact match
+		// Check for exact match first
 		const exactKey = getCacheKey(target.teams, target.leagues, target.seasons);
 		if (dataCache.has(exactKey)) {
 			return dataCache.get(exactKey)!;
 		}
 
-		// Check if we have all data cached
-		const allDataKey = getCacheKey([], [], []);
-		if (dataCache.has(allDataKey)) {
-			return dataCache.get(allDataKey)!;
+		// Check all cached entries for a superset
+		for (const [key, data] of dataCache.entries()) {
+			// Parse the cache key to get cached filter values
+			const [teamsStr, leaguesStr, seasonsStr] = key.split(':');
+			const cachedTeams = teamsStr ? teamsStr.split(',') : [];
+			const cachedLeagues = leaguesStr ? leaguesStr.split(',') : [];
+			const cachedSeasons = seasonsStr ? seasonsStr.split(',') : [];
+
+			// Check if cached data is a superset of what we need
+			// Cached is superset if:
+			// - For each filter dimension, cached is either empty (all data) OR contains all target values
+			// - If target wants all data (empty), cached must also be all data (empty)
+			const isTeamSuperset = cachedTeams.length === 0 || 
+				(target.teams.length > 0 && target.teams.every(t => cachedTeams.includes(t)));
+			const isLeagueSuperset = cachedLeagues.length === 0 || 
+				(target.leagues.length > 0 && target.leagues.every(l => cachedLeagues.includes(l)));
+			const isSeasonSuperset = cachedSeasons.length === 0 || 
+				(target.seasons.length > 0 && target.seasons.every(s => cachedSeasons.includes(s)));
+
+			if (isTeamSuperset && isLeagueSuperset && isSeasonSuperset) {
+				return data;
+			}
 		}
 
 		return null;

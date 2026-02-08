@@ -227,6 +227,12 @@ try {
 			</div>
 		)}
 	</div>
+
+	<!-- Pass initial data to client-side script -->
+	<script define:vars={{ initialStats: stats, initialHasAllData: !initialTeam && !initialLeague && !initialSeason }}>
+		window.__INITIAL_STATS__ = initialStats;
+		window.__HAS_ALL_DATA__ = initialHasAllData;
+	</script>
 </Layout>
 
 <script>
@@ -242,6 +248,52 @@ try {
 	let debounceTimer: number;
 	let isLoading = false;
 
+	// Cache to store data for different filter combinations
+	// Key format: "team:league:season"
+	const dataCache = new Map<string, any[]>();
+	let totalDataCount = 0;
+
+	// Helper to create cache key from filters
+	function getCacheKey(team: string, league: string, season: string): string {
+		return `${team}:${league}:${season}`;
+	}
+
+	// Check if cached data is a superset of requested filters
+	// Returns the cached data if it contains all rows we need, null otherwise
+	function findSupersetInCache(): any[] | null {
+		const target = {
+			team: currentFilters.team,
+			league: currentFilters.league,
+			season: currentFilters.season
+		};
+
+		// Try to find the broadest cached dataset that contains what we need
+		// Priority: check progressively broader filter combinations
+		const candidateKeys = [
+			// Exact match
+			getCacheKey(target.team, target.league, target.season),
+			// One filter removed
+			getCacheKey('', target.league, target.season),
+			getCacheKey(target.team, '', target.season),
+			getCacheKey(target.team, target.league, ''),
+			// Two filters removed
+			getCacheKey('', '', target.season),
+			getCacheKey('', target.league, ''),
+			getCacheKey(target.team, '', ''),
+			// All data
+			getCacheKey('', '', '')
+		];
+
+		for (const key of candidateKeys) {
+			const cached = dataCache.get(key);
+			if (cached) {
+				return cached;
+			}
+		}
+
+		return null;
+	}
+
 	// Initialize from URL params
 	function initializeFromURL() {
 		const urlParams = new URLSearchParams(window.location.search);
@@ -251,6 +303,18 @@ try {
 		currentFilters.season = urlParams.get('season') || '';
 		currentFilters.sortColumn = urlParams.get('sortColumn') || '';
 		currentFilters.sortDirection = urlParams.get('sortDirection') || '';
+
+		// Get initial data from window and cache it
+		if ((window as any).__INITIAL_STATS__) {
+			const initialData = (window as any).__INITIAL_STATS__;
+			const cacheKey = getCacheKey(currentFilters.team, currentFilters.league, currentFilters.season);
+			dataCache.set(cacheKey, initialData);
+			
+			// If we loaded all data, set totalDataCount
+			if ((window as any).__HAS_ALL_DATA__) {
+				totalDataCount = initialData.length;
+			}
+		}
 
 		// Update sort indicators if sorting is active
 		if (currentFilters.sortColumn) {
@@ -284,7 +348,7 @@ try {
 			debounceTimer = setTimeout(() => {
 				currentFilters.search = (e.target as HTMLInputElement).value;
 				updateURL();
-				fetchStats();
+				applyFiltersAndSort();
 			}, 300);
 		});
 
@@ -296,17 +360,17 @@ try {
 		teamFilter?.addEventListener('change', (e) => {
 			currentFilters.team = (e.target as HTMLSelectElement).value;
 			updateURL();
-			fetchStats();
+			applyFiltersAndSort();
 		});
 		leagueFilter?.addEventListener('change', (e) => {
 			currentFilters.league = (e.target as HTMLSelectElement).value;
 			updateURL();
-			fetchStats();
+			applyFiltersAndSort();
 		});
 		seasonFilter?.addEventListener('change', (e) => {
 			currentFilters.season = (e.target as HTMLSelectElement).value;
 			updateURL();
-			fetchStats();
+			applyFiltersAndSort();
 		});
 
 		// Setup sorting
@@ -316,18 +380,89 @@ try {
 		});
 	});
 
+	async function applyFiltersAndSort() {
+		// Check if we have cached data that contains what we need
+		const cachedData = findSupersetInCache();
+
+		if (cachedData) {
+			// Use cached data - filter and sort client-side
+			filterAndSortClientSide(cachedData);
+		} else {
+			// Fetch from API and cache the result
+			await fetchStats();
+		}
+	}
+
+	function filterAndSortClientSide(sourceData: any[]) {
+		let filteredData = [...sourceData];
+
+		// Apply team filter (client-side)
+		if (currentFilters.team) {
+			filteredData = filteredData.filter(stat => stat.Team === currentFilters.team);
+		}
+
+		// Apply league filter (client-side)
+		if (currentFilters.league) {
+			filteredData = filteredData.filter(stat => stat.League === currentFilters.league);
+		}
+
+		// Apply season filter (client-side)
+		if (currentFilters.season) {
+			filteredData = filteredData.filter(stat => 
+				stat.Season === parseInt(currentFilters.season)
+			);
+		}
+
+		// Apply search filter (client-side)
+		if (currentFilters.search) {
+			const searchLower = currentFilters.search.toLowerCase();
+			filteredData = filteredData.filter(stat => 
+				stat.Name.toLowerCase().includes(searchLower)
+			);
+		}
+
+		// Apply sorting
+		if (currentFilters.sortColumn) {
+			const column = currentFilters.sortColumn;
+			const direction = currentFilters.sortDirection === 'asc' ? 1 : -1;
+
+			filteredData.sort((a: any, b: any) => {
+				let aVal = a[column];
+				let bVal = b[column];
+
+				// Handle null/undefined values - always put them at the bottom
+				if (aVal == null || aVal === '-' || aVal === '') {
+					return 1; // a goes to bottom
+				}
+				if (bVal == null || bVal === '-' || bVal === '') {
+					return -1; // b goes to bottom
+				}
+
+				// Compare values
+				if (typeof aVal === 'string') {
+					return direction * aVal.localeCompare(bVal);
+				} else {
+					return direction * (aVal - bVal);
+				}
+			});
+		}
+
+		// Update table with filtered/sorted data
+		updateTable(filteredData);
+		updateResultCount(filteredData.length);
+	}
+
 	async function fetchStats() {
 		if (isLoading) return;
 		isLoading = true;
 
-		// Build query string
+		// Build query string (excluding search - that's client-side only)
 		const params = new URLSearchParams();
-		if (currentFilters.search) params.set('search', currentFilters.search);
 		if (currentFilters.team) params.set('team', currentFilters.team);
 		if (currentFilters.league) params.set('league', currentFilters.league);
 		if (currentFilters.season) params.set('season', currentFilters.season);
-		if (currentFilters.sortColumn) params.set('sortColumn', currentFilters.sortColumn);
-		if (currentFilters.sortDirection) params.set('sortDirection', currentFilters.sortDirection);
+		// Note: We don't send search, sortColumn, sortDirection to API
+		// Those will be applied client-side
 
 		try {
 			const response = await fetch(`/api/sel/stats?${params.toString()}`);
@@ -336,8 +471,18 @@ try {
 			}
 
 			const data = await response.json();
-			updateTable(data.stats);
-			updateResultCount(data.totalCount);
+			
+			// Cache the fetched data
+			const cacheKey = getCacheKey(currentFilters.team, currentFilters.league, currentFilters.season);
+			dataCache.set(cacheKey, data.stats);
+			
+			// If this is all data (no filters), update totalDataCount
+			if (!currentFilters.team && !currentFilters.league && !currentFilters.season) {
+				totalDataCount = data.stats.length;
+			}
+			
+			// Now apply search and sort client-side
+			filterAndSortClientSide(data.stats);
 		} catch (error) {
 			console.error('Error fetching stats:', error);
 		} finally {
@@ -389,6 +534,18 @@ try {
 		if (resultCount) {
 			resultCount.textContent = count.toString();
 		}
+		
+		// Update total count for "X of Y" display
+		const allDataKey = getCacheKey('', '', '');
+		const hasAllData = dataCache.has(allDataKey);
+		const currentCacheKey = getCacheKey(currentFilters.team, currentFilters.league, currentFilters.season);
+		const currentData = dataCache.get(currentCacheKey);
+		const totalCount = currentData ? currentData.length : count;
+		
+		const totalElement = resultCount?.parentElement;
+		if (totalElement) {
+			totalElement.innerHTML = `Showing <span id="resultCount">${count}</span> of ${totalCount} results`;
+		}
 	}
 
 	function updateSortIndicators() {
@@ -427,7 +584,7 @@ try {
 
 		updateSortIndicators();
 		updateURL();
-		fetchStats();
+		applyFiltersAndSort();
 	}
 </script>
 

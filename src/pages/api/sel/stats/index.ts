@@ -61,7 +61,13 @@ export const GET: APIRoute = async ({ locals, url }) => {
 				const columnName = sortColumn.includes(' ') || sortColumn.includes('.') 
 					? `"${sortColumn}"` 
 					: sortColumn;
-				query += ` ORDER BY ${columnName} ${direction}`;
+				
+				// Sort with NULL/empty values always at the bottom
+				if (sortDirection === 'asc') {
+					query += ` ORDER BY CASE WHEN ${columnName} IS NULL THEN 1 ELSE 0 END, ${columnName} ${direction}`;
+				} else {
+					query += ` ORDER BY CASE WHEN ${columnName} IS NULL THEN 1 ELSE 0 END, ${columnName} ${direction}`;
+				}
 			}
 		}
 

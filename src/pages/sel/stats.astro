@@ -9,8 +9,8 @@ const initialSearch = urlParams.get('search') || '';
 const initialTeams = urlParams.get('team')?.split(',').filter(Boolean) || [];
 const initialLeagues = urlParams.get('league')?.split(',').filter(Boolean) || [];
 const initialSeasons = urlParams.get('season')?.split(',').filter(Boolean) || [];
-const initialSortColumn = urlParams.get('sortColumn') || '';
-const initialSortDirection = urlParams.get('sortDirection') || '';
+const initialSortColumns = urlParams.get('sortColumn')?.split(',').filter(Boolean) || [];
+const initialSortDirections = urlParams.get('sortDirection')?.split(',').filter(Boolean) || [];
 
 // Fetch initial data from API endpoints with URL params
 let stats: any[] = [];
@@ -27,8 +27,10 @@ try {
 	if (initialTeams.length > 0) statsUrl.searchParams.set('team', initialTeams.join(','));
 	if (initialLeagues.length > 0) statsUrl.searchParams.set('league', initialLeagues.join(','));
 	if (initialSeasons.length > 0) statsUrl.searchParams.set('season', initialSeasons.join(','));
-	if (initialSortColumn) statsUrl.searchParams.set('sortColumn', initialSortColumn);
-	if (initialSortDirection) statsUrl.searchParams.set('sortDirection', initialSortDirection);
+	if (initialSortColumns.length > 0) {
+		statsUrl.searchParams.set('sortColumn', initialSortColumns.join(','));
+		statsUrl.searchParams.set('sortDirection', initialSortDirections.join(','));
+	}
 
 	// Fetch stats and filter options in parallel
 	const [statsResponse, filtersResponse] = await Promise.all([
@@ -160,8 +162,13 @@ try {
 		</div>
 
 		<!-- Results Count -->
-		<div class="mb-2 text-sm text-muted-foreground">
-			Showing <span id="resultCount">{stats.length}</span> of {stats.length} results
+		<div class="mb-2 flex items-center justify-between text-sm text-muted-foreground">
+			<div>
+				Showing <span id="resultCount">{stats.length}</span> of {stats.length} results
+			</div>
+			<div class="text-xs opacity-75">
+				Hold <kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-xs font-mono">Shift</kbd> to sort by multiple columns
+			</div>
 		</div>
 
 		<!-- Table Container -->
@@ -271,8 +278,7 @@ try {
 		teams: [] as string[],
 		leagues: [] as string[],
 		seasons: [] as string[],
-		sortColumn: '',
-		sortDirection: ''
+		sortColumns: [] as Array<{ column: string, direction: string }>
 	};
 	let debounceTimer: number;
 	let isLoading = false;
@@ -568,8 +574,14 @@ try {
 		currentFilters.teams = urlParams.get('team')?.split(',').filter(Boolean) || [];
 		currentFilters.leagues = urlParams.get('league')?.split(',').filter(Boolean) || [];
 		currentFilters.seasons = urlParams.get('season')?.split(',').filter(Boolean) || [];
-		currentFilters.sortColumn = urlParams.get('sortColumn') || '';
-		currentFilters.sortDirection = urlParams.get('sortDirection') || '';
+		
+		// Parse sort columns from URL (format: sortColumn=col1,col2&sortDirection=desc,asc)
+		const sortColumns = urlParams.get('sortColumn')?.split(',').filter(Boolean) || [];
+		const sortDirections = urlParams.get('sortDirection')?.split(',').filter(Boolean) || [];
+		currentFilters.sortColumns = sortColumns.map((col, idx) => ({
+			column: col,
+			direction: sortDirections[idx] || 'desc'
+		}));
 
 		// Get initial data from window and cache it
 		if ((window as any).__INITIAL_STATS__) {
@@ -577,8 +589,12 @@ try {
 			const initialTeams = (window as any).__INITIAL_TEAMS__ || [];
 			const initialLeagues = (window as any).__INITIAL_LEAGUES__ || [];
 			const initialSeasons = (window as any).__INITIAL_SEASONS__ || [];
+			
+			// Add original index to preserve order
+			const indexedData = initialData.map((item: any, index: number) => ({ ...item, __originalIndex: index }));
+			
 			const cacheKey = getCacheKey(initialTeams, initialLeagues, initialSeasons);
-			dataCache.set(cacheKey, initialData);
+			dataCache.set(cacheKey, indexedData);
 			
 			// If we loaded all data, set totalDataCount
 			if ((window as any).__HAS_ALL_DATA__) {
@@ -587,7 +603,7 @@ try {
 		}
 
 		// Update sort indicators if sorting is active
-		if (currentFilters.sortColumn) {
+		if (currentFilters.sortColumns.length > 0) {
 			updateSortIndicators();
 		}
 	}
@@ -599,8 +615,10 @@ try {
 		if (currentFilters.teams.length > 0) params.set('team', currentFilters.teams.join(','));
 		if (currentFilters.leagues.length > 0) params.set('league', currentFilters.leagues.join(','));
 		if (currentFilters.seasons.length > 0) params.set('season', currentFilters.seasons.join(','));
-		if (currentFilters.sortColumn) params.set('sortColumn', currentFilters.sortColumn);
-		if (currentFilters.sortDirection) params.set('sortDirection', currentFilters.sortDirection);
+		if (currentFilters.sortColumns.length > 0) {
+			params.set('sortColumn', currentFilters.sortColumns.map(s => s.column).join(','));
+			params.set('sortDirection', currentFilters.sortColumns.map(s => s.direction).join(','));
+		}
 
 		const newURL = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;
 		window.history.pushState({}, '', newURL);
@@ -715,7 +733,8 @@ try {
 	}
 
 	function filterAndSortClientSide(sourceData: any[]) {
-		let filteredData = [...sourceData];
+		// Use data as-is (already has __originalIndex from caching)
+		let filteredData = sourceData;
 
 		// Apply team filter (client-side) - handle split teams like TAR/GOR
 		if (currentFilters.teams.length > 0) {
@@ -746,28 +765,53 @@ try {
 		}
 
 		// Apply sorting
-		if (currentFilters.sortColumn) {
-			const column = currentFilters.sortColumn;
-			const direction = currentFilters.sortDirection === 'asc' ? 1 : -1;
+		if (currentFilters.sortColumns.length > 0) {
+			// Columns where empty values should go to bottom
+			const specialEmptyHandling = ['Average', 'Home Avg.', 'Away Avg.', 'Max Speed'];
 
 			filteredData.sort((a: any, b: any) => {
-				let aVal = a[column];
-				let bVal = b[column];
+				// Try each sort column in order until we find a difference
+				for (const { column, direction: dir } of currentFilters.sortColumns) {
+					const direction = dir === 'asc' ? 1 : -1;
+					const aVal = a[column];
+					const bVal = b[column];
+					const shouldHandleEmpty = specialEmptyHandling.includes(column);
 
-				// Handle null/undefined values - always put them at the bottom
-				if (aVal == null || aVal === '-' || aVal === '') {
-					return 1; // a goes to bottom
-				}
-				if (bVal == null || bVal === '-' || bVal === '') {
-					return -1; // b goes to bottom
-				}
+					// Special handling for Average/Home/Away/Max Speed columns
+					if (shouldHandleEmpty) {
+						const aIsEmpty = !aVal || aVal === '-';
+						const bIsEmpty = !bVal || bVal === '-';
 
-				// Compare values
-				if (typeof aVal === 'string') {
-					return direction * aVal.localeCompare(bVal);
-				} else {
-					return direction * (aVal - bVal);
+						// Handle empty values - always at bottom
+						if (aIsEmpty && bIsEmpty) continue; // Try next column
+						if (aIsEmpty) return 1;
+						if (bIsEmpty) return -1;
+					}
+
+					// Compare values
+					let result = 0;
+					if (typeof aVal === 'string') {
+						result = direction * aVal.localeCompare(bVal);
+					} else {
+						result = direction * (aVal - bVal);
+					}
+
+					// If values are different, return the result
+					if (result !== 0) return result;
+					// Otherwise continue to next sort column
 				}
+				return 0; // All sort columns were equal
+			});
+		} else {
+			// No sort - maintain original order but keep empty Average values at bottom
+			filteredData.sort((a: any, b: any) => {
+				const aAvgEmpty = !a.Average || a.Average === '-';
+				const bAvgEmpty = !b.Average || b.Average === '-';
+				
+				if (aAvgEmpty) return bAvgEmpty ? a.__originalIndex - b.__originalIndex : 1;
+				if (bAvgEmpty) return -1;
+				
+				return a.__originalIndex - b.__originalIndex;
 			});
 		}
 
@@ -796,9 +840,12 @@ try {
 
 			const data = await response.json();
 			
+			// Add original index to preserve order
+			const indexedData = data.stats.map((item: any, index: number) => ({ ...item, __originalIndex: index }));
+			
 			// Cache the fetched data
 			const cacheKey = getCacheKey(currentFilters.teams, currentFilters.leagues, currentFilters.seasons);
-			dataCache.set(cacheKey, data.stats);
+			dataCache.set(cacheKey, indexedData);
 			
 			// If this is all data (no filters), update totalDataCount
 			if (currentFilters.teams.length === 0 && currentFilters.leagues.length === 0 && currentFilters.seasons.length === 0) {
@@ -806,7 +853,7 @@ try {
 			}
 			
 			// Now apply search and sort client-side
-			filterAndSortClientSide(data.stats);
+			filterAndSortClientSide(indexedData);
 		} catch (error) {
 			console.error('Error fetching stats:', error);
 		} finally {
@@ -818,10 +865,10 @@ try {
 		const tbody = document.getElementById('statsBody');
 		if (!tbody) return;
 
-		// Clear existing rows
-		tbody.innerHTML = '';
+		// Use DocumentFragment for batch DOM operations
+		const fragment = document.createDocumentFragment();
 
-		// Add new rows
+		// Build all rows in memory first
 		stats.forEach((stat: any) => {
 			const row = document.createElement('tr');
 			row.className = 'border-t border-border hover:bg-muted/50';
@@ -849,8 +896,12 @@ try {
 				<td class="px-3 py-2 text-right">${stat['Max Speed'] ? stat['Max Speed'].toFixed(2) : '-'}</td>
 				<td class="px-3 py-2 text-left">${stat.League || ''}</td>
 			`;
-			tbody.appendChild(row);
+			fragment.appendChild(row);
 		});
+
+		// Single DOM update
+		tbody.innerHTML = '';
+		tbody.appendChild(fragment);
 	}
 
 	function updateResultCount(count: number) {
@@ -878,32 +929,57 @@ try {
 			indicator.textContent = '';
 		});
 
-		// Set active indicator
-		if (currentFilters.sortColumn) {
-			const header = document.querySelector(`[data-column="${currentFilters.sortColumn}"]`);
+		// Set active indicators with priority numbers
+		currentFilters.sortColumns.forEach((sort, index) => {
+			const header = document.querySelector(`[data-column="${sort.column}"]`);
 			const indicator = header?.querySelector('.sort-indicator');
 			if (indicator) {
-				indicator.textContent = currentFilters.sortDirection === 'desc' ? ' ▼' : ' ▲';
+				const arrow = sort.direction === 'desc' ? '▼' : '▲';
+				const priority = currentFilters.sortColumns.length > 1 ? `${index + 1}` : '';
+				indicator.textContent = ` ${arrow}${priority}`;
 			}
-		}
+		});
 	}
 
 	function handleSort(event: Event) {
+		const mouseEvent = event as MouseEvent;
 		const header = event.currentTarget as HTMLElement;
 		const column = header.dataset.column;
 		if (!column) return;
 
-		// Toggle sort direction: none -> desc -> asc -> none
-		if (currentFilters.sortColumn === column) {
-			if (currentFilters.sortDirection === 'desc') {
-				currentFilters.sortDirection = 'asc';
-			} else if (currentFilters.sortDirection === 'asc') {
-				currentFilters.sortColumn = '';
-				currentFilters.sortDirection = '';
+		// Check if Shift key is pressed for multi-column sort
+		if (mouseEvent.shiftKey) {
+			// Multi-column sort: add/modify this column
+			const existingIndex = currentFilters.sortColumns.findIndex(s => s.column === column);
+			
+			if (existingIndex >= 0) {
+				// Column already in sort - toggle its direction or remove
+				const current = currentFilters.sortColumns[existingIndex];
+				if (current.direction === 'desc') {
+					currentFilters.sortColumns[existingIndex].direction = 'asc';
+				} else {
+					// Remove this column from sort
+					currentFilters.sortColumns.splice(existingIndex, 1);
+				}
+			} else {
+				// Add new column to sort
+				currentFilters.sortColumns.push({ column, direction: 'desc' });
 			}
 		} else {
-			currentFilters.sortColumn = column;
-			currentFilters.sortDirection = 'desc';
+			// Single column sort: replace all sorts with this one
+			const existingIndex = currentFilters.sortColumns.findIndex(s => s.column === column);
+			
+			if (existingIndex === 0 && currentFilters.sortColumns.length === 1) {
+				// Only this column is sorted - toggle direction or clear
+				if (currentFilters.sortColumns[0].direction === 'desc') {
+					currentFilters.sortColumns[0].direction = 'asc';
+				} else {
+					currentFilters.sortColumns = [];
+				}
+			} else {
+				// Start new sort with this column
+				currentFilters.sortColumns = [{ column, direction: 'desc' }];
+			}
 		}
 
 		updateSortIndicators();
@@ -915,9 +991,14 @@ try {
 <style>
 	.sort-indicator {
 		display: inline-block;
-		width: 1em;
-		text-align: center;
+		min-width: 1.5em;
+		text-align: left;
 		font-size: 0.75em;
 		opacity: 0.7;
+		margin-left: 0.25em;
+	}
+	
+	kbd {
+		font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 	}
 </style>

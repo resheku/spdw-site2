@@ -161,11 +161,8 @@ try {
 			</div>
 		</div>
 
-		<!-- Results Count -->
-		<div class="mb-2 flex items-center justify-between text-sm text-muted-foreground">
-			<div>
-				Showing <span id="resultCount">{stats.length}</span> of {stats.length} results
-			</div>
+		<!-- Sort Hint -->
+		<div class="mb-2 flex items-center justify-end text-sm text-muted-foreground">
 			<div class="text-xs opacity-75">
 				Hold <kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-xs font-mono">Shift</kbd> to sort by multiple columns
 			</div>
@@ -176,8 +173,7 @@ try {
 			<table class="w-full text-sm" id="statsTable">
 				<thead class="bg-muted sticky top-0">
 					<tr>
-						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80" data-column="Season">Season<span class="sort-indicator"></span>
-						</th>
+						<th class="px-2 py-2 text-right font-medium w-16">#</th>
 						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80 min-w-[150px]" data-column="Name">Name<span class="sort-indicator"></span>
 						</th>
 						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80" data-column="Team">Team<span class="sort-indicator"></span>
@@ -220,12 +216,14 @@ try {
 						</th>
 						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80" data-column="League">League<span class="sort-indicator"></span>
 						</th>
+						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80" data-column="Season">Season<span class="sort-indicator"></span>
+						</th>
 					</tr>
 				</thead>
 				<tbody id="statsBody">
-					{stats.map((stat) => (
+					{stats.map((stat, index) => (
 						<tr class="border-t border-border hover:bg-muted/50">
-							<td class="px-3 py-2 text-left">{stat.Season}</td>
+							<td class="px-2 py-2 text-right text-muted-foreground">{index + 1}</td>
 							<td class="px-3 py-2 text-left font-medium">{stat.Name}</td>
 							<td class="px-3 py-2 text-left">{stat.Team}</td>
 							<td class="px-3 py-2 text-left">{stat.Average?.toFixed(3) || '-'}</td>
@@ -247,6 +245,7 @@ try {
 							<td class="px-3 py-2 text-right">{stat.Warn || 0}</td>
 							<td class="px-3 py-2 text-right">{stat['Max Speed']?.toFixed(2) || '-'}</td>
 							<td class="px-3 py-2 text-left">{stat.League}</td>
+							<td class="px-3 py-2 text-left">{stat.Season}</td>
 						</tr>
 					))}
 				</tbody>
@@ -817,7 +816,6 @@ try {
 
 		// Update table with filtered/sorted data
 		updateTable(filteredData);
-		updateResultCount(filteredData.length);
 	}
 
 	async function fetchStats() {
@@ -869,11 +867,11 @@ try {
 		const fragment = document.createDocumentFragment();
 
 		// Build all rows in memory first
-		stats.forEach((stat: any) => {
+		stats.forEach((stat: any, index: number) => {
 			const row = document.createElement('tr');
 			row.className = 'border-t border-border hover:bg-muted/50';
 			row.innerHTML = `
-				<td class="px-3 py-2 text-left">${stat.Season || ''}</td>
+				<td class="px-2 py-2 text-right text-muted-foreground">${index + 1}</td>
 				<td class="px-3 py-2 text-left font-medium">${stat.Name || ''}</td>
 				<td class="px-3 py-2 text-left">${stat.Team || ''}</td>
 				<td class="px-3 py-2 text-right">${stat.Average ? stat.Average.toFixed(3) : '-'}</td>
@@ -895,6 +893,7 @@ try {
 				<td class="px-3 py-2 text-right">${stat.Warn || 0}</td>
 				<td class="px-3 py-2 text-right">${stat['Max Speed'] ? stat['Max Speed'].toFixed(2) : '-'}</td>
 				<td class="px-3 py-2 text-left">${stat.League || ''}</td>
+				<td class="px-3 py-2 text-left">${stat.Season || ''}</td>
 			`;
 			fragment.appendChild(row);
 		});
@@ -902,25 +901,6 @@ try {
 		// Single DOM update
 		tbody.innerHTML = '';
 		tbody.appendChild(fragment);
-	}
-
-	function updateResultCount(count: number) {
-		const resultCount = document.getElementById('resultCount');
-		if (resultCount) {
-			resultCount.textContent = count.toString();
-		}
-		
-		// Update total count for "X of Y" display
-		const allDataKey = getCacheKey([], [], []);
-		const hasAllData = dataCache.has(allDataKey);
-		const currentCacheKey = getCacheKey(currentFilters.teams, currentFilters.leagues, currentFilters.seasons);
-		const currentData = dataCache.get(currentCacheKey);
-		const totalCount = currentData ? currentData.length : count;
-		
-		const totalElement = resultCount?.parentElement;
-		if (totalElement) {
-			totalElement.innerHTML = `Showing <span id="resultCount">${count}</span> of ${totalCount} results`;
-		}
 	}
 
 	function updateSortIndicators() {

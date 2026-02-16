@@ -9,6 +9,8 @@ const initialSearch = urlParams.get('search') || '';
 const initialTeams = urlParams.get('team')?.split(',').filter(Boolean) || [];
 const initialLeagues = urlParams.get('league')?.split(',').filter(Boolean) || [];
 const initialSeasons = urlParams.get('season')?.split(',').filter(Boolean) || [];
+const initialHeatsMin = urlParams.get('heatsMin') ? parseInt(urlParams.get('heatsMin')!) : null;
+const initialHeatsMax = urlParams.get('heatsMax') ? parseInt(urlParams.get('heatsMax')!) : null;
 const initialSortColumns = urlParams.get('sortColumn')?.split(',').filter(Boolean) || [];
 const initialSortDirections = urlParams.get('sortDirection')?.split(',').filter(Boolean) || [];
 
@@ -32,10 +34,16 @@ try {
 		statsUrl.searchParams.set('sortDirection', initialSortDirections.join(','));
 	}
 
+	// Build filters URL with query params (for heats range calculation)
+	const filtersUrl = new URL('/api/sel/stats/filters', Astro.url);
+	if (initialTeams.length > 0) filtersUrl.searchParams.set('team', initialTeams.join(','));
+	if (initialLeagues.length > 0) filtersUrl.searchParams.set('league', initialLeagues.join(','));
+	if (initialSeasons.length > 0) filtersUrl.searchParams.set('season', initialSeasons.join(','));
+
 	// Fetch stats and filter options in parallel
 	const [statsResponse, filtersResponse] = await Promise.all([
 		fetch(statsUrl.toString()),
-		fetch(new URL('/api/sel/stats/filters', Astro.url).toString())
+		fetch(filtersUrl.toString())
 	]);
 	
 	if (statsResponse.ok && filtersResponse.ok) {
@@ -101,6 +109,61 @@ try {
 					value={initialSearch}
 					class="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-muted"
 				/>
+			</div>
+			
+			<!-- Heats Filter -->
+			<div class="min-w-[140px] relative">
+				<button 
+					id="heatsFilterBtn" 
+					class="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-muted text-left flex justify-between items-center"
+				>
+					<span id="heatsFilterLabel">Heats</span>
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+					</svg>
+				</button>
+				<div id="heatsFilterDropdown" class="hidden absolute z-50 mt-1 rounded-md border border-border bg-background shadow-lg p-4" style="width: 200px;">
+					<div class="flex gap-4">
+						<!-- Vertical Slider -->
+						<div class="flex flex-col items-end" style="width: 60px;">
+							<!-- Max label -->
+							<div id="heatsMaxLabel" class="text-xs font-mono mb-1">100</div>
+							
+							<!-- Slider track container -->
+							<div class="relative flex-1 flex items-center" style="width: 44px; min-height: 400px;">
+								<!-- Tick marks and values on the left -->
+								<div id="heatsTickLabels" class="absolute left-0 h-full text-xs font-mono text-muted-foreground pointer-events-none" style="width: 20px;">
+									<!-- Generated dynamically -->
+								</div>
+								
+								<!-- Slider track -->
+								<div id="heatsSliderTrack" class="absolute left-[24px] h-full flex flex-col" style="width: 20px;">
+									<!-- Vertical line (thermometer) -->
+									<div class="absolute left-1/2 top-0 bottom-0 w-[2px] bg-foreground/20 -translate-x-1/2"></div>
+									
+									<!-- Tick marks (generated dynamically) -->
+									<div id="heatsTickMarks">
+										<!-- Generated dynamically -->
+									</div>
+									
+									<!-- Max value indicator (triangle pointing left) -->
+									<div id="heatsMaxIndicator" class="heats-indicator absolute left-1/2 -translate-x-1/2 -translate-y-1/2 cursor-pointer" style="top: 0%;" draggable="false"></div>
+									
+									<!-- Min value indicator (triangle pointing left) -->
+									<div id="heatsMinIndicator" class="heats-indicator absolute left-1/2 -translate-x-1/2 -translate-y-1/2 cursor-pointer" style="top: 100%;" draggable="false"></div>
+								</div>
+							</div>
+							
+							<!-- Min label -->
+							<div id="heatsMinLabel" class="text-xs font-mono mt-1">0</div>
+						</div>
+						
+						<!-- Clear button -->
+						<div class="flex flex-col justify-end flex-1">
+							<button id="heatsClearBtn" class="text-sm px-3 py-2 rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 hover:text-red-700 active:bg-red-500/30 disabled:bg-muted/50 disabled:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150 font-medium cursor-pointer" disabled>Clear</button>
+						</div>
+					</div>
+				</div>
 			</div>
 			
 			<!-- Team Filter -->
@@ -260,13 +323,15 @@ try {
 	</div>
 
 	<!-- Pass initial data to client-side script -->
-	<script define:vars={{ initialStats: stats, initialHasAllData: initialTeams.length === 0 && initialLeagues.length === 0 && initialSeasons.length === 0, filterMapping: filterMapping, initialTeams: initialTeams, initialLeagues: initialLeagues, initialSeasons: initialSeasons }}>
+	<script define:vars={{ initialStats: stats, initialHasAllData: initialTeams.length === 0 && initialLeagues.length === 0 && initialSeasons.length === 0, filterMapping: filterMapping, initialTeams: initialTeams, initialLeagues: initialLeagues, initialSeasons: initialSeasons, initialHeatsMin: initialHeatsMin, initialHeatsMax: initialHeatsMax }}>
 		window.__INITIAL_STATS__ = initialStats;
 		window.__HAS_ALL_DATA__ = initialHasAllData;
 		window.__FILTER_MAPPING__ = filterMapping;
 		window.__INITIAL_TEAMS__ = initialTeams;
 		window.__INITIAL_LEAGUES__ = initialLeagues;
 		window.__INITIAL_SEASONS__ = initialSeasons;
+		window.__INITIAL_HEATS_MIN__ = initialHeatsMin;
+		window.__INITIAL_HEATS_MAX__ = initialHeatsMax;
 	</script>
 </Layout>
 
@@ -277,10 +342,18 @@ try {
 		teams: [] as string[],
 		leagues: [] as string[],
 		seasons: [] as string[],
+		heatsMin: null as number | null,
+		heatsMax: null as number | null,
 		sortColumns: [] as Array<{ column: string, direction: string }>
 	};
 	let debounceTimer: number;
 	let isLoading = false;
+
+	// Heats range state
+	let heatsRangeMin = 0;
+	let heatsRangeMax = 100;
+	let isDraggingMin = false;
+	let isDraggingMax = false;
 
 	// Cache to store data for different filter combinations
 	// Key format: "team1,team2:league1,league2:season1,season2"
@@ -503,6 +576,7 @@ try {
 		
 		updateFilterButtonLabel(filterType, currentFilters[filterKey]);
 		updateDropdownOptions();
+		updateHeatsRange(); // Update heats range when other filters change
 		updateURL();
 		applyFiltersAndSort();
 	}
@@ -520,6 +594,7 @@ try {
 		
 		updateFilterButtonLabel(filterType, currentFilters[filterKey]);
 		updateDropdownOptions();
+		updateHeatsRange(); // Update heats range when other filters change
 		updateURL();
 		applyFiltersAndSort();
 	}
@@ -573,6 +648,8 @@ try {
 		currentFilters.teams = urlParams.get('team')?.split(',').filter(Boolean) || [];
 		currentFilters.leagues = urlParams.get('league')?.split(',').filter(Boolean) || [];
 		currentFilters.seasons = urlParams.get('season')?.split(',').filter(Boolean) || [];
+		currentFilters.heatsMin = urlParams.get('heatsMin') ? parseInt(urlParams.get('heatsMin')!) : null;
+		currentFilters.heatsMax = urlParams.get('heatsMax') ? parseInt(urlParams.get('heatsMax')!) : null;
 		
 		// Parse sort columns from URL (format: sortColumn=col1,col2&sortDirection=desc,asc)
 		const sortColumns = urlParams.get('sortColumn')?.split(',').filter(Boolean) || [];
@@ -581,6 +658,12 @@ try {
 			column: col,
 			direction: sortDirections[idx] || 'desc'
 		}));
+
+		// Get initial heats range from window
+		const initialHeatsMin = (window as any).__INITIAL_HEATS_MIN__;
+		const initialHeatsMax = (window as any).__INITIAL_HEATS_MAX__;
+		if (initialHeatsMin !== null) currentFilters.heatsMin = initialHeatsMin;
+		if (initialHeatsMax !== null) currentFilters.heatsMax = initialHeatsMax;
 
 		// Get initial data from window and cache it
 		if ((window as any).__INITIAL_STATS__) {
@@ -601,6 +684,12 @@ try {
 			}
 		}
 
+		// Initialize heats range from filter mapping
+		if (filterMapping?.heatsRange) {
+			heatsRangeMin = filterMapping.heatsRange.min || 0;
+			heatsRangeMax = filterMapping.heatsRange.max || 100;
+		}
+
 		// Update sort indicators if sorting is active
 		if (currentFilters.sortColumns.length > 0) {
 			updateSortIndicators();
@@ -614,6 +703,8 @@ try {
 		if (currentFilters.teams.length > 0) params.set('team', currentFilters.teams.join(','));
 		if (currentFilters.leagues.length > 0) params.set('league', currentFilters.leagues.join(','));
 		if (currentFilters.seasons.length > 0) params.set('season', currentFilters.seasons.join(','));
+		if (currentFilters.heatsMin !== null) params.set('heatsMin', currentFilters.heatsMin.toString());
+		if (currentFilters.heatsMax !== null) params.set('heatsMax', currentFilters.heatsMax.toString());
 		if (currentFilters.sortColumns.length > 0) {
 			params.set('sortColumn', currentFilters.sortColumns.map(s => s.column).join(','));
 			params.set('sortDirection', currentFilters.sortColumns.map(s => s.direction).join(','));
@@ -646,10 +737,12 @@ try {
 		const teamFilterBtn = document.getElementById('teamFilterBtn');
 		const leagueFilterBtn = document.getElementById('leagueFilterBtn');
 		const seasonFilterBtn = document.getElementById('seasonFilterBtn');
+		const heatsFilterBtn = document.getElementById('heatsFilterBtn');
 
 		teamFilterBtn?.addEventListener('click', () => toggleDropdown('team'));
 		leagueFilterBtn?.addEventListener('click', () => toggleDropdown('league'));
 		seasonFilterBtn?.addEventListener('click', () => toggleDropdown('season'));
+		heatsFilterBtn?.addEventListener('click', () => toggleDropdown('heats'));
 
 		// Close dropdowns when clicking outside
 		document.addEventListener('click', (e) => {
@@ -666,6 +759,14 @@ try {
 				const filterType = (btn as HTMLElement).dataset.filter;
 				if (filterType) handleClear(filterType);
 			});
+		});
+
+		// Setup heats slider
+		initializeHeatsSlider();
+		const heatsClearBtn = document.getElementById('heatsClearBtn');
+		heatsClearBtn?.addEventListener('click', (e) => {
+			e.stopPropagation();
+			handleHeatsClear();
 		});
 
 		// Setup sorting
@@ -696,6 +797,204 @@ try {
 		document.getElementById('teamFilterDropdown')?.classList.add('hidden');
 		document.getElementById('leagueFilterDropdown')?.classList.add('hidden');
 		document.getElementById('seasonFilterDropdown')?.classList.add('hidden');
+		document.getElementById('heatsFilterDropdown')?.classList.add('hidden');
+	}
+
+	// Initialize heats slider
+	function initializeHeatsSlider() {
+		updateHeatsSlider();
+		
+		const minIndicator = document.getElementById('heatsMinIndicator');
+		const maxIndicator = document.getElementById('heatsMaxIndicator');
+		const sliderContainer = minIndicator?.parentElement;
+		
+		if (!minIndicator || !maxIndicator || !sliderContainer) return;
+
+		// Mouse/touch event handlers for min indicator
+		const startDragMin = (e: MouseEvent | TouchEvent) => {
+			e.preventDefault();
+			isDraggingMin = true;
+			document.body.style.cursor = 'grabbing';
+		};
+
+		minIndicator.addEventListener('mousedown', startDragMin);
+		minIndicator.addEventListener('touchstart', startDragMin);
+
+		// Mouse/touch event handlers for max indicator
+		const startDragMax = (e: MouseEvent | TouchEvent) => {
+			e.preventDefault();
+			isDraggingMax = true;
+			document.body.style.cursor = 'grabbing';
+		};
+
+		maxIndicator.addEventListener('mousedown', startDragMax);
+		maxIndicator.addEventListener('touchstart', startDragMax);
+
+		// Global mouse/touch move handler
+		const handleMove = (e: MouseEvent | TouchEvent) => {
+			if (!isDraggingMin && !isDraggingMax) return;
+			
+			const rect = sliderContainer.getBoundingClientRect();
+			const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+			const relativeY = clientY - rect.top;
+			const percentage = Math.max(0, Math.min(100, (relativeY / rect.height) * 100));
+			
+			// Convert percentage to heats value (inverted because top = max)
+			const value = Math.round(heatsRangeMax - (percentage / 100) * (heatsRangeMax - heatsRangeMin));
+			
+			if (isDraggingMin) {
+				// Ensure min doesn't go above max
+				const maxValue = currentFilters.heatsMax ?? heatsRangeMax;
+				currentFilters.heatsMin = Math.min(value, maxValue);
+			} else if (isDraggingMax) {
+				// Ensure max doesn't go below min
+				const minValue = currentFilters.heatsMin ?? heatsRangeMin;
+				currentFilters.heatsMax = Math.max(value, minValue);
+			}
+			
+			updateHeatsSlider();
+		};
+
+		// Global mouse/touch up handler
+		const stopDrag = () => {
+			if (isDraggingMin || isDraggingMax) {
+				isDraggingMin = false;
+				isDraggingMax = false;
+				document.body.style.cursor = '';
+				
+				// Apply filter when drag stops
+				updateURL();
+				applyFiltersAndSort();
+			}
+		};
+
+		document.addEventListener('mousemove', handleMove);
+		document.addEventListener('touchmove', handleMove);
+		document.addEventListener('mouseup', stopDrag);
+		document.addEventListener('touchend', stopDrag);
+	}
+
+	// Update heats slider positions and labels
+	function updateHeatsSlider() {
+		const minIndicator = document.getElementById('heatsMinIndicator');
+		const maxIndicator = document.getElementById('heatsMaxIndicator');
+		const minLabel = document.getElementById('heatsMinLabel');
+		const maxLabel = document.getElementById('heatsMaxLabel');
+		const filterLabel = document.getElementById('heatsFilterLabel');
+		const clearBtn = document.getElementById('heatsClearBtn') as HTMLButtonElement;
+		const tickLabels = document.getElementById('heatsTickLabels');
+		const tickMarks = document.getElementById('heatsTickMarks');
+		
+		if (!minIndicator || !maxIndicator || !minLabel || !maxLabel) return;
+
+		// Update range display
+		const range = heatsRangeMax - heatsRangeMin;
+		const minValue = currentFilters.heatsMin ?? heatsRangeMin;
+		const maxValue = currentFilters.heatsMax ?? heatsRangeMax;
+		
+		// Calculate positions (inverted: top = max, bottom = min)
+		const minPercentage = ((heatsRangeMax - minValue) / range) * 100;
+		const maxPercentage = ((heatsRangeMax - maxValue) / range) * 100;
+		
+		minIndicator.style.top = `${minPercentage}%`;
+		maxIndicator.style.top = `${maxPercentage}%`;
+		
+		minLabel.textContent = minValue.toString();
+		maxLabel.textContent = maxValue.toString();
+		
+		// Generate tick marks dynamically
+		if (tickLabels && tickMarks) {
+			// Generate reasonable tick values
+			const tickValues = generateTickValues(heatsRangeMin, heatsRangeMax);
+			
+			// Clear existing ticks
+			tickLabels.innerHTML = '';
+			tickMarks.innerHTML = '';
+			
+			// Create tick marks and labels
+			tickValues.forEach(value => {
+				const percentage = ((heatsRangeMax - value) / range) * 100;
+				
+				// Create label
+				const label = document.createElement('span');
+				label.className = 'absolute block text-right leading-none';
+				label.style.top = `${percentage}%`;
+				label.style.transform = 'translateY(-50%)';
+				label.textContent = value.toString();
+				tickLabels.appendChild(label);
+				
+				// Create tick mark
+				const isEndpoint = value === heatsRangeMin || value === heatsRangeMax;
+				const tick = document.createElement('div');
+				tick.className = `absolute left-1/2 h-[2px] -translate-x-1/2 ${isEndpoint ? 'w-[8px] bg-foreground/30' : 'w-[6px] bg-foreground/20'}`;
+				tick.style.top = `${percentage}%`;
+				tickMarks.appendChild(tick);
+			});
+		}
+		
+		// Update filter label
+		if (filterLabel) {
+			if (currentFilters.heatsMin !== null || currentFilters.heatsMax !== null) {
+				if (currentFilters.heatsMin !== null && currentFilters.heatsMax !== null) {
+					filterLabel.textContent = `${minValue}-${maxValue}`;
+				} else if (currentFilters.heatsMin !== null) {
+					filterLabel.textContent = `≥${minValue}`;
+				} else {
+					filterLabel.textContent = `≤${maxValue}`;
+				}
+			} else {
+				filterLabel.textContent = 'Heats';
+			}
+		}
+		
+		// Update clear button state
+		if (clearBtn) {
+			clearBtn.disabled = currentFilters.heatsMin === null && currentFilters.heatsMax === null;
+		}
+	}
+
+	// Generate reasonable tick values for the slider
+	function generateTickValues(min: number, max: number): number[] {
+		const ticks: number[] = [];
+		
+		// Always include min
+		ticks.push(min);
+		
+		// Standard tick values: 10, 25, 50, 75, 100, then continue with 25 increments
+		const standardTicks = [10, 25, 50, 75, 100];
+		
+		// Add standard ticks that fall within range
+		standardTicks.forEach(value => {
+			if (value > min && value < max) {
+				ticks.push(value);
+			}
+		});
+		
+		// If max is greater than 100, continue with 25 increments
+		if (max > 100) {
+			for (let value = 125; value < max; value += 25) {
+				if (value > min && value < max) {
+					ticks.push(value);
+				}
+			}
+		}
+		
+		// Always include max if it's different from min
+		if (max !== min) {
+			ticks.push(max);
+		}
+		
+		// Sort and return unique values
+		return [...new Set(ticks)].sort((a, b) => a - b);
+	}
+
+	// Handle heats clear
+	function handleHeatsClear() {
+		currentFilters.heatsMin = null;
+		currentFilters.heatsMax = null;
+		updateHeatsSlider();
+		updateURL();
+		applyFiltersAndSort();
 	}
 
 	// Handle clear (deselect all items)
@@ -714,8 +1013,43 @@ try {
 		currentFilters[filterKey] = [];
 		updateFilterButtonLabel(filterType, []);
 		updateDropdownOptions();
+		updateHeatsRange(); // Update heats range when other filters change
 		updateURL();
 		applyFiltersAndSort();
+	}
+
+	// Update heats range based on current filters (excluding heats itself)
+	async function updateHeatsRange() {
+		// Build query string for filters (excluding heats)
+		const params = new URLSearchParams();
+		if (currentFilters.teams.length > 0) params.set('team', currentFilters.teams.join(','));
+		if (currentFilters.leagues.length > 0) params.set('league', currentFilters.leagues.join(','));
+		if (currentFilters.seasons.length > 0) params.set('season', currentFilters.seasons.join(','));
+
+		try {
+			const response = await fetch(`/api/sel/stats/filters?${params.toString()}`);
+			if (!response.ok) {
+				throw new Error('Failed to fetch filters');
+			}
+
+			const data = await response.json();
+			if (data.heatsRange) {
+				heatsRangeMin = data.heatsRange.min || 0;
+				heatsRangeMax = data.heatsRange.max || 100;
+				
+				// Adjust current heats filter if it's outside the new range
+				if (currentFilters.heatsMin !== null && currentFilters.heatsMin < heatsRangeMin) {
+					currentFilters.heatsMin = heatsRangeMin;
+				}
+				if (currentFilters.heatsMax !== null && currentFilters.heatsMax > heatsRangeMax) {
+					currentFilters.heatsMax = heatsRangeMax;
+				}
+				
+				updateHeatsSlider();
+			}
+		} catch (error) {
+			console.error('Error fetching heats range:', error);
+		}
 	}
 
 	async function applyFiltersAndSort() {
@@ -753,6 +1087,16 @@ try {
 			filteredData = filteredData.filter(stat => 
 				currentFilters.seasons.includes(stat.Season.toString())
 			);
+		}
+
+		// Apply heats filter (client-side)
+		if (currentFilters.heatsMin !== null || currentFilters.heatsMax !== null) {
+			filteredData = filteredData.filter(stat => {
+				const heats = stat.Heats || 0;
+				const minCheck = currentFilters.heatsMin === null || heats >= currentFilters.heatsMin;
+				const maxCheck = currentFilters.heatsMax === null || heats <= currentFilters.heatsMax;
+				return minCheck && maxCheck;
+			});
 		}
 
 		// Apply search filter (client-side)
@@ -980,5 +1324,23 @@ try {
 	
 	kbd {
 		font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+	}
+	
+	.heats-indicator {
+		width: 0;
+		height: 0;
+		border-top: 8px solid transparent;
+		border-bottom: 8px solid transparent;
+		border-right: 12px solid currentColor;
+		color: hsl(var(--foreground));
+		transition: color 0.15s ease;
+	}
+	
+	.heats-indicator:hover {
+		color: hsl(var(--foreground) / 0.7);
+	}
+	
+	.heats-indicator:active {
+		color: hsl(var(--foreground) / 0.9);
 	}
 </style>

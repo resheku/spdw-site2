@@ -222,6 +222,29 @@ try {
 					<div id="seasonFilterOptions" class="p-2"></div>
 				</div>
 			</div>
+			
+			<!-- Column Selector -->
+			<div class="relative">
+				<button 
+					id="columnSelectorBtn" 
+					class="px-3 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-muted text-left flex items-center gap-2"
+				>
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+					</svg>
+					<span>Columns</span>
+				</button>
+				<div id="columnSelectorDropdown" class="hidden absolute z-50 rounded-md border border-border bg-background shadow-lg p-3 min-w-[250px]">
+					<div class="text-xs font-semibold mb-2 text-foreground">Toggle Columns</div>
+					<div id="columnSelectorOptions" class="space-y-1 max-h-[400px] overflow-y-auto">
+						<!-- Generated dynamically -->
+					</div>
+					<div class="mt-3 pt-3 border-t border-border flex gap-2">
+						<button id="showAllColumns" class="flex-1 text-xs px-2 py-1.5 rounded bg-muted hover:bg-muted/80 text-foreground">Show All</button>
+						<button id="resetColumns" class="flex-1 text-xs px-2 py-1.5 rounded bg-muted hover:bg-muted/80 text-foreground">Reset</button>
+					</div>
+				</div>
+			</div>
 		</div>
 
 		<!-- Sort Hint -->
@@ -236,79 +259,79 @@ try {
 			<table class="w-full text-sm" id="statsTable">
 				<thead class="bg-muted sticky top-0">
 					<tr>
-						<th class="px-2 py-2 text-right font-medium w-16">#</th>
-						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80 min-w-[150px]" data-column="Name">Name<span class="sort-indicator"></span>
+						<th class="px-2 py-2 text-right font-medium w-16" data-column-id="rank">#</th>
+						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80 min-w-[150px]" data-column="Name" data-column-id="name">Name<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80" data-column="Team">Team<span class="sort-indicator"></span>
+						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80" data-column="Team" data-column-id="team">Team<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-0 py-2 text-center font-medium cursor-pointer hover:bg-muted/80" data-column="Average">Average<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-center font-medium cursor-pointer hover:bg-muted/80" data-column="Average" data-column-id="average">Average<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Match">M<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-lg:hidden" data-column="Match" data-column-id="match">M<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Heats">H<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-lg:hidden" data-column="Heats" data-column-id="heats">H<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Points">Pts<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-lg:hidden" data-column="Points" data-column-id="points">Pts<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Bonus">Bon<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-lg:hidden" data-column="Bonus" data-column-id="bonus">Bon<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Home Avg.">Home<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-sm:hidden" data-column="Home Avg." data-column-id="home">Home<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Away Avg.">Away<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-sm:hidden" data-column="Away Avg." data-column-id="away">Away<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="I">I<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-xl:hidden" data-column="I" data-column-id="i">I<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="II">II<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-xl:hidden" data-column="II" data-column-id="ii">II<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="III">III<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-xl:hidden" data-column="III" data-column-id="iii">III<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="IV">IV<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-xl:hidden" data-column="IV" data-column-id="iv">IV<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="R">R<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-xl:hidden" data-column="R" data-column-id="r">R<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="T">T<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-xl:hidden" data-column="T" data-column-id="t">T<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="M">M<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-xl:hidden" data-column="M" data-column-id="m">M<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="X">X<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-xl:hidden" data-column="X" data-column-id="x">X<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="F">F<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-xl:hidden" data-column="F" data-column-id="f">F<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Warn">W<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-xl:hidden" data-column="Warn" data-column-id="warn">W<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80" data-column="Max Speed">Mx Speed<span class="sort-indicator"></span>
+						<th class="sortable px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-md:hidden" data-column="Max Speed" data-column-id="maxspeed">Mx Speed<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80" data-column="League">League<span class="sort-indicator"></span>
+						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80 max-md:hidden" data-column="League" data-column-id="league">League<span class="sort-indicator"></span>
 						</th>
-						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80" data-column="Season">Season<span class="sort-indicator"></span>
+						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80 max-md:hidden" data-column="Season" data-column-id="season">Season<span class="sort-indicator"></span>
 						</th>
 					</tr>
 				</thead>
 				<tbody id="statsBody">
 					{stats.map((stat, index) => (
 						<tr class="border-t border-border hover:bg-muted/50">
-							<td class="px-2 py-2 text-right text-muted-foreground">{index + 1}</td>
-							<td class="px-3 py-2 text-left font-medium">{stat.Name}</td>
-							<td class="px-3 py-2 text-left">{stat.Team}</td>
-							<td class="px-3 py-2 text-left">{stat.Average?.toFixed(3) || '-'}</td>
-							<td class="px-3 py-2 text-right">{stat.Match || 0}</td>
-							<td class="px-3 py-2 text-right">{stat.Heats || 0}</td>
-							<td class="px-3 py-2 text-right">{stat.Points || 0}</td>
-							<td class="px-3 py-2 text-right">{stat.Bonus || 0}</td>
-							<td class="px-3 py-2 text-right">{stat['Home Avg.']?.toFixed(3) || '-'}</td>
-							<td class="px-3 py-2 text-right">{stat['Away Avg.']?.toFixed(3) || '-'}</td>
-							<td class="px-3 py-2 text-right">{stat.I || 0}</td>
-							<td class="px-3 py-2 text-right">{stat.II || 0}</td>
-							<td class="px-3 py-2 text-right">{stat.III || 0}</td>
-							<td class="px-3 py-2 text-right">{stat.IV || 0}</td>
-							<td class="px-3 py-2 text-right">{stat.R || 0}</td>
-							<td class="px-3 py-2 text-right">{stat.T || 0}</td>
-							<td class="px-3 py-2 text-right">{stat.M || 0}</td>
-							<td class="px-3 py-2 text-right">{stat.X || 0}</td>
-							<td class="px-3 py-2 text-right">{stat.F || 0}</td>
-							<td class="px-3 py-2 text-right">{stat.Warn || 0}</td>
-							<td class="px-3 py-2 text-right">{stat['Max Speed']?.toFixed(2) || '-'}</td>
-							<td class="px-3 py-2 text-left">{stat.League}</td>
-							<td class="px-3 py-2 text-left">{stat.Season}</td>
+							<td class="px-2 py-2 text-right text-muted-foreground" data-column-id="rank">{index + 1}</td>
+							<td class="px-3 py-2 text-left font-medium" data-column-id="name">{stat.Name}</td>
+							<td class="px-3 py-2 text-left" data-column-id="team">{stat.Team}</td>
+							<td class="px-3 py-2 text-right" data-column-id="average">{stat.Average?.toFixed(3) || '-'}</td>
+							<td class="px-3 py-2 text-right max-lg:hidden" data-column-id="match">{stat.Match || 0}</td>
+							<td class="px-3 py-2 text-right max-lg:hidden" data-column-id="heats">{stat.Heats || 0}</td>
+							<td class="px-3 py-2 text-right max-lg:hidden" data-column-id="points">{stat.Points || 0}</td>
+							<td class="px-3 py-2 text-right max-lg:hidden" data-column-id="bonus">{stat.Bonus || 0}</td>
+							<td class="px-3 py-2 text-right max-sm:hidden" data-column-id="home">{stat['Home Avg.']?.toFixed(3) || '-'}</td>
+							<td class="px-3 py-2 text-right max-sm:hidden" data-column-id="away">{stat['Away Avg.']?.toFixed(3) || '-'}</td>
+							<td class="px-3 py-2 text-right max-xl:hidden" data-column-id="i">{stat.I || 0}</td>
+							<td class="px-3 py-2 text-right max-xl:hidden" data-column-id="ii">{stat.II || 0}</td>
+							<td class="px-3 py-2 text-right max-xl:hidden" data-column-id="iii">{stat.III || 0}</td>
+							<td class="px-3 py-2 text-right max-xl:hidden" data-column-id="iv">{stat.IV || 0}</td>
+							<td class="px-3 py-2 text-right max-xl:hidden" data-column-id="r">{stat.R || 0}</td>
+							<td class="px-3 py-2 text-right max-xl:hidden" data-column-id="t">{stat.T || 0}</td>
+							<td class="px-3 py-2 text-right max-xl:hidden" data-column-id="m">{stat.M || 0}</td>
+							<td class="px-3 py-2 text-right max-xl:hidden" data-column-id="x">{stat.X || 0}</td>
+							<td class="px-3 py-2 text-right max-xl:hidden" data-column-id="f">{stat.F || 0}</td>
+							<td class="px-3 py-2 text-right max-xl:hidden" data-column-id="warn">{stat.Warn || 0}</td>
+							<td class="px-3 py-2 text-right max-md:hidden" data-column-id="maxspeed">{stat['Max Speed']?.toFixed(2) || '-'}</td>
+							<td class="px-3 py-2 text-left max-md:hidden" data-column-id="league">{stat.League}</td>
+							<td class="px-3 py-2 text-left max-md:hidden" data-column-id="season">{stat.Season}</td>
 						</tr>
 					))}
 				</tbody>
@@ -349,11 +372,42 @@ try {
 	let debounceTimer: number;
 	let isLoading = false;
 
-	// Heats range state
+	// Initialize heats range state
 	let heatsRangeMin = 0;
 	let heatsRangeMax = 100;
 	let isDraggingMin = false;
 	let isDraggingMax = false;
+
+	// Column visibility state
+	const COLUMN_STORAGE_KEY = 'sel-stats-column-visibility';
+	const COLUMN_OVERRIDE_KEY = 'sel-stats-column-overrides';
+	const columns = [
+		{ id: 'rank', label: '#', alwaysVisible: true },
+		{ id: 'name', label: 'Name', alwaysVisible: true },
+		{ id: 'team', label: 'Team', alwaysVisible: true },
+		{ id: 'average', label: 'Average', alwaysVisible: true },
+		{ id: 'match', label: 'M (Match)', responsiveClass: 'max-lg:hidden' },
+		{ id: 'heats', label: 'H (Heats)', responsiveClass: 'max-lg:hidden' },
+		{ id: 'points', label: 'Pts (Points)', responsiveClass: 'max-lg:hidden' },
+		{ id: 'bonus', label: 'Bon (Bonus)', responsiveClass: 'max-lg:hidden' },
+		{ id: 'home', label: 'Home Avg.', responsiveClass: 'max-sm:hidden' },
+		{ id: 'away', label: 'Away Avg.', responsiveClass: 'max-sm:hidden' },
+		{ id: 'i', label: 'I', responsiveClass: 'max-xl:hidden' },
+		{ id: 'ii', label: 'II', responsiveClass: 'max-xl:hidden' },
+		{ id: 'iii', label: 'III', responsiveClass: 'max-xl:hidden' },
+		{ id: 'iv', label: 'IV', responsiveClass: 'max-xl:hidden' },
+		{ id: 'r', label: 'R', responsiveClass: 'max-xl:hidden' },
+		{ id: 't', label: 'T', responsiveClass: 'max-xl:hidden' },
+		{ id: 'm', label: 'M', responsiveClass: 'max-xl:hidden' },
+		{ id: 'x', label: 'X', responsiveClass: 'max-xl:hidden' },
+		{ id: 'f', label: 'F', responsiveClass: 'max-xl:hidden' },
+		{ id: 'warn', label: 'W (Warn)', responsiveClass: 'max-xl:hidden' },
+		{ id: 'maxspeed', label: 'Mx Speed', responsiveClass: 'max-md:hidden' },
+		{ id: 'league', label: 'League', responsiveClass: 'max-md:hidden' },
+		{ id: 'season', label: 'Season', responsiveClass: 'max-md:hidden' }
+	];
+	let columnVisibility: Record<string, boolean> = {};
+	let columnOverrides: Record<string, 'show' | 'hide' | null> = {}; // Track manual overrides
 
 	// Cache to store data for different filter combinations
 	// Key format: "team1,team2:league1,league2:season1,season2"
@@ -366,6 +420,150 @@ try {
 	// Helper to create cache key from filters
 	function getCacheKey(teams: string[], leagues: string[], seasons: string[]): string {
 		return `${teams.sort().join(',')}:${leagues.sort().join(',')}:${seasons.sort().join(',')}`;
+	}
+
+	// Column visibility functions
+	function loadColumnVisibility() {
+		try {
+			const stored = localStorage.getItem(COLUMN_STORAGE_KEY);
+			const storedOverrides = localStorage.getItem(COLUMN_OVERRIDE_KEY);
+			
+			if (stored) {
+				columnVisibility = JSON.parse(stored);
+			} else {
+				// Default: all columns visible
+				columns.forEach(col => {
+					columnVisibility[col.id] = true;
+				});
+			}
+			
+			if (storedOverrides) {
+				columnOverrides = JSON.parse(storedOverrides);
+			} else {
+				// Default: no overrides
+				columns.forEach(col => {
+					columnOverrides[col.id] = null;
+				});
+			}
+		} catch (e) {
+			// Default: all columns visible, no overrides
+			columns.forEach(col => {
+				columnVisibility[col.id] = true;
+				columnOverrides[col.id] = null;
+			});
+		}
+	}
+
+	function saveColumnVisibility() {
+		try {
+			localStorage.setItem(COLUMN_STORAGE_KEY, JSON.stringify(columnVisibility));
+			localStorage.setItem(COLUMN_OVERRIDE_KEY, JSON.stringify(columnOverrides));
+		} catch (e) {
+			console.error('Failed to save column visibility:', e);
+		}
+	}
+
+	function toggleColumn(columnId: string, visible: boolean) {
+		columnVisibility[columnId] = visible;
+		// Mark this as a manual override
+		columnOverrides[columnId] = visible ? 'show' : 'hide';
+		saveColumnVisibility();
+		applyColumnVisibility();
+	}
+
+	function applyColumnVisibility() {
+		columns.forEach(col => {
+			const cells = document.querySelectorAll(`[data-column-id="${col.id}"]`);
+			const override = columnOverrides[col.id];
+			
+			cells.forEach(cell => {
+				// Remove any previous override classes
+				cell.classList.remove('!hidden', '!table-cell');
+				
+				// Apply override if set
+				if (override === 'show') {
+					// User wants this column always visible
+					cell.classList.add('!table-cell');
+				} else if (override === 'hide') {
+					// User wants this column always hidden
+					cell.classList.add('!hidden');
+				}
+				// If override is null, responsive classes work naturally
+			});
+		});
+		
+		updateColumnSelectorUI();
+	}
+
+	function updateColumnSelectorUI() {
+		const container = document.getElementById('columnSelectorOptions');
+		if (!container) return;
+
+		container.innerHTML = '';
+
+		columns.forEach(col => {
+			// Check actual visibility - find a header cell with this column-id
+			const headerCell = document.querySelector(`th[data-column-id="${col.id}"]`) as HTMLElement;
+			const isActuallyVisible = headerCell ? isElementVisible(headerCell) : true;
+			
+			const itemDiv = document.createElement('div');
+			itemDiv.className = 'flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/50';
+			
+			const checkbox = document.createElement('input');
+			checkbox.type = 'checkbox';
+			checkbox.id = `col-${col.id}`;
+			// Show checkbox as checked if column is currently visible
+			checkbox.checked = isActuallyVisible;
+			checkbox.disabled = col.alwaysVisible || false;
+			checkbox.className = col.alwaysVisible ? 'cursor-not-allowed' : 'cursor-pointer';
+			checkbox.addEventListener('change', (e) => {
+				toggleColumn(col.id, (e.target as HTMLInputElement).checked);
+			});
+			
+			const label = document.createElement('label');
+			label.htmlFor = `col-${col.id}`;
+			label.textContent = col.label;
+			label.className = `flex-1 text-sm ${col.alwaysVisible ? 'text-muted-foreground' : 'cursor-pointer'}`;
+			
+			itemDiv.appendChild(checkbox);
+			itemDiv.appendChild(label);
+			container.appendChild(itemDiv);
+		});
+	}
+
+	// Helper function to check if element is actually visible
+	function isElementVisible(element: HTMLElement): boolean {
+		// Check if element has display: none or visibility: hidden
+		const style = window.getComputedStyle(element);
+		if (style.display === 'none' || style.visibility === 'hidden') {
+			return false;
+		}
+		
+		// Check if element has offsetParent (elements with display:none don't have one)
+		// Note: fixed position elements don't have offsetParent even if visible
+		if (element.offsetParent === null && style.position !== 'fixed') {
+			return false;
+		}
+		
+		return true;
+	}
+
+	function showAllColumns() {
+		columns.forEach(col => {
+			columnVisibility[col.id] = true;
+			columnOverrides[col.id] = 'show'; // Override to always show
+		});
+		saveColumnVisibility();
+		applyColumnVisibility();
+	}
+
+	function resetColumns() {
+		columns.forEach(col => {
+			columnVisibility[col.id] = true;
+			columnOverrides[col.id] = null; // Clear overrides - let responsive work
+		});
+		saveColumnVisibility();
+		applyColumnVisibility();
 	}
 
 	// Update dropdown options based on current filter selections
@@ -719,6 +917,10 @@ try {
 		// Initialize state from URL
 		initializeFromURL();
 
+		// Initialize column visibility
+		loadColumnVisibility();
+		applyColumnVisibility();
+
 		// Initialize dropdown options
 		updateDropdownOptions();
 
@@ -738,11 +940,13 @@ try {
 		const leagueFilterBtn = document.getElementById('leagueFilterBtn');
 		const seasonFilterBtn = document.getElementById('seasonFilterBtn');
 		const heatsFilterBtn = document.getElementById('heatsFilterBtn');
+		const columnSelectorBtn = document.getElementById('columnSelectorBtn');
 
 		teamFilterBtn?.addEventListener('click', () => toggleDropdown('team'));
 		leagueFilterBtn?.addEventListener('click', () => toggleDropdown('league'));
 		seasonFilterBtn?.addEventListener('click', () => toggleDropdown('season'));
 		heatsFilterBtn?.addEventListener('click', () => toggleDropdown('heats'));
+		columnSelectorBtn?.addEventListener('click', () => toggleDropdown('column'));
 
 		// Close dropdowns when clicking outside
 		document.addEventListener('click', (e) => {
@@ -761,6 +965,18 @@ try {
 			});
 		});
 
+		// Setup column selector buttons
+		const showAllBtn = document.getElementById('showAllColumns');
+		const resetBtn = document.getElementById('resetColumns');
+		showAllBtn?.addEventListener('click', (e) => {
+			e.stopPropagation();
+			showAllColumns();
+		});
+		resetBtn?.addEventListener('click', (e) => {
+			e.stopPropagation();
+			resetColumns();
+		});
+
 		// Setup heats slider
 		initializeHeatsSlider();
 		const heatsClearBtn = document.getElementById('heatsClearBtn');
@@ -774,11 +990,24 @@ try {
 		sortableHeaders.forEach(header => {
 			header.addEventListener('click', handleSort);
 		});
+
+		// Update column selector UI on window resize (for responsive visibility changes)
+		let resizeTimer: number;
+		window.addEventListener('resize', () => {
+			clearTimeout(resizeTimer);
+			resizeTimer = setTimeout(() => {
+				// Only update if dropdown is open
+				const dropdown = document.getElementById('columnSelectorDropdown');
+				if (dropdown && !dropdown.classList.contains('hidden')) {
+					updateColumnSelectorUI();
+				}
+			}, 150); // Debounce resize events
+		});
 	});
 
 	// Toggle dropdown visibility
 	function toggleDropdown(filterType: string) {
-		const dropdown = document.getElementById(`${filterType}FilterDropdown`);
+		const dropdown = document.getElementById(`${filterType === 'column' ? 'columnSelector' : filterType + 'Filter'}Dropdown`);
 		if (!dropdown) return;
 
 		const isHidden = dropdown.classList.contains('hidden');
@@ -789,6 +1018,53 @@ try {
 		// Toggle this dropdown
 		if (isHidden) {
 			dropdown.classList.remove('hidden');
+			
+			// Position column selector dropdown intelligently
+			if (filterType === 'column') {
+				positionColumnDropdown(dropdown);
+				// Update column selector UI when opening to reflect current visibility
+				updateColumnSelectorUI();
+			}
+		}
+	}
+
+	// Position column dropdown to stay within viewport
+	function positionColumnDropdown(dropdown: HTMLElement) {
+		// Reset positioning classes to defaults
+		dropdown.classList.remove('right-0', 'left-0', 'bottom-full', 'mb-1');
+		dropdown.classList.add('mt-1');
+		
+		// Force a reflow to get accurate measurements
+		dropdown.offsetHeight;
+		
+		// Get dropdown and viewport dimensions
+		const rect = dropdown.getBoundingClientRect();
+		const button = document.getElementById('columnSelectorBtn');
+		const buttonRect = button?.getBoundingClientRect();
+		const viewportWidth = window.innerWidth;
+		const viewportHeight = window.innerHeight;
+		
+		// Default: align to right of button (since it's on the right side)
+		dropdown.classList.add('right-0');
+		
+		// Check horizontal overflow after right alignment
+		dropdown.offsetHeight; // Force reflow
+		const rectRightAligned = dropdown.getBoundingClientRect();
+		
+		if (rectRightAligned.left < 0) {
+			// Overflowing on left, switch to left alignment
+			dropdown.classList.remove('right-0');
+			dropdown.classList.add('left-0');
+		}
+		
+		// Check vertical overflow
+		dropdown.offsetHeight; // Force reflow
+		const rectFinal = dropdown.getBoundingClientRect();
+		
+		if (rectFinal.bottom > viewportHeight - 20) { // 20px padding
+			// Not enough space below, position above
+			dropdown.classList.remove('mt-1');
+			dropdown.classList.add('bottom-full', 'mb-1');
 		}
 	}
 
@@ -798,6 +1074,7 @@ try {
 		document.getElementById('leagueFilterDropdown')?.classList.add('hidden');
 		document.getElementById('seasonFilterDropdown')?.classList.add('hidden');
 		document.getElementById('heatsFilterDropdown')?.classList.add('hidden');
+		document.getElementById('columnSelectorDropdown')?.classList.add('hidden');
 	}
 
 	// Initialize heats slider
@@ -1215,29 +1492,29 @@ try {
 			const row = document.createElement('tr');
 			row.className = 'border-t border-border hover:bg-muted/50';
 			row.innerHTML = `
-				<td class="px-2 py-2 text-right text-muted-foreground">${index + 1}</td>
-				<td class="px-3 py-2 text-left font-medium">${stat.Name || ''}</td>
-				<td class="px-3 py-2 text-left">${stat.Team || ''}</td>
-				<td class="px-3 py-2 text-right">${stat.Average ? stat.Average.toFixed(3) : '-'}</td>
-				<td class="px-3 py-2 text-right">${stat.Match || 0}</td>
-				<td class="px-3 py-2 text-right">${stat.Heats || 0}</td>
-				<td class="px-3 py-2 text-right">${stat.Points || 0}</td>
-				<td class="px-3 py-2 text-right">${stat.Bonus || 0}</td>
-				<td class="px-3 py-2 text-right">${stat['Home Avg.'] ? stat['Home Avg.'].toFixed(3) : '-'}</td>
-				<td class="px-3 py-2 text-right">${stat['Away Avg.'] ? stat['Away Avg.'].toFixed(3) : '-'}</td>
-				<td class="px-3 py-2 text-right">${stat.I || 0}</td>
-				<td class="px-3 py-2 text-right">${stat.II || 0}</td>
-				<td class="px-3 py-2 text-right">${stat.III || 0}</td>
-				<td class="px-3 py-2 text-right">${stat.IV || 0}</td>
-				<td class="px-3 py-2 text-right">${stat.R || 0}</td>
-				<td class="px-3 py-2 text-right">${stat.T || 0}</td>
-				<td class="px-3 py-2 text-right">${stat.M || 0}</td>
-				<td class="px-3 py-2 text-right">${stat.X || 0}</td>
-				<td class="px-3 py-2 text-right">${stat.F || 0}</td>
-				<td class="px-3 py-2 text-right">${stat.Warn || 0}</td>
-				<td class="px-3 py-2 text-right">${stat['Max Speed'] ? stat['Max Speed'].toFixed(2) : '-'}</td>
-				<td class="px-3 py-2 text-left">${stat.League || ''}</td>
-				<td class="px-3 py-2 text-left">${stat.Season || ''}</td>
+				<td class="px-2 py-2 text-right text-muted-foreground" data-column-id="rank">${index + 1}</td>
+				<td class="px-3 py-2 text-left font-medium" data-column-id="name">${stat.Name || ''}</td>
+				<td class="px-3 py-2 text-left" data-column-id="team">${stat.Team || ''}</td>
+				<td class="px-3 py-2 text-right" data-column-id="average">${stat.Average ? stat.Average.toFixed(3) : '-'}</td>
+				<td class="px-3 py-2 text-right max-lg:hidden" data-column-id="match">${stat.Match || 0}</td>
+				<td class="px-3 py-2 text-right max-lg:hidden" data-column-id="heats">${stat.Heats || 0}</td>
+				<td class="px-3 py-2 text-right max-lg:hidden" data-column-id="points">${stat.Points || 0}</td>
+				<td class="px-3 py-2 text-right max-lg:hidden" data-column-id="bonus">${stat.Bonus || 0}</td>
+				<td class="px-3 py-2 text-right max-sm:hidden" data-column-id="home">${stat['Home Avg.'] ? stat['Home Avg.'].toFixed(3) : '-'}</td>
+				<td class="px-3 py-2 text-right max-sm:hidden" data-column-id="away">${stat['Away Avg.'] ? stat['Away Avg.'].toFixed(3) : '-'}</td>
+				<td class="px-3 py-2 text-right max-xl:hidden" data-column-id="i">${stat.I || 0}</td>
+				<td class="px-3 py-2 text-right max-xl:hidden" data-column-id="ii">${stat.II || 0}</td>
+				<td class="px-3 py-2 text-right max-xl:hidden" data-column-id="iii">${stat.III || 0}</td>
+				<td class="px-3 py-2 text-right max-xl:hidden" data-column-id="iv">${stat.IV || 0}</td>
+				<td class="px-3 py-2 text-right max-xl:hidden" data-column-id="r">${stat.R || 0}</td>
+				<td class="px-3 py-2 text-right max-xl:hidden" data-column-id="t">${stat.T || 0}</td>
+				<td class="px-3 py-2 text-right max-xl:hidden" data-column-id="m">${stat.M || 0}</td>
+				<td class="px-3 py-2 text-right max-xl:hidden" data-column-id="x">${stat.X || 0}</td>
+				<td class="px-3 py-2 text-right max-xl:hidden" data-column-id="f">${stat.F || 0}</td>
+				<td class="px-3 py-2 text-right max-xl:hidden" data-column-id="warn">${stat.Warn || 0}</td>
+				<td class="px-3 py-2 text-right max-md:hidden" data-column-id="maxspeed">${stat['Max Speed'] ? stat['Max Speed'].toFixed(2) : '-'}</td>
+				<td class="px-3 py-2 text-left max-md:hidden" data-column-id="league">${stat.League || ''}</td>
+				<td class="px-3 py-2 text-left max-md:hidden" data-column-id="season">${stat.Season || ''}</td>
 			`;
 			fragment.appendChild(row);
 		});
@@ -1245,6 +1522,9 @@ try {
 		// Single DOM update
 		tbody.innerHTML = '';
 		tbody.appendChild(fragment);
+		
+		// Reapply column visibility after updating table
+		applyColumnVisibility();
 	}
 
 	function updateSortIndicators() {
@@ -1342,5 +1622,14 @@ try {
 	
 	.heats-indicator:active {
 		color: hsl(var(--foreground) / 0.9);
+	}
+
+	/* Manual column visibility overrides responsive classes */
+	[data-column-id].\\!hidden {
+		display: none !important;
+	}
+	
+	[data-column-id].\\!table-cell {
+		display: table-cell !important;
 	}
 </style>

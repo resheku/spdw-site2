@@ -1,13 +1,5 @@
 import type { APIRoute } from 'astro';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Read SQL query once at module load time
-const seasonsQuery = readFileSync(join(__dirname, 'queries', 'seasons.sql'), 'utf-8');
+import seasonsQuery from './queries/seasons.sql?raw';
 
 export const prerender = false;
 

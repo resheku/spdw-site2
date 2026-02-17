@@ -1,15 +1,7 @@
 import type { APIRoute } from 'astro';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Read SQL queries once at module load time
-const latestSeasonQuery = readFileSync(join(__dirname, 'queries', 'max-speeds-latest-season.sql'), 'utf-8');
-const thisSeasonQuery = readFileSync(join(__dirname, 'queries', 'max-speeds-latest.sql'), 'utf-8');
-const allTimeQuery = readFileSync(join(__dirname, 'queries', 'max-speeds-all-time.sql'), 'utf-8');
+import latestSeasonQuery from './queries/max-speeds-latest-season.sql?raw';
+import thisSeasonQuery from './queries/max-speeds-latest.sql?raw';
+import allTimeQuery from './queries/max-speeds-all-time.sql?raw';
 
 export const prerender = false;
 

@@ -1,10 +1,72 @@
 ---
 import Layout from '../layouts/Layout.astro';
+
+export const prerender = false;
+
+// Fetch data from API endpoints
+let seasons: number[] = [];
+let telemSeasons: number[] = [];
+let bestAveragesThisSeason: any[] = [];
+let bestAveragesAllTime: any[] = [];
+let maxSpeedsThisSeason: any[] = [];
+let maxSpeedsAllTime: any[] = [];
+let currentSeason = new Date().getFullYear();
+
+try {
+	const pageStart = Date.now();
+	
+	// First fetch seasons to determine the actual current season
+	const seasonsStart = Date.now();
+	const seasonsRes = await fetch(new URL('/api/sel/seasons', Astro.url));
+	const telemSeasonsRes = await fetch(new URL('/api/sel/dashboard/telem-seasons', Astro.url));
+	console.log(`[sel page] Seasons fetch: ${Date.now() - seasonsStart}ms`);
+	
+	if (seasonsRes.ok) {
+		const seasonsData = await seasonsRes.json();
+		seasons = Array.isArray(seasonsData) ? seasonsData : [];
+	}
+	if (telemSeasonsRes.ok) {
+		const telemData = await telemSeasonsRes.json();
+		telemSeasons = Array.isArray(telemData) ? telemData : [];
+	}
+	
+	// Use the latest season from the database as current season
+	if (seasons.length > 0) {
+		currentSeason = seasons[seasons.length - 1];
+	}
+	
+	// Now fetch the rest of the data with the correct current season
+	const dataStart = Date.now();
+	const [avgRes, speedRes] = await Promise.all([
+		fetch(new URL('/api/sel/dashboard/best-averages', Astro.url)),
+		fetch(new URL('/api/sel/dashboard/max-speeds', Astro.url))
+	]);
+	console.log(`[sel page] Data fetch: ${Date.now() - dataStart}ms`);
+
+	if (avgRes.ok) {
+		const data = await avgRes.json();
+		bestAveragesThisSeason = Array.isArray(data.thisSeason) ? data.thisSeason : [];
+		bestAveragesAllTime = Array.isArray(data.allTime) ? data.allTime : [];
+	}
+	if (speedRes.ok) {
+		const data = await speedRes.json();
+		maxSpeedsThisSeason = Array.isArray(data.thisSeason) ? data.thisSeason : [];
+		maxSpeedsAllTime = Array.isArray(data.allTime) ? data.allTime : [];
+	}
+	
+	console.log(`[sel page] Total time: ${Date.now() - pageStart}ms`);
+} catch (error) {
+	console.error('Error fetching dashboard data:', error);
+}
+
+// Calculate ranges
+const seasonRange = seasons.length > 0 ? `${seasons[0]} - ${currentSeason}` : '';
+const maxSpeedRange = telemSeasons.length > 0 ? `${telemSeasons[0]} - ${telemSeasons[telemSeasons.length - 1]}` : '';
 ---
 
 <Layout title="sel - spdw">
-	<div class="p-4">
-		<nav aria-label="breadcrumb">
+	<div class="p-4 max-w-full mx-auto">
+		<nav aria-label="breadcrumb" class="mb-8">
 			<ol class="text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm break-words sm:gap-2.5">
 				<li class="inline-flex items-center gap-1.5">
 					<a href="/" class="hover:text-foreground transition-colors">
@@ -23,10 +85,157 @@ import Layout from '../layouts/Layout.astro';
 				</li>
 			</ol>
 		</nav>
-	</div>
-	<div class="content-area">
-		<h1>sel</h1>
-		<br />
-		<p class="text-muted-foreground">Coming soon...</p>
+
+		<div class="space-y-8 w-full">
+			<!-- Stats Section -->
+			<h2 class="text-2xl font-bold mb-4">
+				<a href={`/sel/stats?season=${currentSeason}&league=PGEE`} class="underline">
+					stats
+				</a>
+			</h2>
+			
+			<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+				<!-- This Season Best Averages -->
+				<div class="rounded-lg overflow-hidden bg-background">
+					<div class="px-4 py-3 border-b border-border">
+						<h3 class="text-lg font-semibold">
+							<a href={`/sel/stats?season=${currentSeason}&league=PGEE`} class="underline">
+								{currentSeason}
+							</a>
+						</h3>
+					</div>
+					<div class="overflow-x-auto">
+						<table class="w-full text-sm">
+							<thead>
+								<tr class="border-b border-border">
+									<th class="px-3 py-2 text-right font-medium">#</th>
+									<th class="px-3 py-2 text-left font-medium">Name</th>
+									<th class="px-3 py-2 text-left font-medium">Team</th>
+									<th class="px-3 py-2 pr-16 text-right font-medium">Average</th>
+								</tr>
+							</thead>
+							<tbody>
+								{bestAveragesThisSeason.map((stat) => (
+									<tr class="border-b border-border hover:bg-muted/50">
+										<td class="px-3 py-2 text-right text-muted-foreground">{stat.No}</td>
+										<td class="px-3 py-2 text-left font-medium">{stat.Name}</td>
+										<td class="px-3 py-2 text-left">{stat.Team}</td>
+										<td class="px-3 py-2 pr-16 text-right">{stat.Average?.toFixed(3)}</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				</div>
+
+				<!-- All Time Best Averages -->
+				<div class="rounded-lg overflow-hidden bg-background">
+					<div class="px-4 py-3 border-b border-border">
+						<h3 class="text-lg font-semibold">
+							<a href="/sel/stats?league=PGEE" class="underline">
+								{seasonRange || 'All Seasons'}
+							</a>
+						</h3>
+					</div>
+					<div class="overflow-x-auto">
+						<table class="w-full text-sm">
+							<thead>
+								<tr class="border-b border-border">
+									<th class="px-3 py-2 text-right font-medium">#</th>
+									<th class="px-3 py-2 text-left font-medium">Name</th>
+									<th class="px-3 py-2 text-left font-medium">Team</th>
+									<th class="px-3 py-2 text-right font-medium">Season</th>
+									<th class="px-3 py-2 pr-16 text-right font-medium">Average</th>
+								</tr>
+							</thead>
+							<tbody>
+								{bestAveragesAllTime.map((stat) => (
+									<tr class={`border-b border-border hover:bg-muted/50 ${stat.Season === currentSeason ? 'font-bold' : ''}`}>
+										<td class={`px-3 py-2 text-right text-muted-foreground ${stat.Season === currentSeason ? '!font-bold' : ''}`}>{stat.No}</td>
+										<td class={`px-3 py-2 text-left ${stat.Season === currentSeason ? '!font-bold' : 'font-medium'}`}>{stat.Name}</td>
+										<td class="px-3 py-2 text-left">{stat.Team}</td>
+										<td class="px-3 py-2 text-right">{stat.Season}</td>
+										<td class="px-3 py-2 pr-16 text-right">{stat.Average?.toFixed(3)}</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+
+			<!-- Top Speed Section -->
+			<h3 class="text-2xl font-bold mb-4 mt-8">
+				max speed <span class="text-base font-normal text-muted-foreground">(km/h)</span>
+			</h3>
+			
+			<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+				<!-- This Season Max Speeds -->
+				<div class="rounded-lg overflow-hidden bg-background">
+					<div class="px-4 py-3 border-b border-border">
+						<h3 class="text-lg font-semibold">{currentSeason}</h3>
+					</div>
+					<div class="overflow-x-auto">
+						<table class="w-full text-sm">
+							<thead>
+								<tr class="border-b border-border">
+									<th class="px-3 py-2 text-right font-medium">#</th>
+									<th class="px-3 py-2 text-left font-medium">Name</th>
+									<th class="px-3 py-2 text-left font-medium">Team</th>
+									<th class="px-3 py-2 text-right font-medium">Speed</th>
+									<th class="px-3 py-2 text-left font-medium">Track</th>
+									<th class="px-3 py-2 text-left font-medium">Date</th>
+								</tr>
+							</thead>
+							<tbody>
+								{maxSpeedsThisSeason.map((stat) => (
+									<tr class="border-b border-border hover:bg-muted/50">
+										<td class="px-3 py-2 text-right text-muted-foreground">{stat.No}</td>
+										<td class="px-3 py-2 text-left font-medium">{stat.Name}</td>
+										<td class="px-3 py-2 text-left">{stat.Team}</td>
+										<td class="px-3 py-2 text-right">{stat.Speed?.toFixed(2)}</td>
+										<td class="px-3 py-2 text-left">{stat.Track || '-'}</td>
+										<td class="px-3 py-2 text-left">{stat.Date || '-'}</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				</div>
+
+				<!-- All Time Max Speeds -->
+				<div class="rounded-lg overflow-hidden bg-background">
+					<div class="px-4 py-3 border-b border-border">
+						<h3 class="text-lg font-semibold">{maxSpeedRange || 'All Seasons'}</h3>
+					</div>
+					<div class="overflow-x-auto">
+						<table class="w-full text-sm">
+							<thead>
+								<tr class="border-b border-border">
+									<th class="px-3 py-2 text-right font-medium">#</th>
+									<th class="px-3 py-2 text-left font-medium">Name</th>
+									<th class="px-3 py-2 text-left font-medium">Team</th>
+									<th class="px-3 py-2 text-right font-medium">Speed</th>
+									<th class="px-3 py-2 text-left font-medium">Track</th>
+									<th class="px-3 py-2 text-left font-medium">Date</th>
+								</tr>
+							</thead>
+							<tbody>
+								{maxSpeedsAllTime.map((stat) => (
+									<tr class={`border-b border-border hover:bg-muted/50 ${stat.Season === currentSeason ? 'font-bold' : ''}`}>
+										<td class={`px-3 py-2 text-right text-muted-foreground ${stat.Season === currentSeason ? '!font-bold' : ''}`}>{stat.No}</td>
+										<td class={`px-3 py-2 text-left ${stat.Season === currentSeason ? '!font-bold' : 'font-medium'}`}>{stat.Name}</td>
+										<td class="px-3 py-2 text-left">{stat.Team}</td>
+										<td class="px-3 py-2 text-right">{stat.Speed?.toFixed(2)}</td>
+										<td class="px-3 py-2 text-left">{stat.Track || '-'}</td>
+										<td class="px-3 py-2 text-left">{stat.Date || '-'}</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
 	</div>
 </Layout>

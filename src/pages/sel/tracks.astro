@@ -1,0 +1,83 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import SpeedChart from '../../components/SpeedChart.svelte';
+
+export const prerender = false;
+
+type TrackSpeeds = { Track: string; Average: number | null; seasons: Record<string, number> };
+
+let tracks: TrackSpeeds[] = [];
+let seasons: number[] = [];
+
+try {
+	const res = await fetch(new URL('/api/sel/tracks/speeds', Astro.url));
+	if (res.ok) {
+		const data = await res.json() as { tracks: TrackSpeeds[]; seasons: number[] };
+		tracks = data.tracks;
+		seasons = data.seasons;
+	}
+} catch (e) {
+	console.error('Error fetching track speeds:', e);
+}
+---
+
+<Layout title="SEL Tracks - spdw">
+	<div class="p-4">
+		<nav aria-label="breadcrumb">
+			<ol class="text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm break-words sm:gap-2.5">
+				<li class="inline-flex items-center gap-1.5">
+					<a href="/" class="hover:text-foreground transition-colors">Home</a>
+				</li>
+				<li role="presentation" aria-hidden="true" class="[&>svg]:size-3.5">
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+				</li>
+				<li class="inline-flex items-center gap-1.5">
+					<a href="/sel" class="hover:text-foreground transition-colors">sel</a>
+				</li>
+				<li role="presentation" aria-hidden="true" class="[&>svg]:size-3.5">
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+				</li>
+				<li class="inline-flex items-center gap-1.5">
+					<span class="text-foreground font-normal" role="link" aria-disabled="true" aria-current="page">tracks</span>
+				</li>
+			</ol>
+		</nav>
+	</div>
+
+	<div class="px-4 pb-8 max-w-full">
+		<h1 class="text-2xl font-bold mb-6">SEL Tracks</h1>
+
+		<h2 class="text-xl font-bold mt-6 mb-4">Max Speed season progression</h2>
+		<SpeedChart {tracks} {seasons} client:load />
+
+		<!-- Pivot Table (server-rendered) -->
+		<div class="overflow-x-auto border border-border rounded-lg mt-8 mb-8">
+			<table class="w-full text-sm">
+				<thead class="bg-muted sticky top-0">
+					<tr>
+						<th class="px-3 py-2 text-left font-medium sticky left-0 bg-muted z-10">Track</th>
+						{seasons.map(s => <th class="px-3 py-2 text-right font-medium">{s}</th>)}
+						<th class="px-3 py-2 text-right font-medium">Average</th>
+					</tr>
+				</thead>
+				<tbody>
+					{tracks.map(t => (
+						<tr class="border-t border-border hover:bg-muted/50">
+							<td class="px-3 py-2 text-left font-medium sticky left-0 bg-background z-10">
+								<a href={`/sel/tracks/${encodeURIComponent(t.Track)}`} class="hover:underline">{t.Track}</a>
+							</td>
+							{seasons.map(s => (
+								<td class="px-3 py-2 text-right tabular-nums">
+									{t.seasons[s] != null ? t.seasons[s].toFixed(2) : <span class="text-muted-foreground">-</span>}
+								</td>
+							))}
+							<td class="px-3 py-2 text-right font-semibold tabular-nums">
+								{t.Average != null ? t.Average.toFixed(2) : '-'}
+							</td>
+						</tr>
+					))}
+				</tbody>
+			</table>
+		</div>
+	</div>
+</Layout>

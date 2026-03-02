@@ -57,19 +57,19 @@ const speedColumns = [
 
 const gateColumns = [
 	{ key: 'Track', label: 'Track', align: 'left' as const },
-	{ key: 'A', label: 'Gate A', align: 'right' as const, decimals: 2 },
-	{ key: 'B', label: 'Gate B', align: 'right' as const, decimals: 2 },
-	{ key: 'C', label: 'Gate C', align: 'right' as const, decimals: 2 },
-	{ key: 'D', label: 'Gate D', align: 'right' as const, decimals: 2 },
+	{ key: 'A', label: 'Gate A', align: 'right' as const, decimals: 2, heatmap: true },
+	{ key: 'B', label: 'Gate B', align: 'right' as const, decimals: 2, heatmap: true },
+	{ key: 'C', label: 'Gate C', align: 'right' as const, decimals: 2, heatmap: true },
+	{ key: 'D', label: 'Gate D', align: 'right' as const, decimals: 2, heatmap: true },
 	{ key: 'AC/BD', label: 'AC/BD', align: 'right' as const },
 ];
 
 const gateWinColumns = [
 	{ key: 'Track', label: 'Track', align: 'left' as const },
-	{ key: 'A', label: 'Gate A %', align: 'right' as const, decimals: 1 },
-	{ key: 'B', label: 'Gate B %', align: 'right' as const, decimals: 1 },
-	{ key: 'C', label: 'Gate C %', align: 'right' as const, decimals: 1 },
-	{ key: 'D', label: 'Gate D %', align: 'right' as const, decimals: 1 },
+	{ key: 'A', label: 'Gate A %', align: 'right' as const, decimals: 1, heatmap: true },
+	{ key: 'B', label: 'Gate B %', align: 'right' as const, decimals: 1, heatmap: true },
+	{ key: 'C', label: 'Gate C %', align: 'right' as const, decimals: 1, heatmap: true },
+	{ key: 'D', label: 'Gate D %', align: 'right' as const, decimals: 1, heatmap: true },
 ];
 ---
 
@@ -104,21 +104,21 @@ const gateWinColumns = [
 
 		<!-- Pivot Table -->
 		<div class="overflow-x-auto border border-border rounded-lg mt-8 mb-8">
-			<SortableTable columns={speedColumns} rows={speedRows} client:load />
+			<SortableTable columns={speedColumns} rows={speedRows} showRowNumber client:load />
 		</div>
 
 		<!-- Gate tables side by side -->
 		<div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-8 mb-8">
 			<div>
-				<h2 class="text-xl font-bold mb-4">Gate Average Points</h2>
+				<h2 class="text-xl font-bold mb-4">Gate points average </h2>
 				<div class="overflow-x-auto border border-border rounded-lg">
-					<SortableTable columns={gateColumns} rows={gateStats} pinnedBottom="Total Average" defaultSortKey="AC/BD" client:load />
+					<SortableTable columns={gateColumns} rows={gateStats} pinnedBottom="Total Average" defaultSortKey="AC/BD" showRowNumber client:load />
 				</div>
 			</div>
 			<div>
-				<h2 class="text-xl font-bold mb-4">Gate Win %</h2>
+				<h2 class="text-xl font-bold mb-4">Gate win percentage</h2>
 				<div class="overflow-x-auto border border-border rounded-lg">
-					<SortableTable columns={gateWinColumns} rows={gateWin} pinnedBottom="Total Average" defaultSortKey="A" client:load />
+					<SortableTable columns={gateWinColumns} rows={gateWin} pinnedBottom="Total Average" defaultSortKey="A" showRowNumber client:load />
 				</div>
 			</div>
 		</div>

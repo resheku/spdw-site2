@@ -7,6 +7,7 @@
 		isLink?: boolean;
 		sticky?: boolean;
 		bold?: boolean;
+		heatmap?: boolean;
 	};
 
 	export let columns: Col[];
@@ -16,6 +17,7 @@
 	export let pinnedKey: string = 'Track';
 	export let defaultSortKey: string | null = null;
 	export let defaultSortDir: 'desc' | 'asc' = 'desc';
+	export let showRowNumber: boolean = false;
 
 	type SortDir = 'desc' | 'asc' | null;
 	let sortKey: string | null = defaultSortKey;
@@ -53,6 +55,26 @@
 		});
 	})();
 
+	// Per-column min/max computed from non-pinned rows (used for heatmap)
+	$: colRanges = (() => {
+		const map: Record<string, { min: number; max: number }> = {};
+		for (const col of columns) {
+			if (!col.heatmap) continue;
+			const vals = mainRows.map(r => r[col.key]).filter((v): v is number => typeof v === 'number');
+			if (vals.length === 0) continue;
+			map[col.key] = { min: Math.min(...vals), max: Math.max(...vals) };
+		}
+		return map;
+	})();
+
+	function heatHue(col: Col, value: any): number | null {
+		if (!col.heatmap || typeof value !== 'number') return null;
+		const range = colRanges[col.key];
+		if (!range || range.max === range.min) return null;
+		const t = (value - range.min) / (range.max - range.min);
+		return Math.round(t * 120); // 0 = red, 120 = green
+	}
+
 	function sortIcon(key: string): string {
 		if (sortKey !== key) return '↕';
 		return sortDir === 'desc' ? '↓' : '↑';
@@ -68,6 +90,9 @@
 <table class="w-full text-sm">
 	<thead class="bg-muted sticky top-0">
 		<tr>
+			{#if showRowNumber}
+				<th class="px-3 py-2 text-right font-medium w-10 text-muted-foreground">#</th>
+			{/if}
 			{#each columns as col, i}
 				<th
 					class="px-3 py-2 font-medium cursor-pointer select-none whitespace-nowrap
@@ -84,14 +109,20 @@
 		</tr>
 	</thead>
 	<tbody>
-		{#each sortedRows as row}
+		{#each sortedRows as row, i}
 			<tr class="border-t border-border hover:bg-muted/50">
+				{#if showRowNumber}
+					<td class="px-3 py-2 text-right tabular-nums text-muted-foreground">{i + 1}</td>
+				{/if}
 				{#each columns as col}
+					{@const hue = heatHue(col, row[col.key])}
 					<td
 						class="px-3 py-2 tabular-nums
 							{col.align === 'left' ? 'text-left' : 'text-right'}
 							{col.sticky ? 'sticky left-0 bg-background z-10' : ''}
-							{col.bold ? 'font-semibold' : col.align === 'left' ? 'font-medium' : ''}"
+							{col.bold ? 'font-semibold' : col.align === 'left' ? 'font-medium' : ''}
+							{hue !== null ? 'heat' : ''}"
+						style:--cell-hue={hue ?? ''}
 					>
 						{#if col.isLink && row[col.key] != null}
 							<a href="/sel/tracks/{encodeURIComponent(String(row[col.key]))}" class="hover:underline">{row[col.key]}</a>
@@ -106,6 +137,9 @@
 		{/each}
 		{#if pinnedRow}
 			<tr class="border-t-2 border-border hover:bg-muted/50 font-semibold bg-muted/30">
+				{#if showRowNumber}
+					<td class="px-3 py-2"></td>
+				{/if}
 				{#each columns as col}
 					<td
 						class="px-3 py-2 tabular-nums
@@ -123,3 +157,9 @@
 		{/if}
 	</tbody>
 </table>
+
+<style>
+	.heat {
+		background-color: hsla(var(--cell-hue), 70%, 45%, 0.25);
+	}
+</style>

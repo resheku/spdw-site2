@@ -1,24 +1,76 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import SpeedChart from '../../components/SpeedChart.svelte';
+import SortableTable from '../../components/SortableTable.svelte';
 
 export const prerender = false;
 
 type TrackSpeeds = { Track: string; Average: number | null; seasons: Record<string, number> };
+type GateStatsRow = { Track: string; A: number | null; B: number | null; C: number | null; D: number | null; 'AC/BD': string | null };
+type GateWinRow = { Track: string; A: number | null; B: number | null; C: number | null; D: number | null; 'AC/BD': string | null };
 
 let tracks: TrackSpeeds[] = [];
 let seasons: number[] = [];
+let gateStats: GateStatsRow[] = [];
+let gateWin: GateWinRow[] = [];
 
-try {
-	const res = await fetch(new URL('/api/sel/tracks/speeds', Astro.url));
-	if (res.ok) {
-		const data = await res.json() as { tracks: TrackSpeeds[]; seasons: number[] };
-		tracks = data.tracks;
-		seasons = data.seasons;
-	}
-} catch (e) {
-	console.error('Error fetching track speeds:', e);
+const [speedsRes, gateStatsRes, gateWinRes] = await Promise.allSettled([
+	fetch(new URL('/api/sel/tracks/speeds', Astro.url)),
+	fetch(new URL('/api/sel/tracks/gate-stats', Astro.url)),
+	fetch(new URL('/api/sel/tracks/gate-win', Astro.url)),
+]);
+
+if (speedsRes.status === 'fulfilled' && speedsRes.value.ok) {
+	const data = await speedsRes.value.json() as { tracks: TrackSpeeds[]; seasons: number[] };
+	tracks = data.tracks;
+	seasons = data.seasons;
+} else {
+	console.error('Error fetching track speeds');
 }
+
+if (gateStatsRes.status === 'fulfilled' && gateStatsRes.value.ok) {
+	const data = await gateStatsRes.value.json() as { rows: GateStatsRow[] };
+	gateStats = data.rows;
+} else {
+	console.error('Error fetching gate stats');
+}
+
+if (gateWinRes.status === 'fulfilled' && gateWinRes.value.ok) {
+	const data = await gateWinRes.value.json() as { rows: GateWinRow[] };
+	gateWin = data.rows;
+} else {
+	console.error('Error fetching gate win data');
+}
+
+// Flatten speed data for SortableTable: { Track, '2019': 89.5, ..., Average }
+const speedRows = tracks.map(t => ({
+	Track: t.Track,
+	...Object.fromEntries(seasons.map(s => [String(s), t.seasons[s] ?? null])),
+	Average: t.Average,
+}));
+
+const speedColumns = [
+	{ key: 'Track', label: 'Track', align: 'left' as const, isLink: true, sticky: true },
+	...seasons.map(s => ({ key: String(s), label: String(s), align: 'right' as const, decimals: 2 })),
+	{ key: 'Average', label: 'Average', align: 'right' as const, decimals: 2, bold: true },
+];
+
+const gateColumns = [
+	{ key: 'Track', label: 'Track', align: 'left' as const },
+	{ key: 'A', label: 'Gate A', align: 'right' as const, decimals: 2 },
+	{ key: 'B', label: 'Gate B', align: 'right' as const, decimals: 2 },
+	{ key: 'C', label: 'Gate C', align: 'right' as const, decimals: 2 },
+	{ key: 'D', label: 'Gate D', align: 'right' as const, decimals: 2 },
+	{ key: 'AC/BD', label: 'AC/BD', align: 'right' as const },
+];
+
+const gateWinColumns = [
+	{ key: 'Track', label: 'Track', align: 'left' as const },
+	{ key: 'A', label: 'Gate A %', align: 'right' as const, decimals: 1 },
+	{ key: 'B', label: 'Gate B %', align: 'right' as const, decimals: 1 },
+	{ key: 'C', label: 'Gate C %', align: 'right' as const, decimals: 1 },
+	{ key: 'D', label: 'Gate D %', align: 'right' as const, decimals: 1 },
+];
 ---
 
 <Layout title="SEL Tracks - spdw">
@@ -50,34 +102,21 @@ try {
 		<h2 class="text-xl font-bold mt-6 mb-4">Max Speed season progression</h2>
 		<SpeedChart {tracks} {seasons} client:load />
 
-		<!-- Pivot Table (server-rendered) -->
+		<!-- Pivot Table -->
 		<div class="overflow-x-auto border border-border rounded-lg mt-8 mb-8">
-			<table class="w-full text-sm">
-				<thead class="bg-muted sticky top-0">
-					<tr>
-						<th class="px-3 py-2 text-left font-medium sticky left-0 bg-muted z-10">Track</th>
-						{seasons.map(s => <th class="px-3 py-2 text-right font-medium">{s}</th>)}
-						<th class="px-3 py-2 text-right font-medium">Average</th>
-					</tr>
-				</thead>
-				<tbody>
-					{tracks.map(t => (
-						<tr class="border-t border-border hover:bg-muted/50">
-							<td class="px-3 py-2 text-left font-medium sticky left-0 bg-background z-10">
-								<a href={`/sel/tracks/${encodeURIComponent(t.Track)}`} class="hover:underline">{t.Track}</a>
-							</td>
-							{seasons.map(s => (
-								<td class="px-3 py-2 text-right tabular-nums">
-									{t.seasons[s] != null ? t.seasons[s].toFixed(2) : <span class="text-muted-foreground">-</span>}
-								</td>
-							))}
-							<td class="px-3 py-2 text-right font-semibold tabular-nums">
-								{t.Average != null ? t.Average.toFixed(2) : '-'}
-							</td>
-						</tr>
-					))}
-				</tbody>
-			</table>
+			<SortableTable columns={speedColumns} rows={speedRows} client:load />
+		</div>
+
+		<!-- Gate Stats Table -->
+		<h2 class="text-xl font-bold mt-8 mb-4">Gate Average Points</h2>
+		<div class="overflow-x-auto border border-border rounded-lg mb-8">
+			<SortableTable columns={gateColumns} rows={gateStats} pinnedBottom="Total Average" defaultSortKey="AC/BD" client:load />
+		</div>
+
+		<!-- Gate Win % Table -->
+		<h2 class="text-xl font-bold mt-8 mb-4">Gate win percentage</h2>
+		<div class="overflow-x-auto border border-border rounded-lg mb-8">
+			<SortableTable columns={gateWinColumns} rows={gateWin} pinnedBottom="Total Average" defaultSortKey="A" client:load />
 		</div>
 	</div>
 </Layout>

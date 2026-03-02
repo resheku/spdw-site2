@@ -107,16 +107,20 @@ const gateWinColumns = [
 			<SortableTable columns={speedColumns} rows={speedRows} client:load />
 		</div>
 
-		<!-- Gate Stats Table -->
-		<h2 class="text-xl font-bold mt-8 mb-4">Gate Average Points</h2>
-		<div class="overflow-x-auto border border-border rounded-lg mb-8">
-			<SortableTable columns={gateColumns} rows={gateStats} pinnedBottom="Total Average" defaultSortKey="AC/BD" client:load />
-		</div>
-
-		<!-- Gate Win % Table -->
-		<h2 class="text-xl font-bold mt-8 mb-4">Gate win percentage</h2>
-		<div class="overflow-x-auto border border-border rounded-lg mb-8">
-			<SortableTable columns={gateWinColumns} rows={gateWin} pinnedBottom="Total Average" defaultSortKey="A" client:load />
+		<!-- Gate tables side by side -->
+		<div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-8 mb-8">
+			<div>
+				<h2 class="text-xl font-bold mb-4">Gate Average Points</h2>
+				<div class="overflow-x-auto border border-border rounded-lg">
+					<SortableTable columns={gateColumns} rows={gateStats} pinnedBottom="Total Average" defaultSortKey="AC/BD" client:load />
+				</div>
+			</div>
+			<div>
+				<h2 class="text-xl font-bold mb-4">Gate Win %</h2>
+				<div class="overflow-x-auto border border-border rounded-lg">
+					<SortableTable columns={gateWinColumns} rows={gateWin} pinnedBottom="Total Average" defaultSortKey="A" client:load />
+				</div>
+			</div>
 		</div>
 	</div>
 </Layout>

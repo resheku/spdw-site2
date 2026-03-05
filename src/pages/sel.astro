@@ -1,5 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import SpeedChart from '../components/SpeedChart.svelte';
+import SortableTable from '../components/SortableTable.svelte';
 
 export const prerender = false;
 
@@ -62,6 +64,67 @@ try {
 // Calculate ranges
 const seasonRange = seasons.length > 0 ? `${seasons[0]} - ${currentSeason}` : '';
 const maxSpeedRange = telemSeasons.length > 0 ? `${telemSeasons[0]} - ${telemSeasons[telemSeasons.length - 1]}` : '';
+
+// Tracks data
+type TrackSpeeds = { Track: string; Average: number | null; seasons: Record<string, number> };
+type GateStatsRow = { Track: string; A: number | null; B: number | null; C: number | null; D: number | null; 'AC/BD': string | null };
+type GateWinRow = { Track: string; A: number | null; B: number | null; C: number | null; D: number | null; 'AC/BD': string | null };
+
+let tracks: TrackSpeeds[] = [];
+let trackSeasons: number[] = [];
+let gateStats: GateStatsRow[] = [];
+let gateWin: GateWinRow[] = [];
+
+const [speedsRes, gateStatsRes, gateWinRes] = await Promise.allSettled([
+	fetch(new URL('/api/sel/tracks/speeds', Astro.url)),
+	fetch(new URL('/api/sel/tracks/gate-stats', Astro.url)),
+	fetch(new URL('/api/sel/tracks/gate-win', Astro.url)),
+]);
+
+if (speedsRes.status === 'fulfilled' && speedsRes.value.ok) {
+	const data = await speedsRes.value.json() as { tracks: TrackSpeeds[]; seasons: number[] };
+	tracks = data.tracks;
+	trackSeasons = data.seasons;
+}
+
+if (gateStatsRes.status === 'fulfilled' && gateStatsRes.value.ok) {
+	const data = await gateStatsRes.value.json() as { rows: GateStatsRow[] };
+	gateStats = data.rows;
+}
+
+if (gateWinRes.status === 'fulfilled' && gateWinRes.value.ok) {
+	const data = await gateWinRes.value.json() as { rows: GateWinRow[] };
+	gateWin = data.rows;
+}
+
+const speedRows = tracks.map(t => ({
+	Track: t.Track,
+	...Object.fromEntries(trackSeasons.map(s => [String(s), t.seasons[s] ?? null])),
+	Average: t.Average,
+}));
+
+const speedColumns = [
+	{ key: 'Track', label: 'Track', align: 'left' as const, isLink: true, sticky: true },
+	...trackSeasons.map(s => ({ key: String(s), label: String(s), align: 'right' as const, decimals: 2 })),
+	{ key: 'Average', label: 'Average', align: 'right' as const, decimals: 2, bold: true },
+];
+
+const gateColumns = [
+	{ key: 'Track', label: 'Track', align: 'left' as const },
+	{ key: 'A', label: 'A', align: 'right' as const, decimals: 2, heatmap: true },
+	{ key: 'B', label: 'B', align: 'right' as const, decimals: 2, heatmap: true },
+	{ key: 'C', label: 'C', align: 'right' as const, decimals: 2, heatmap: true },
+	{ key: 'D', label: 'D', align: 'right' as const, decimals: 2, heatmap: true },
+	{ key: 'AC/BD', label: 'AC/BD', align: 'right' as const, width: '4rem' },
+];
+
+const gateWinColumns = [
+	{ key: 'Track', label: 'Track', align: 'left' as const },
+	{ key: 'A', label: 'A', align: 'right' as const, decimals: 1, heatmap: true },
+	{ key: 'B', label: 'B', align: 'right' as const, decimals: 1, heatmap: true },
+	{ key: 'C', label: 'C', align: 'right' as const, decimals: 1, heatmap: true },
+	{ key: 'D', label: 'D', align: 'right' as const, decimals: 1, heatmap: true },
+];
 ---
 
 <Layout title="sel - spdw">
@@ -234,6 +297,33 @@ const maxSpeedRange = telemSeasons.length > 0 ? `${telemSeasons[0]} - ${telemSea
 							</tbody>
 						</table>
 					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Tracks Section -->
+	<div class="px-4 pb-8 max-w-full border-t border-border mt-8 pt-8">
+		<h2 class="text-2xl font-bold mb-6">tracks</h2>
+
+		<h3 class="text-xl font-bold mt-6 mb-4">Max Speed Season Progression</h3>
+		<SpeedChart tracks={tracks} seasons={trackSeasons} client:load />
+
+		<div class="overflow-x-auto border border-border rounded-lg mt-8 mb-8">
+			<SortableTable columns={speedColumns} rows={speedRows} showRowNumber client:load />
+		</div>
+
+		<div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-8 mb-8">
+			<div>
+				<h3 class="text-xl font-bold mb-4">Gate Points Average</h3>
+				<div class="overflow-x-auto border border-border rounded-lg">
+					<SortableTable columns={gateColumns} rows={gateStats} pinnedBottom="Total Average" defaultSortKey="AC/BD" showRowNumber client:load />
+				</div>
+			</div>
+			<div>
+				<h3 class="text-xl font-bold mb-4">Gate Win Percentage</h3>
+				<div class="overflow-x-auto border border-border rounded-lg">
+					<SortableTable columns={gateWinColumns} rows={gateWin} pinnedBottom="Total Average" defaultSortKey="A" showRowNumber client:load />
 				</div>
 			</div>
 		</div>

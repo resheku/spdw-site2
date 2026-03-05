@@ -8,6 +8,9 @@
 		sticky?: boolean;
 		bold?: boolean;
 		heatmap?: boolean;
+		headerColor?: string;
+		width?: string;
+		labelParts?: Array<{ text: string; color?: string }>;
 	};
 
 	export let columns: Col[];
@@ -98,10 +101,23 @@
 					class="px-3 py-2 font-medium cursor-pointer select-none whitespace-nowrap
 						{col.align === 'left' ? 'text-left' : 'text-right'}
 						{col.sticky ? 'sticky left-0 bg-muted z-10' : ''}"
+					style="{col.headerColor ? `background-color: ${col.headerColor}; color: #111827;` : ''}{col.width ? ` width: ${col.width};` : ''}"
 					on:click={() => cycleSort(col.key)}
 				>
 					<span class="inline-flex items-center gap-1 {col.align !== 'left' ? 'flex-row-reverse' : ''}">
-						{col.label}
+						{#if col.labelParts}
+							<span class="inline-flex items-center gap-0">
+								{#each col.labelParts as part}
+									{#if part.color}
+										<span class="px-1 rounded font-bold text-[#111827]" style="background-color: {part.color}">{part.text}</span>
+									{:else}
+										<span>{part.text}</span>
+									{/if}
+								{/each}
+							</span>
+						{:else}
+							{col.label}
+						{/if}
 						<span class="text-muted-foreground/60 text-xs">{sortIcon(col.key)}</span>
 					</span>
 				</th>

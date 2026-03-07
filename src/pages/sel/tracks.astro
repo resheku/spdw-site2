@@ -2,44 +2,22 @@
 import Layout from '../../layouts/Layout.astro';
 import SpeedChart from '../../components/SpeedChart.svelte';
 import SortableTable from '../../components/SortableTable.svelte';
+import GateTables from '../../components/GateTables.svelte';
 
 export const prerender = false;
 
 type TrackSpeeds = { Track: string; Average: number | null; seasons: Record<string, number> };
-type GateStatsRow = { Track: string; A: number | null; B: number | null; C: number | null; D: number | null; 'AC/BD': string | null };
-type GateWinRow = { Track: string; A: number | null; B: number | null; C: number | null; D: number | null; 'AC/BD': string | null };
-
 let tracks: TrackSpeeds[] = [];
 let seasons: number[] = [];
-let gateStats: GateStatsRow[] = [];
-let gateWin: GateWinRow[] = [];
 
-const [speedsRes, gateStatsRes, gateWinRes] = await Promise.allSettled([
-	fetch(new URL('/api/sel/tracks/speeds', Astro.url)),
-	fetch(new URL('/api/sel/tracks/gate-stats', Astro.url)),
-	fetch(new URL('/api/sel/tracks/gate-win', Astro.url)),
-]);
+const speedsRes = await fetch(new URL('/api/sel/tracks/speeds', Astro.url));
 
-if (speedsRes.status === 'fulfilled' && speedsRes.value.ok) {
-	const data = await speedsRes.value.json() as { tracks: TrackSpeeds[]; seasons: number[] };
+if (speedsRes.ok) {
+	const data = await speedsRes.json() as { tracks: TrackSpeeds[]; seasons: number[] };
 	tracks = data.tracks;
 	seasons = data.seasons;
 } else {
 	console.error('Error fetching track speeds');
-}
-
-if (gateStatsRes.status === 'fulfilled' && gateStatsRes.value.ok) {
-	const data = await gateStatsRes.value.json() as { rows: GateStatsRow[] };
-	gateStats = data.rows;
-} else {
-	console.error('Error fetching gate stats');
-}
-
-if (gateWinRes.status === 'fulfilled' && gateWinRes.value.ok) {
-	const data = await gateWinRes.value.json() as { rows: GateWinRow[] };
-	gateWin = data.rows;
-} else {
-	console.error('Error fetching gate win data');
 }
 
 // Flatten speed data for SortableTable: { Track, '2019': 89.5, ..., Average }
@@ -55,22 +33,7 @@ const speedColumns = [
 	{ key: 'Average', label: 'Average', align: 'right' as const, decimals: 2, bold: true },
 ];
 
-const gateColumns = [
-	{ key: 'Track', label: 'Track', align: 'left' as const },
-	{ key: 'A', label: 'Gate A', align: 'right' as const, decimals: 2, heatmap: true },
-	{ key: 'B', label: 'Gate B', align: 'right' as const, decimals: 2, heatmap: true },
-	{ key: 'C', label: 'Gate C', align: 'right' as const, decimals: 2, heatmap: true },
-	{ key: 'D', label: 'Gate D', align: 'right' as const, decimals: 2, heatmap: true },
-	{ key: 'AC/BD', label: 'AC/BD', align: 'right' as const, width: '4rem' },
-];
 
-const gateWinColumns = [
-	{ key: 'Track', label: 'Track', align: 'left' as const },
-	{ key: 'A', label: 'Gate A %', align: 'right' as const, decimals: 1, heatmap: true },
-	{ key: 'B', label: 'Gate B %', align: 'right' as const, decimals: 1, heatmap: true },
-	{ key: 'C', label: 'Gate C %', align: 'right' as const, decimals: 1, heatmap: true },
-	{ key: 'D', label: 'Gate D %', align: 'right' as const, decimals: 1, heatmap: true },
-];
 ---
 
 <Layout title="SEL Tracks - spdw">
@@ -97,30 +60,19 @@ const gateWinColumns = [
 	</div>
 
 	<div class="px-4 pb-8 max-w-full">
-		<h1 class="text-2xl font-bold mb-6">SEL Tracks</h1>
+		<h1 class="text-2xl font-bold mb-6">Tracks</h1>
 
-		<h2 class="text-xl font-bold mt-6 mb-4">Max Speed season progression</h2>
+		<!-- <h2 class="text-xl font-bold mt-6 mb-4">Max Speed progression</h2> -->
+		<h3 class="text-xl font-bold mt-6 mb-4">Max Speed progression</h3>
 		<SpeedChart {tracks} {seasons} client:load />
 
 		<!-- Pivot Table -->
 		<div class="overflow-x-auto border border-border rounded-lg mt-8 mb-8">
 			<SortableTable columns={speedColumns} rows={speedRows} showRowNumber client:load />
 		</div>
-
-		<!-- Gate tables side by side -->
-		<div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-8 mb-8">
-			<div>
-				<h2 class="text-xl font-bold mb-4">Gate points average </h2>
-				<div class="overflow-x-auto border border-border rounded-lg">
-					<SortableTable columns={gateColumns} rows={gateStats} pinnedBottom="Total Average" defaultSortKey="AC/BD" showRowNumber client:load />
-				</div>
-			</div>
-			<div>
-				<h2 class="text-xl font-bold mb-4">Gate win percentage</h2>
-				<div class="overflow-x-auto border border-border rounded-lg">
-					<SortableTable columns={gateWinColumns} rows={gateWin} pinnedBottom="Total Average" defaultSortKey="A" showRowNumber client:load />
-				</div>
-			</div>
+		<!-- Gate tables with season/league filters -->
+		<div class="mt-8 mb-8">
+			<GateTables client:load />
 		</div>
 	</div>
 </Layout>

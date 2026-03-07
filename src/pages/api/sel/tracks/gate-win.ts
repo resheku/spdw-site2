@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ locals }) => {
+export const GET: APIRoute = async ({ locals, url }) => {
 	const db = locals.runtime?.env?.DB;
 
 	if (!db) {
@@ -13,6 +13,21 @@ export const GET: APIRoute = async ({ locals }) => {
 	}
 
 	try {
+		const season = url.searchParams.get('season');
+		const league = url.searchParams.get('league');
+
+		const extraConditions: string[] = [];
+		const params: (string | number)[] = [];
+		if (season) {
+			extraConditions.push('m.season = ?');
+			params.push(parseInt(season, 10));
+		}
+		if (league) {
+			extraConditions.push('m.match_type_shortname = ?');
+			params.push(league);
+		}
+		const extraWhere = extraConditions.length > 0 ? '\t\t\t\t\tAND ' + extraConditions.join('\n\t\t\t\t\tAND ') : '';
+
 		const result = await db.prepare(`
 			WITH raw_counts AS (
 				SELECT
@@ -28,6 +43,7 @@ export const GET: APIRoute = async ({ locals }) => {
 					h.gate IN ('a', 'b', 'c', 'd')
 					AND h.canceled = 0
 					AND h.points IS NOT NULL
+					${extraWhere}
 				GROUP BY m.track_city
 			),
 			base AS (
@@ -39,7 +55,8 @@ export const GET: APIRoute = async ({ locals }) => {
 					ROUND(wd * 100.0 / NULLIF(total_wins, 0), 1) AS D
 				FROM raw_counts
 			)
-			SELECT Track, A, B, C, D
+			SELECT Track, A, B, C, D,
+				ROUND(MAX(A, B, C, D) - MIN(A, B, C, D), 1) AS Bias
 			FROM base
 			UNION ALL
 			SELECT
@@ -47,10 +64,11 @@ export const GET: APIRoute = async ({ locals }) => {
 				ROUND(AVG(A), 1),
 				ROUND(AVG(B), 1),
 				ROUND(AVG(C), 1),
-				ROUND(AVG(D), 1)
+				ROUND(AVG(D), 1),
+				ROUND(MAX(AVG(A), AVG(B), AVG(C), AVG(D)) - MIN(AVG(A), AVG(B), AVG(C), AVG(D)), 1)
 			FROM base
 			ORDER BY A DESC
-		`).all();
+		`).bind(...params).all();
 
 		return new Response(JSON.stringify({ rows: result.results || [] }), {
 			status: 200,

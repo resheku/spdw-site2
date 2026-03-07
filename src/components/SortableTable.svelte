@@ -8,6 +8,7 @@
 		sticky?: boolean;
 		bold?: boolean;
 		heatmap?: boolean;
+		heatmapInvert?: boolean;
 		headerColor?: string;
 		width?: string;
 		labelParts?: Array<{ text: string; color?: string }>;
@@ -62,7 +63,7 @@
 	$: colRanges = (() => {
 		const map: Record<string, { min: number; max: number }> = {};
 		for (const col of columns) {
-			if (!col.heatmap) continue;
+			if (!col.heatmap && !col.heatmapInvert) continue;
 			const vals = mainRows.map(r => r[col.key]).filter((v): v is number => typeof v === 'number');
 			if (vals.length === 0) continue;
 			map[col.key] = { min: Math.min(...vals), max: Math.max(...vals) };
@@ -71,11 +72,12 @@
 	})();
 
 	function heatHue(col: Col, value: any): number | null {
-		if (!col.heatmap || typeof value !== 'number') return null;
+		if (!col.heatmap && !col.heatmapInvert) return null;
+		if (typeof value !== 'number') return null;
 		const range = colRanges[col.key];
 		if (!range || range.max === range.min) return null;
 		const t = (value - range.min) / (range.max - range.min);
-		return Math.round(t * 120); // 0 = red, 120 = green
+		return Math.round((col.heatmapInvert ? 1 - t : t) * 120); // 0 = red, 120 = green
 	}
 
 	function sortIcon(key: string): string {

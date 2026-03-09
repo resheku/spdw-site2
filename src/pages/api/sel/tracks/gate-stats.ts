@@ -16,20 +16,41 @@ export const GET: APIRoute = async ({ locals, url }) => {
 		const season = url.searchParams.get('season');
 		const league = url.searchParams.get('league');
 
-		const extraConditions: string[] = [];
-		const params: (string | number)[] = [];
+		const mainConditions: string[] = [];
+		const mainParams: (string | number)[] = [];
+		let majorityCteSql = '';
+		const majorityParams: (string | number)[] = [];
+
 		if (season) {
-			extraConditions.push('m.season = ?');
-			params.push(parseInt(season, 10));
+			mainConditions.push('m.season = ?');
+			mainParams.push(parseInt(season, 10));
 		}
 		if (league) {
-			extraConditions.push('m.match_type_shortname = ?');
-			params.push(league);
+			mainConditions.push('m.match_type_shortname = ?');
+			mainParams.push(league);
+			// Only apply majority-track filter when a specific season is selected.
+			// Across all seasons tracks change leagues, so majority over all time is misleading.
+			if (season) {
+				mainConditions.push('m.track_city IN (SELECT track_city FROM majority_track)');
+				majorityParams.push(parseInt(season, 10));
+				majorityParams.push(league);
+				majorityCteSql = `majority_track AS (
+					SELECT track_city FROM (
+						SELECT track_city, match_type_shortname,
+						       RANK() OVER (PARTITION BY track_city ORDER BY COUNT(*) DESC) AS rnk
+						FROM matches
+						WHERE season = ? AND match_subtype_shortname = 'MR'
+						GROUP BY track_city, match_type_shortname
+					) WHERE rnk = 1 AND match_type_shortname = ?
+				),
+				`;
+			}
 		}
-		const extraWhere = extraConditions.length > 0 ? '\t\t\t\t\tAND ' + extraConditions.join('\n\t\t\t\t\tAND ') : '';
+		const extraWhere = mainConditions.map(c => `AND ${c}`).join(' ');
+		const allParams = [...majorityParams, ...mainParams];
 
 		const result = await db.prepare(`
-			WITH base AS (
+			WITH ${majorityCteSql}base AS (
 				SELECT
 					m.track_city AS Track,
 					ROUND(AVG(CASE WHEN h.gate = 'a' THEN h.points END), 2) AS A,
@@ -68,7 +89,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
 				ROUND(MAX(A, B, C, D) - MIN(A, B, C, D), 2)
 			FROM totals
 			ORDER BY A DESC
-		`).bind(...params).all();
+		`).bind(...allParams).all();
 
 		return new Response(JSON.stringify({ rows: result.results || [] }), {
 			status: 200,

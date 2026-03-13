@@ -9,8 +9,10 @@
 
 	let seasons: number[] = [];
 	let leagues: { code: string; name: string }[] = [];
-	let selectedSeason = '';
-	let selectedLeague = '';
+	let selectedSeasons: string[] = [];
+	let selectedLeagues: string[] = [];
+	let seasonOpen = false;
+	let leagueOpen = false;
 	let gateStats: GateStatsRow[] = [];
 	let gateWin: GateWinRow[] = [];
 	let trendAvgPoints: TrendRow[] = [];
@@ -37,11 +39,53 @@
 		{ key: 'Bias', label: 'Bias', align: 'right' as const, decimals: 1, heatmapInvert: true },
 	];
 
+	function seasonLabel() {
+		if (selectedSeasons.length === 0) return 'All seasons';
+		if (selectedSeasons.length === 1) return selectedSeasons[0];
+		return `Seasons (${selectedSeasons.length})`;
+	}
+
+	function leagueLabel() {
+		if (selectedLeagues.length === 0) return 'All leagues';
+		if (selectedLeagues.length === 1) return leagues.find(l => l.code === selectedLeagues[0])?.name ?? selectedLeagues[0];
+		return `Leagues (${selectedLeagues.length})`;
+	}
+
+	function toggleSeason(s: string) {
+		if (selectedSeasons.includes(s)) {
+			selectedSeasons = selectedSeasons.filter(v => v !== s);
+		} else {
+			selectedSeasons = [...selectedSeasons, s];
+		}
+		fetchData();
+	}
+
+	function selectOnlySeason(s: string) {
+		selectedSeasons = [s];
+		seasonOpen = false;
+		fetchData();
+	}
+
+	function toggleLeague(code: string) {
+		if (selectedLeagues.includes(code)) {
+			selectedLeagues = selectedLeagues.filter(v => v !== code);
+		} else {
+			selectedLeagues = [...selectedLeagues, code];
+		}
+		handleLeagueChange();
+	}
+
+	function selectOnlyLeague(code: string) {
+		selectedLeagues = [code];
+		leagueOpen = false;
+		handleLeagueChange();
+	}
+
 	async function fetchData() {
 		loading = true;
 		const params = new URLSearchParams();
-		if (selectedSeason) params.set('season', selectedSeason);
-		if (selectedLeague) params.set('league', selectedLeague);
+		if (selectedSeasons.length > 0) params.set('season', selectedSeasons.join(','));
+		if (selectedLeagues.length > 0) params.set('league', selectedLeagues.join(','));
 		const qs = params.toString() ? `?${params.toString()}` : '';
 
 		const [statsRes, winRes] = await Promise.allSettled([
@@ -61,7 +105,7 @@
 	async function fetchTrends() {
 		trendsLoading = true;
 		const params = new URLSearchParams();
-		if (selectedLeague) params.set('league', selectedLeague);
+		if (selectedLeagues.length > 0) params.set('league', selectedLeagues.join(','));
 		const qs = params.toString() ? `?${params.toString()}` : '';
 
 		const res = await fetch(`/api/sel/tracks/gate-trends${qs}`);
@@ -77,6 +121,11 @@
 		await Promise.all([fetchData(), fetchTrends()]);
 	}
 
+	function closeAll() {
+		seasonOpen = false;
+		leagueOpen = false;
+	}
+
 	onMount(async () => {
 		const filtersRes = await fetch('/api/sel/tracks/gate-filters');
 		if (filtersRes.ok) {
@@ -88,36 +137,100 @@
 	});
 </script>
 
+<svelte:window on:click={closeAll} />
+
 <h2 class="text-xl font-bold mt-6 mb-4">Gate stats</h2>
-<div class="mb-4 flex flex-wrap gap-4 items-center">
-	<div class="flex items-center gap-2">
-		<label for="gate-season" class="text-sm font-medium">Season:</label>
-		<select
-			id="gate-season"
-			bind:value={selectedSeason}
-			on:change={fetchData}
-			class="border border-border rounded px-2 py-1 text-sm bg-background"
+<div class="mb-4 flex flex-wrap gap-3 items-center">
+	<!-- Season Dropdown -->
+	<div class="min-w-[160px] relative">
+		<button
+			on:click|stopPropagation={() => { seasonOpen = !seasonOpen; leagueOpen = false; }}
+			class="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground text-sm text-left flex justify-between items-center focus:outline-none focus:ring-2 focus:ring-muted"
 		>
-			<option value="">All seasons</option>
-			{#each seasons as season}
-				<option value={String(season)}>{season}</option>
-			{/each}
-		</select>
+			<span>{seasonLabel()}</span>
+			<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+			</svg>
+		</button>
+		{#if seasonOpen}
+		<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+			<div
+				on:click|stopPropagation={() => {}}
+				class="absolute z-50 mt-1 w-full max-h-[300px] overflow-y-auto rounded-md border border-border bg-background shadow-lg"
+			>
+				<div class="sticky top-0 bg-background border-b border-border p-2">
+					<button
+						class="text-sm px-3 py-2 rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 hover:text-red-700 active:bg-red-500/30 disabled:bg-muted/50 disabled:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150 w-full font-medium cursor-pointer"
+						disabled={selectedSeasons.length === 0}
+						on:click={() => { selectedSeasons = []; fetchData(); }}
+					>Clear Filter</button>
+				</div>
+				<div class="p-2">
+					{#each seasons as season}
+						<div class="flex items-center gap-2 py-1 rounded px-1 hover:bg-muted/50">
+							<input
+								type="checkbox"
+								id="gate-season-{season}"
+								checked={selectedSeasons.includes(String(season))}
+								class="cursor-pointer"
+								on:change={() => toggleSeason(String(season))}
+							/>
+						<button
+							class="flex-1 text-sm text-left hover:underline cursor-pointer"
+							on:click={() => selectOnlySeason(String(season))}
+						>{season}</button>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
 	</div>
-	<div class="flex items-center gap-2">
-		<label for="gate-league" class="text-sm font-medium">League:</label>
-		<select
-			id="gate-league"
-			bind:value={selectedLeague}
-			on:change={handleLeagueChange}
-			class="border border-border rounded px-2 py-1 text-sm bg-background"
+
+	<!-- League Dropdown -->
+	<div class="min-w-[160px] relative">
+		<button
+			on:click|stopPropagation={() => { leagueOpen = !leagueOpen; seasonOpen = false; }}
+			class="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground text-sm text-left flex justify-between items-center focus:outline-none focus:ring-2 focus:ring-muted"
 		>
-			<option value="">All leagues</option>
-			{#each leagues as league}
-				<option value={league.code}>{league.name}</option>
-			{/each}
-		</select>
+			<span>{leagueLabel()}</span>
+			<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+			</svg>
+		</button>
+		{#if leagueOpen}
+		<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+			<div
+				on:click|stopPropagation={() => {}}
+				class="absolute z-50 mt-1 w-full max-h-[300px] overflow-y-auto rounded-md border border-border bg-background shadow-lg"
+			>
+				<div class="sticky top-0 bg-background border-b border-border p-2">
+					<button
+						class="text-sm px-3 py-2 rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 hover:text-red-700 active:bg-red-500/30 disabled:bg-muted/50 disabled:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150 w-full font-medium cursor-pointer"
+						disabled={selectedLeagues.length === 0}
+						on:click={() => { selectedLeagues = []; handleLeagueChange(); }}
+					>Clear Filter</button>
+				</div>
+				<div class="p-2">
+					{#each leagues as league}
+						<div class="flex items-center gap-2 py-1 rounded px-1 hover:bg-muted/50">
+							<input
+								type="checkbox"
+								id="gate-league-{league.code}"
+								checked={selectedLeagues.includes(league.code)}
+								class="cursor-pointer"
+								on:change={() => toggleLeague(league.code)}
+							/>
+						<button
+							class="flex-1 text-sm text-left hover:underline cursor-pointer"
+							on:click={() => selectOnlyLeague(league.code)}
+						>{league.name}</button>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
 	</div>
+
 	{#if loading || trendsLoading}
 		<span class="text-sm text-muted-foreground">Loading…</span>
 	{/if}
@@ -132,13 +245,13 @@
 	<div>
         <h3 class="text-base font-semibold mb-2 text-muted-foreground">Gate points average</h3>
 		<div class="overflow-x-auto border border-border rounded-lg">
-			<SortableTable columns={gateColumns} rows={gateStats} pinnedBottom="Total Average" defaultSortKey="AC/BD" showRowNumber />
+			<SortableTable columns={gateColumns} rows={gateStats} pinnedBottom="Total Average" defaultSortKey="Bias" defaultSortDir="asc" showRowNumber />
 		</div>
 	</div>
 	<div>
 		<h3 class="text-base font-semibold mb-2 text-muted-foreground">Gate win percentage</h3>
 		<div class="overflow-x-auto border border-border rounded-lg">
-			<SortableTable columns={gateWinColumns} rows={gateWin} pinnedBottom="Total Average" defaultSortKey="A" showRowNumber />
+			<SortableTable columns={gateWinColumns} rows={gateWin} pinnedBottom="Total Average" defaultSortKey="Bias" defaultSortDir="asc" showRowNumber />
 		</div>
 	</div>
 </div>

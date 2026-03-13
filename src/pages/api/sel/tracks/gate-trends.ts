@@ -12,12 +12,16 @@ export const GET: APIRoute = async ({ locals, url }) => {
 		});
 	}
 
-	const league = url.searchParams.get('league');
+	const leagueParam = url.searchParams.get('league');
+	const selectedLeagues = leagueParam ? leagueParam.split(',').filter(Boolean) : [];
 	const extraConditions: string[] = [];
 	const params: (string | number)[] = [];
-	if (league) {
+	if (selectedLeagues.length === 1) {
 		extraConditions.push('m.match_type_shortname = ?');
-		params.push(league);
+		params.push(selectedLeagues[0]);
+	} else if (selectedLeagues.length > 1) {
+		extraConditions.push(`m.match_type_shortname IN (${selectedLeagues.map(() => '?').join(',')})`);
+		params.push(...selectedLeagues);
 	}
 	const extraWhere = extraConditions.length > 0 ? 'AND ' + extraConditions.join('\n\t\t\t\tAND ') : '';
 

@@ -13,27 +13,32 @@ export const GET: APIRoute = async ({ locals, url }) => {
 	}
 
 	try {
-		const season = url.searchParams.get('season');
-		const league = url.searchParams.get('league');
+		const seasonParam = url.searchParams.get('season');
+		const leagueParam = url.searchParams.get('league');
+		const selectedSeasons = seasonParam ? seasonParam.split(',').filter(Boolean) : [];
+		const selectedLeagues = leagueParam ? leagueParam.split(',').filter(Boolean) : [];
 
 		const mainConditions: string[] = [];
 		const mainParams: (string | number)[] = [];
 		let majorityCteSql = '';
 		const majorityParams: (string | number)[] = [];
 
-		if (season) {
+		if (selectedSeasons.length === 1) {
 			mainConditions.push('m.season = ?');
-			mainParams.push(parseInt(season, 10));
+			mainParams.push(parseInt(selectedSeasons[0], 10));
+		} else if (selectedSeasons.length > 1) {
+			mainConditions.push(`m.season IN (${selectedSeasons.map(() => '?').join(',')})`);
+			mainParams.push(...selectedSeasons.map(s => parseInt(s, 10)));
 		}
-		if (league) {
+		if (selectedLeagues.length === 1) {
 			mainConditions.push('m.match_type_shortname = ?');
-			mainParams.push(league);
-			// Only apply majority-track filter when a specific season is selected.
+			mainParams.push(selectedLeagues[0]);
+			// Only apply majority-track filter when exactly one season and one league are selected.
 			// Across all seasons tracks change leagues, so majority over all time is misleading.
-			if (season) {
+			if (selectedSeasons.length === 1) {
 				mainConditions.push('m.track_city IN (SELECT track_city FROM majority_track)');
-				majorityParams.push(parseInt(season, 10));
-				majorityParams.push(league);
+				majorityParams.push(parseInt(selectedSeasons[0], 10));
+				majorityParams.push(selectedLeagues[0]);
 				majorityCteSql = `majority_track AS (
 					SELECT track_city FROM (
 						SELECT track_city, match_type_shortname,
@@ -45,6 +50,9 @@ export const GET: APIRoute = async ({ locals, url }) => {
 				),
 				`;
 			}
+		} else if (selectedLeagues.length > 1) {
+			mainConditions.push(`m.match_type_shortname IN (${selectedLeagues.map(() => '?').join(',')})`);
+			mainParams.push(...selectedLeagues);
 		}
 		const extraWhere = mainConditions.map(c => `AND ${c}`).join(' ');
 		const allParams = [...majorityParams, ...mainParams];

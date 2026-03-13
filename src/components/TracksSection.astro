@@ -1,0 +1,41 @@
+---
+import SpeedChart from './SpeedChart.svelte';
+import SortableTable from './SortableTable.svelte';
+import GateTables from './GateTables.svelte';
+
+type TrackSpeeds = { Track: string; Average: number | null; seasons: Record<string, number> };
+let tracks: TrackSpeeds[] = [];
+let seasons: number[] = [];
+
+try {
+	const speedsRes = await fetch(new URL('/api/sel/tracks/speeds', Astro.url));
+	if (speedsRes.ok) {
+		const data = await speedsRes.json() as { tracks: TrackSpeeds[]; seasons: number[] };
+		tracks = data.tracks;
+		seasons = data.seasons;
+	}
+} catch (e) {}
+
+const speedRows = tracks.map(t => ({
+	Track: t.Track,
+	...Object.fromEntries(seasons.map(s => [String(s), t.seasons[s] ?? null])),
+	Average: t.Average,
+}));
+
+const speedColumns = [
+	{ key: 'Track', label: 'Track', align: 'left' as const, isLink: true, sticky: true },
+	...seasons.map(s => ({ key: String(s), label: String(s), align: 'right' as const, decimals: 2 })),
+	{ key: 'Average', label: 'Average', align: 'right' as const, decimals: 2, bold: true },
+];
+---
+
+<h3 class="text-xl font-bold mt-6 mb-4">Max Speed progression</h3>
+<SpeedChart tracks={tracks} seasons={seasons} client:load />
+
+<div class="overflow-x-auto border border-border rounded-lg mt-8 mb-8">
+	<SortableTable columns={speedColumns} rows={speedRows} showRowNumber client:load />
+</div>
+
+<div class="mt-8 mb-8">
+	<GateTables client:load />
+</div>

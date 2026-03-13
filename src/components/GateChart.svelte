@@ -27,8 +27,8 @@
 			borderColor: GATE_COLORS[g],
 			backgroundColor: GATE_COLORS[g],
 			tension: 0.3,
-			pointRadius: 4,
-			pointHoverRadius: 6,
+			pointRadius: 2,
+			pointHoverRadius: 4,
 		}));
 	}
 

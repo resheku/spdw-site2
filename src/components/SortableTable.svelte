@@ -138,7 +138,7 @@
 						class="px-3 py-2 tabular-nums
 							{col.align === 'left' ? 'text-left' : 'text-right'}
 							{col.sticky ? 'sticky left-0 bg-background z-10' : ''}
-							{col.bold ? 'font-semibold' : col.align === 'left' ? 'font-medium' : ''}
+						{row._bold ? 'font-bold' : col.bold ? 'font-semibold' : col.align === 'left' ? 'font-medium' : ''}
 							{hue !== null ? 'heat' : ''}"
 						style:--cell-hue={hue ?? ''}
 					>

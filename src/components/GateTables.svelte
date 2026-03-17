@@ -21,7 +21,7 @@
 	let trendsLoading = true;
 
 	const gateColumns = [
-		{ key: 'Track', label: 'Track', align: 'left' as const },
+		{ key: 'Track', label: 'Track', align: 'left' as const, isLink: true },
 		{ key: 'A', label: 'Gate A', align: 'right' as const, decimals: 2, heatmap: true },
 		{ key: 'B', label: 'Gate B', align: 'right' as const, decimals: 2, heatmap: true },
 		{ key: 'C', label: 'Gate C', align: 'right' as const, decimals: 2, heatmap: true },
@@ -31,7 +31,7 @@
 	];
 
 	const gateWinColumns = [
-		{ key: 'Track', label: 'Track', align: 'left' as const },
+		{ key: 'Track', label: 'Track', align: 'left' as const, isLink: true },
 		{ key: 'A', label: 'Gate A %', align: 'right' as const, decimals: 1, heatmap: true },
 		{ key: 'B', label: 'Gate B %', align: 'right' as const, decimals: 1, heatmap: true },
 		{ key: 'C', label: 'Gate C %', align: 'right' as const, decimals: 1, heatmap: true },

@@ -1,0 +1,126 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import SortableTable from '../../../components/SortableTable.svelte';
+import TrackSpeedChart from '../../../components/TrackSpeedChart.svelte';
+import TrackGateSection from '../../../components/TrackGateSection.svelte';
+import MatchHistoryTable from '../../../components/MatchHistoryTable.svelte';
+import TrackTeamsSection from '../../../components/TrackTeamsSection.svelte';
+
+export const prerender = false;
+
+const { track } = Astro.params;
+const trackName = track ?? '';
+
+type SeasonAvg = { season: number; avgSpeed: number | null };
+type MatchAvg = { matchId: number; date: string; time: string; home: string; away: string; homeScore: number | null; awayScore: number | null; round: string | null; avgSpeed: number | null; homeAvgSpeed: number | null; awayAvgSpeed: number | null };
+type TopSpeed = { Name: string; Team: string; Speed: number; Heat: number | null; Gate: string | null; Pts: number | null; Match: string; Date: string; isHome: number };
+type MatchRow = { id: number; date: string; league: string; leagueName: string; matchSubtype: string | null; homeTeamId: number; homeShort: string; home: string; awayTeamId: number; awayShort: string; away: string; homeScore: number | null; awayScore: number | null };
+
+let matchAverages: MatchAvg[] = [];
+let topSpeeds: TopSpeed[] = [];
+let matches: MatchRow[] = [];
+
+try {
+	const encodedTrack = encodeURIComponent(trackName);
+	const [speedsRes, matchesRes] = await Promise.all([
+		fetch(new URL(`/api/sel/tracks/${encodedTrack}/speeds`, Astro.url)),
+		fetch(new URL(`/api/sel/tracks/${encodedTrack}/matches`, Astro.url)),
+	]);
+
+	if (speedsRes.ok) {
+		const data = await speedsRes.json() as { matchAverages: MatchAvg[]; topSpeeds: TopSpeed[] };
+		matchAverages = data.matchAverages ?? [];
+		topSpeeds = data.topSpeeds ?? [];
+	}
+	if (matchesRes.ok) {
+		const data = await matchesRes.json() as { matches: MatchRow[] };
+		matches = data.matches ?? [];
+	}
+} catch (error) {
+	console.error('[track page] Error fetching data:', error);
+}
+
+const hasSpeeds = matchAverages.length > 0;
+
+const topSpeedColumns = [
+	{ key: 'Name', label: 'Rider', align: 'left' as const },
+	{ key: 'Team', label: 'Team', align: 'left' as const },
+	{ key: 'Speed', label: 'Speed (km/h)', align: 'right' as const, decimals: 2 },
+	{ key: 'Heat', label: 'Heat', align: 'right' as const },
+	{ key: 'Gate', label: 'Gate', align: 'right' as const },
+	{ key: 'Pts', label: 'Pts', align: 'right' as const },
+	{ key: 'Match', label: 'Match', align: 'left' as const },
+	{ key: 'Date', label: 'Date', align: 'right' as const },
+];
+---
+
+<Layout title={`${trackName} – spdw`}>
+	<div class="p-4">
+		<nav aria-label="breadcrumb">
+			<ol class="text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm break-words sm:gap-2.5">
+				<li class="inline-flex items-center gap-1.5">
+					<a href="/" class="hover:text-foreground transition-colors">Home</a>
+				</li>
+				<li role="presentation" aria-hidden="true" class="[&>svg]:size-3.5">
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+				</li>
+				<li class="inline-flex items-center gap-1.5">
+					<a href="/sel" class="hover:text-foreground transition-colors">sel</a>
+				</li>
+				<li role="presentation" aria-hidden="true" class="[&>svg]:size-3.5">
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+				</li>
+				<li class="inline-flex items-center gap-1.5">
+					<a href="/sel/tracks" class="hover:text-foreground transition-colors">tracks</a>
+				</li>
+				<li role="presentation" aria-hidden="true" class="[&>svg]:size-3.5">
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+				</li>
+				<li class="inline-flex items-center gap-1.5">
+					<span class="text-foreground font-normal" role="link" aria-disabled="true" aria-current="page">{trackName}</span>
+				</li>
+			</ol>
+		</nav>
+	</div>
+
+	<div class="px-4 pb-8 max-w-full">
+		<h1 class="text-2xl font-bold mb-8">{trackName}</h1>
+
+		<!-- Speed section -->
+		{hasSpeeds && (
+			<section class="mb-10">
+				<h2 class="text-xl font-bold mb-4">Max Speed</h2>
+				<div class="mb-6">
+					<TrackSpeedChart {matchAverages} client:load />
+				</div>
+				<div class="overflow-x-auto">
+					<h3 class="text-base font-semibold mb-2">Fastest Riders</h3>
+					<SortableTable
+						columns={topSpeedColumns}
+						rows={topSpeeds}
+						defaultSortKey="Speed"
+						defaultSortDir="desc"
+						showRowNumber={true}
+						client:load
+					/>
+				</div>
+			</section>
+		)}
+
+		<!-- Gate stats section -->
+		<section class="mb-10">
+			<h2 class="text-xl font-bold mb-4">Gate Stats</h2>
+			<TrackGateSection track={trackName} client:load />
+		</section>
+
+		<!-- Teams section -->
+		{matches.length > 0 && (
+			<section class="mb-10">
+				<h2 class="text-xl font-bold mb-4">Teams</h2>
+				<TrackTeamsSection {matches} client:load />
+				<h3 class="text-base font-semibold mb-2">Match History</h3>
+				<MatchHistoryTable {matches} client:load />
+			</section>
+		)}
+	</div>
+</Layout>

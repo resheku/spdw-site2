@@ -30,5 +30,6 @@ pnpm-debug.log*
 !.env.example
 
 sel.sql*
-
 TODO*
+.vscode/
+public/

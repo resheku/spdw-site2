@@ -18,10 +18,8 @@ let error: string | null = null;
 
 try {
 	const scheduleUrl = new URL('/api/sel/schedule', Astro.url);
-	if (initialLeagues.length > 0) scheduleUrl.searchParams.set('league', initialLeagues.join(','));
-	if (initialSeasons.length > 0) scheduleUrl.searchParams.set('season', initialSeasons.join(','));
-	scheduleUrl.searchParams.set('sortColumn', initialSortColumns[0] ?? 'date');
-	scheduleUrl.searchParams.set('sortDirection', initialSortDirections[0] ?? 'desc');
+	scheduleUrl.searchParams.set('sortColumn', 'date');
+	scheduleUrl.searchParams.set('sortDirection', 'desc');
 
 	const [scheduleRes, filtersRes] = await Promise.all([
 		fetch(scheduleUrl.toString()),

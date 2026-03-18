@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import SortableTable from './SortableTable.svelte';
 	import GateChart from './GateChart.svelte';
+	import FilterDropdown from './FilterDropdown.svelte';
 
 	export let track: string;
 
@@ -20,6 +21,8 @@
 	let selectedLeagues: string[] = [];
 	let leagueOpen = false;
 	let loading = true;
+
+	$: leagueOptions = leagues.map(l => ({ value: l.code, label: l.name }));
 
 	$: avgSeasonRows = [
 		...avgPoints.map(r => ({
@@ -65,25 +68,8 @@
 		{ key: 'Bias', label: 'Bias', align: 'right' as const, decimals: 1, heatmapInvert: true },
 	];
 
-	function leagueLabel() {
-		if (selectedLeagues.length === 0) return 'All leagues';
-		if (selectedLeagues.length === 1)
-			return leagues.find(l => l.code === selectedLeagues[0])?.name ?? selectedLeagues[0];
-		return `Leagues (${selectedLeagues.length})`;
-	}
-
-	function toggleLeague(code: string) {
-		if (selectedLeagues.includes(code)) {
-			selectedLeagues = selectedLeagues.filter(v => v !== code);
-		} else {
-			selectedLeagues = [...selectedLeagues, code];
-		}
-		fetchData();
-	}
-
-	function selectOnlyLeague(code: string) {
-		selectedLeagues = [code];
-		leagueOpen = false;
+	function onLeaguesChange(e: CustomEvent<string[]>) {
+		selectedLeagues = e.detail;
 		fetchData();
 	}
 
@@ -115,16 +101,10 @@
 		loading = false;
 	}
 
-	function closeAll() {
-		leagueOpen = false;
-	}
-
 	onMount(() => {
 		fetchData();
 	});
 </script>
-
-<svelte:window on:click={closeAll} />
 
 <div>
 	{#if loading}
@@ -167,52 +147,15 @@
 		<!-- League filter -->
 		{#if leagues.length > 0}
 			<div class="mb-6 flex flex-wrap gap-3 items-center">
-				<div class="min-w-[200px] relative">
-					<button
-						on:click|stopPropagation={() => { leagueOpen = !leagueOpen; }}
-						class="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground text-sm text-left flex justify-between items-center focus:outline-none focus:ring-2 focus:ring-muted"
-					>
-						<span class="flex items-center gap-2">
-							<span class="text-muted-foreground">League:</span>
-							<span class="font-medium">{leagueLabel()}</span>
-						</span>
-						<svg class="w-4 h-4 text-muted-foreground shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-						</svg>
-					</button>
-					{#if leagueOpen}
-						<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-						<div
-							class="absolute z-50 mt-1 w-full max-h-[300px] overflow-y-auto rounded-md border border-border bg-background shadow-lg"
-							on:click|stopPropagation={() => {}}
-						>
-							<div class="sticky top-0 bg-background border-b border-border p-2">
-								<button
-									class="text-sm px-3 py-2 rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 hover:text-red-700 active:bg-red-500/30 disabled:bg-muted/50 disabled:text-muted-foreground disabled:cursor-not-allowed transition-all w-full font-medium cursor-pointer"
-									disabled={selectedLeagues.length === 0}
-									on:click={() => { selectedLeagues = []; leagueOpen = false; fetchData(); }}
-								>Clear Filter</button>
-							</div>
-							<div class="p-2">
-								{#each leagues as l}
-									<div class="flex items-center gap-2 py-1 rounded px-1 hover:bg-muted/50">
-										<input
-											type="checkbox"
-											id="track-league-{l.code}"
-											checked={selectedLeagues.includes(l.code)}
-											class="cursor-pointer"
-											on:change={() => toggleLeague(l.code)}
-										/>
-										<button
-											class="flex-1 text-sm text-left hover:underline cursor-pointer"
-											on:click={() => selectOnlyLeague(l.code)}
-										>{l.name}</button>
-									</div>
-								{/each}
-							</div>
-						</div>
-					{/if}
-				</div>
+				<FilterDropdown
+					id="track-gate-league"
+					label="All leagues"
+					options={leagueOptions}
+					bind:selected={selectedLeagues}
+					bind:isOpen={leagueOpen}
+					minWidth="200px"
+					on:change={onLeaguesChange}
+				/>
 			</div>
 		{/if}
 

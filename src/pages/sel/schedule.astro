@@ -262,8 +262,20 @@ function formatDate(dt: string): string {
 							<td class="px-3 py-2 text-left whitespace-nowrap">{m.type ?? '-'}</td>
 							<td class="px-3 py-2 text-left font-mono text-xs whitespace-nowrap">{formatDate(m.datetime)}</td>
 							<td class="px-3 py-2 text-left">{m.matchName ?? ''}</td>
-							<td class="pl-1 pr-3 py-2 text-left whitespace-nowrap font-medium">
-								{m.homeScore != null && m.awayScore != null ? `${m.homeScore}:${m.awayScore}` : '-'}
+						<td class="pl-1 pr-3 py-2 text-left whitespace-nowrap">
+							{m.homeScore != null && m.awayScore != null ? (
+								<span class="inline-flex items-center gap-1.5">
+									<span class={`inline-block text-[0.65rem] font-bold px-1 py-0.5 rounded leading-none ${
+										m.homeScore > m.awayScore ? 'bg-green-500/20 text-green-600 dark:text-green-400' :
+										m.homeScore < m.awayScore ? 'bg-red-500/20 text-red-600 dark:text-red-400' :
+										'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'
+									}`}>{m.homeScore > m.awayScore ? 'W' : m.homeScore < m.awayScore ? 'L' : 'D'}</span>
+									<span class="font-medium">{m.homeScore}:{m.awayScore}</span>								<span class={`inline-block text-[0.65rem] font-bold px-1 py-0.5 rounded leading-none ${
+									m.awayScore > m.homeScore ? 'bg-green-500/20 text-green-600 dark:text-green-400' :
+									m.awayScore < m.homeScore ? 'bg-red-500/20 text-red-600 dark:text-red-400' :
+									'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'
+								}`}>{m.awayScore > m.homeScore ? 'W' : m.awayScore < m.homeScore ? 'L' : 'D'}</span>								</span>
+							) : '-'}
 							</td>
 							<td class="px-3 py-2 text-left whitespace-nowrap text-muted-foreground">
 							{m.homeTotal != null && m.awayTotal != null ? `${m.homeTotal}:${m.awayTotal}` : ''}
@@ -407,6 +419,24 @@ function formatDate(dt: string): string {
 					? `<span class="font-medium">${m.homeScore}:${m.awayScore}</span>`
 					: '<span class="text-muted-foreground">-</span>';
 
+				const matchHtml = (() => {
+					const name = escapeHtml(m.matchName ?? '');
+					if (m.homeScore == null || m.awayScore == null) return name;
+					const homeBadge = m.homeScore > m.awayScore ? 'W' : m.homeScore < m.awayScore ? 'L' : 'D';
+					const awayBadge = m.awayScore > m.homeScore ? 'W' : m.awayScore < m.homeScore ? 'L' : 'D';
+					const homeBadgeClass = m.homeScore > m.awayScore
+						? 'bg-green-500/20 text-green-600 dark:text-green-400'
+						: m.homeScore < m.awayScore
+							? 'bg-red-500/20 text-red-600 dark:text-red-400'
+							: 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400';
+					const awayBadgeClass = m.awayScore > m.homeScore
+						? 'bg-green-500/20 text-green-600 dark:text-green-400'
+						: m.awayScore < m.homeScore
+							? 'bg-red-500/20 text-red-600 dark:text-red-400'
+							: 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400';
+					return `<span class="inline-flex items-center gap-2 flex-wrap"><span class="inline-block text-[0.65rem] font-bold px-1 py-0.5 rounded leading-none ${homeBadgeClass}">${homeBadge}</span>${name}<span class="inline-block text-[0.65rem] font-bold px-1 py-0.5 rounded leading-none ${awayBadgeClass}">${awayBadge}</span></span>`;
+				})();
+
 				const totalHtml = (m.homeTotal != null && m.awayTotal != null)
 					? `<span class="text-muted-foreground">${m.homeTotal}:${m.awayTotal}</span>`
 				: '';
@@ -417,7 +447,7 @@ function formatDate(dt: string): string {
 					<td class="px-3 py-2 text-left whitespace-nowrap">${escapeHtml(String(m.round ?? '-'))}</td>
 					<td class="px-3 py-2 text-left whitespace-nowrap">${escapeHtml(String(m.type ?? '-'))}</td>
 					<td class="px-3 py-2 text-left font-mono text-xs whitespace-nowrap">${escapeHtml(formatDate(m.datetime))}</td>
-					<td class="px-3 py-2 text-left">${escapeHtml(m.matchName ?? '')}</td>
+					<td class="px-3 py-2 text-left">${matchHtml}</td>
 					<td class="pl-1 pr-3 py-2 text-left whitespace-nowrap">${scoreHtml}</td>
 					<td class="px-3 py-2 text-left whitespace-nowrap">${totalHtml}</td>
 					<td class="pl-6 pr-3 py-2 text-right whitespace-nowrap max-lg:hidden">${escapeHtml(attendance)}</td>

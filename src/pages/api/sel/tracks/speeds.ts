@@ -45,7 +45,7 @@ export const GET: APIRoute = async ({ locals }) => {
 		const tracks = rows.map((r: Record<string, unknown>) => ({
 			Track: r.Track as string,
 			Average: r.Average as number | null,
-			seasons: JSON.parse(r.seasons) as Record<string, number>,
+			seasons: JSON.parse(r.seasons as string) as Record<string, number>,
 		}));
 
 		return new Response(JSON.stringify({ tracks, seasons }), {

@@ -161,13 +161,13 @@ export const GET: APIRoute = async ({ locals, url, params }) => {
 		const ow = (overallWinResult.results?.[0] as Record<string, number | null>) ?? {};
 
 		const overallAvgBias =
-			oa.A != null
+			oa.A != null && oa.B != null && oa.C != null && oa.D != null
 				? parseFloat(
 						(Math.max(oa.A, oa.B, oa.C, oa.D) - Math.min(oa.A, oa.B, oa.C, oa.D)).toFixed(2)
 					)
 				: null;
 		const overallWinBias =
-			ow.A != null
+			ow.A != null && ow.B != null && ow.C != null && ow.D != null
 				? parseFloat(
 						(Math.max(ow.A, ow.B, ow.C, ow.D) - Math.min(ow.A, ow.B, ow.C, ow.D)).toFixed(1)
 					)
@@ -184,7 +184,9 @@ export const GET: APIRoute = async ({ locals, url, params }) => {
 						C: oa.C,
 						D: oa.D,
 						'AC/BD':
-							oa.A != null ? `${(+oa.A + +oa.C).toFixed(2)}/${(+oa.B + +oa.D).toFixed(2)}` : null,
+							oa.A != null && oa.B != null && oa.C != null && oa.D != null
+								? `${(+oa.A + +oa.C).toFixed(2)}/${(+oa.B + +oa.D).toFixed(2)}`
+								: null,
 						Bias: overallAvgBias,
 					},
 					winPct: {

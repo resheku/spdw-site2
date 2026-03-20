@@ -4,12 +4,13 @@ import astro from 'eslint-plugin-astro';
 import svelte from 'eslint-plugin-svelte';
 import svelteParser from 'svelte-eslint-parser';
 import globals from 'globals';
+import { defineConfig } from 'eslint/config';
 
-export default tseslint.config(
+export default defineConfig(
 	js.configs.recommended,
-	...tseslint.configs.recommended,
-	...astro.configs.recommended,
-	...svelte.configs.recommended,
+	tseslint.configs.recommended,
+	astro.configs.recommended,
+	svelte.configs.recommended,
 	{
 		// Browser globals for Svelte components
 		files: ['**/*.svelte'],

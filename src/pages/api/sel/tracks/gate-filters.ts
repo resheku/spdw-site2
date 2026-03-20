@@ -37,7 +37,7 @@ export const GET: APIRoute = async ({ locals }) => {
 		);
 		const leagueMap = new Map<string, string>();
 		rows.forEach((r: Record<string, unknown>) => {
-			if (!leagueMap.has(r.code)) leagueMap.set(r.code, r.name);
+			if (!leagueMap.has(r.code as string)) leagueMap.set(r.code as string, r.name as string);
 		});
 		const leagues = [...leagueMap.entries()].map(([code, name]) => ({ code, name }));
 

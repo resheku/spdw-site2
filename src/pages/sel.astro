@@ -5,12 +5,28 @@ import TracksSection from '../components/TracksSection.astro';
 export const prerender = false;
 
 // Fetch data from API endpoints
+type BestAvgRow = {
+	No: number;
+	Name: string;
+	Team: string;
+	Average: number | null;
+	Season: number;
+};
+type MaxSpeedRow = {
+	No: number;
+	Name: string;
+	Team: string;
+	Speed: number | null;
+	Track: string | null;
+	Date: string | null;
+	Season: number;
+};
 let seasons: number[] = [];
 let telemSeasons: number[] = [];
-let bestAveragesThisSeason: unknown[] = [];
-let bestAveragesAllTime: unknown[] = [];
-let maxSpeedsThisSeason: unknown[] = [];
-let maxSpeedsAllTime: unknown[] = [];
+let bestAveragesThisSeason: BestAvgRow[] = [];
+let bestAveragesAllTime: BestAvgRow[] = [];
+let maxSpeedsThisSeason: MaxSpeedRow[] = [];
+let maxSpeedsAllTime: MaxSpeedRow[] = [];
 let currentSeason = new Date().getFullYear();
 
 try {
@@ -45,12 +61,18 @@ try {
 	console.log(`[sel page] Data fetch: ${Date.now() - dataStart}ms`);
 
 	if (avgRes.ok) {
-		const data = await avgRes.json();
+		const data = (await avgRes.json()) as {
+			thisSeason: BestAvgRow[];
+			allTime: BestAvgRow[];
+		};
 		bestAveragesThisSeason = Array.isArray(data.thisSeason) ? data.thisSeason : [];
 		bestAveragesAllTime = Array.isArray(data.allTime) ? data.allTime : [];
 	}
 	if (speedRes.ok) {
-		const data = await speedRes.json();
+		const data = (await speedRes.json()) as {
+			thisSeason: MaxSpeedRow[];
+			allTime: MaxSpeedRow[];
+		};
 		maxSpeedsThisSeason = Array.isArray(data.thisSeason) ? data.thisSeason : [];
 		maxSpeedsAllTime = Array.isArray(data.allTime) ? data.allTime : [];
 	}

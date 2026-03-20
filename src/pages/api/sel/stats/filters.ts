@@ -78,9 +78,9 @@ export const GET: APIRoute = async ({ locals, url }) => {
 
 		// Process all rows to build mappings
 		rows.forEach((row: Record<string, unknown>) => {
-			const teamValue = row.Team;
-			const league = row.League;
-			const season = row.Season;
+			const teamValue = row.Team as string;
+			const league = row.League as string;
+			const season = row.Season as number;
 
 			if (!teamValue || !league || !season) return;
 

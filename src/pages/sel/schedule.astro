@@ -13,7 +13,29 @@ const initialTeams = urlParams.get('team')?.split(',').filter(Boolean) ?? [];
 const initialSortColumns = urlParams.get('sortColumn')?.split(',').filter(Boolean) ?? [];
 const initialSortDirections = urlParams.get('sortDirection')?.split(',').filter(Boolean) ?? [];
 
-let schedule: Record<string, unknown>[] = [];
+type ScheduleRow = {
+	match_id: number;
+	round: number | null;
+	league: string | null;
+	leagueName: string | null;
+	type: string | null;
+	typeName: string | null;
+	datetime: string | null;
+	matchName: string | null;
+	homeTeamId: number | null;
+	homeTeamShort: string | null;
+	awayTeamId: number | null;
+	awayTeamShort: string | null;
+	homeScore: number | null;
+	awayScore: number | null;
+	homeTotal: number | null;
+	awayTotal: number | null;
+	attendance: number | null;
+	season: number | null;
+	track: string | null;
+};
+
+let schedule: ScheduleRow[] = [];
 let allLeagues: Array<{ shortname: string; name: string }> = [];
 let allSeasons: number[] = [];
 let error: string | null = null;
@@ -25,8 +47,7 @@ try {
 	]);
 
 	if (scheduleRes.ok && filtersRes.ok) {
-		schedule =
-			((await scheduleRes.json()) as { schedule: Record<string, unknown>[] }).schedule ?? [];
+		schedule = ((await scheduleRes.json()) as { schedule: ScheduleRow[] }).schedule ?? [];
 		const fd = (await filtersRes.json()) as {
 			leagues: Array<{ shortname: string; name: string }>;
 			seasons: number[];

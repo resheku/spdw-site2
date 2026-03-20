@@ -1,4 +1,6 @@
 ---
+import '../styles/globals.css';
+
 interface Props {
 	title?: string;
 }
@@ -33,7 +35,3 @@ const { title = 'spdw' } = Astro.props;
 		</div>
 	</body>
 </html>
-
-<style is:global>
-	@import '../styles/globals.css';
-</style>

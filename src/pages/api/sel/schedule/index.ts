@@ -46,7 +46,8 @@ export const GET: APIRoute = async ({ locals, url }) => {
 	}
 
 	const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-	const nullLast = dbSortCol === 'attendance' ? `CASE WHEN attendance IS NULL THEN 1 ELSE 0 END, ` : '';
+	const nullLast =
+		dbSortCol === 'attendance' ? `CASE WHEN attendance IS NULL THEN 1 ELSE 0 END, ` : '';
 	const orderBy = `ORDER BY ${nullLast}${dbSortCol} ${sortDir}`;
 
 	try {

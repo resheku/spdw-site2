@@ -5,12 +5,12 @@ import ScheduleTable from '../../components/ScheduleTable.svelte';
 export const prerender = false;
 
 const urlParams = Astro.url.searchParams;
-const initialLeagues        = urlParams.get('league')?.split(',').filter(Boolean) ?? [];
-const initialSeasons        = urlParams.get('season')?.split(',').filter(Boolean) ?? [];
-const initialRounds         = urlParams.get('round')?.split(',').filter(Boolean) ?? [];
-const initialTracks         = urlParams.get('track')?.split(',').filter(Boolean) ?? [];
-const initialTeams          = urlParams.get('team')?.split(',').filter(Boolean) ?? [];
-const initialSortColumns    = urlParams.get('sortColumn')?.split(',').filter(Boolean) ?? [];
+const initialLeagues = urlParams.get('league')?.split(',').filter(Boolean) ?? [];
+const initialSeasons = urlParams.get('season')?.split(',').filter(Boolean) ?? [];
+const initialRounds = urlParams.get('round')?.split(',').filter(Boolean) ?? [];
+const initialTracks = urlParams.get('track')?.split(',').filter(Boolean) ?? [];
+const initialTeams = urlParams.get('team')?.split(',').filter(Boolean) ?? [];
+const initialSortColumns = urlParams.get('sortColumn')?.split(',').filter(Boolean) ?? [];
 const initialSortDirections = urlParams.get('sortDirection')?.split(',').filter(Boolean) ?? [];
 
 let schedule: any[] = [];
@@ -25,10 +25,10 @@ try {
 	]);
 
 	if (scheduleRes.ok && filtersRes.ok) {
-		schedule    = ((await scheduleRes.json()) as any).schedule ?? [];
-		const fd    = (await filtersRes.json()) as any;
-		allLeagues  = fd.leagues ?? [];
-		allSeasons  = fd.seasons ?? [];
+		schedule = ((await scheduleRes.json()) as any).schedule ?? [];
+		const fd = (await filtersRes.json()) as any;
+		allLeagues = fd.leagues ?? [];
+		allSeasons = fd.seasons ?? [];
 	} else {
 		error = 'Failed to load schedule';
 	}
@@ -41,49 +41,80 @@ try {
 <Layout title="SEL Schedule - spdw">
 	<div class="p-4">
 		<nav aria-label="breadcrumb">
-			<ol class="text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm break-words sm:gap-2.5">
+			<ol
+				class="text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm break-words sm:gap-2.5"
+			>
 				<li class="inline-flex items-center gap-1.5">
 					<a href="/" class="hover:text-foreground transition-colors">Home</a>
 				</li>
 				<li role="presentation" aria-hidden="true" class="[&>svg]:size-3.5">
-					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<path d="m9 18 6-6-6-6"/>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="24"
+						height="24"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="m9 18 6-6-6-6"></path>
 					</svg>
 				</li>
 				<li class="inline-flex items-center gap-1.5">
 					<a href="/sel" class="hover:text-foreground transition-colors">sel</a>
 				</li>
 				<li role="presentation" aria-hidden="true" class="[&>svg]:size-3.5">
-					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<path d="m9 18 6-6-6-6"/>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="24"
+						height="24"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="m9 18 6-6-6-6"></path>
 					</svg>
 				</li>
 				<li class="inline-flex items-center gap-1.5">
-					<span class="text-foreground font-normal" role="link" aria-disabled="true" aria-current="page">schedule</span>
+					<span
+						class="text-foreground font-normal"
+						role="link"
+						aria-disabled="true"
+						aria-current="page">schedule</span
+					>
 				</li>
 			</ol>
 		</nav>
 	</div>
 
-	<div class="px-4 pb-8 max-w-full">
-		<h1 class="text-2xl font-bold mb-6">SEL Schedule</h1>
+	<div class="max-w-full px-4 pb-8">
+		<h1 class="mb-6 text-2xl font-bold">SEL Schedule</h1>
 
-		{error ? (
-			<div class="p-4 bg-muted rounded-md text-muted-foreground"><p>{error}</p></div>
-		) : (
-			<ScheduleTable
-				client:load
-				initialData={schedule}
-				allLeagues={allLeagues}
-				allSeasons={allSeasons}
-				initialLeagues={initialLeagues}
-				initialSeasons={initialSeasons}
-				initialRounds={initialRounds}
-				initialTracks={initialTracks}
-				initialTeams={initialTeams}
-				initialSortColumns={initialSortColumns}
-				initialSortDirections={initialSortDirections}
-			/>
-		)}
+		{
+			error ? (
+				<div class="bg-muted text-muted-foreground rounded-md p-4">
+					<p>{error}</p>
+				</div>
+			) : (
+				<ScheduleTable
+					client:load
+					initialData={schedule}
+					allLeagues={allLeagues}
+					allSeasons={allSeasons}
+					initialLeagues={initialLeagues}
+					initialSeasons={initialSeasons}
+					initialRounds={initialRounds}
+					initialTracks={initialTracks}
+					initialTeams={initialTeams}
+					initialSortColumns={initialSortColumns}
+					initialSortDirections={initialSortDirections}
+				/>
+			)
+		}
 	</div>
 </Layout>

@@ -23,7 +23,10 @@
 
 	let sortColumns: Array<{ column: string; direction: string }> =
 		initialSortColumns.length > 0
-			? initialSortColumns.map((col, i) => ({ column: col, direction: initialSortDirections[i] ?? 'desc' }))
+			? initialSortColumns.map((col, i) => ({
+					column: col,
+					direction: initialSortDirections[i] ?? 'desc',
+				}))
 			: [{ column: 'date', direction: 'desc' }];
 
 	let leagueOpen = false;
@@ -41,61 +44,86 @@
 	}
 
 	// ── Derived filter options ──────────────────────────────────────
-	$: leagueOptions = allLeagues.map(l => ({ value: l.shortname, label: `${l.shortname} – ${l.name}` }));
-	$: seasonOptions = allSeasons.slice().reverse().map(s => ({ value: String(s), label: String(s) }));
+	$: leagueOptions = allLeagues.map((l) => ({
+		value: l.shortname,
+		label: `${l.shortname} – ${l.name}`,
+	}));
+	$: seasonOptions = allSeasons
+		.slice()
+		.reverse()
+		.map((s) => ({ value: String(s), label: String(s) }));
 
-	$: allRounds = [...new Set(initialData.map(m => m.type).filter(Boolean))].sort() as string[];
-	$: roundOptions = allRounds.map(r => ({ value: r, label: r }));
+	$: allRounds = [...new Set(initialData.map((m) => m.type).filter(Boolean))].sort() as string[];
+	$: roundOptions = allRounds.map((r) => ({ value: r, label: r }));
 
-	$: allTrackValues = [...new Set(initialData.map(m => m.track).filter(Boolean))].sort() as string[];
-	$: allTeamValues = [...new Set([
-		...initialData.map(m => m.homeTeamShort),
-		...initialData.map(m => m.awayTeamShort),
-	].filter(Boolean))].sort() as string[];
+	$: allTrackValues = [
+		...new Set(initialData.map((m) => m.track).filter(Boolean)),
+	].sort() as string[];
+	$: allTeamValues = [
+		...new Set(
+			[
+				...initialData.map((m) => m.homeTeamShort),
+				...initialData.map((m) => m.awayTeamShort),
+			].filter(Boolean)
+		),
+	].sort() as string[];
 
 	// Compute which tracks are available given current league/season/round/team filters (but not track filter itself)
 	$: availableTracks = (() => {
 		let d = initialData;
-		if (selectedLeagues.length) d = d.filter(m => selectedLeagues.includes(m.league));
-		if (selectedSeasons.length) d = d.filter(m => selectedSeasons.includes(String(m.season)));
-		if (selectedRounds.length) d = d.filter(m => selectedRounds.includes(m.type));
-		if (selectedTeams.length) d = d.filter(m => selectedTeams.includes(m.homeTeamShort) || selectedTeams.includes(m.awayTeamShort));
-		return new Set(d.map(m => m.track).filter(Boolean));
+		if (selectedLeagues.length) d = d.filter((m) => selectedLeagues.includes(m.league));
+		if (selectedSeasons.length) d = d.filter((m) => selectedSeasons.includes(String(m.season)));
+		if (selectedRounds.length) d = d.filter((m) => selectedRounds.includes(m.type));
+		if (selectedTeams.length)
+			d = d.filter(
+				(m) => selectedTeams.includes(m.homeTeamShort) || selectedTeams.includes(m.awayTeamShort)
+			);
+		return new Set(d.map((m) => m.track).filter(Boolean));
 	})();
 
-	$: disabledTracks = allTrackValues.filter(t => !availableTracks.has(t));
-	$: trackOptions = allTrackValues.map(t => ({ value: t, label: t }));
+	$: disabledTracks = allTrackValues.filter((t) => !availableTracks.has(t));
+	$: trackOptions = allTrackValues.map((t) => ({ value: t, label: t }));
 
 	// Compute which teams are available given current filters (but not team filter itself)
 	$: availableTeams = (() => {
 		let d = initialData;
-		if (selectedLeagues.length) d = d.filter(m => selectedLeagues.includes(m.league));
-		if (selectedSeasons.length) d = d.filter(m => selectedSeasons.includes(String(m.season)));
-		if (selectedRounds.length) d = d.filter(m => selectedRounds.includes(m.type));
-		if (selectedTracks.length) d = d.filter(m => selectedTracks.includes(m.track));
+		if (selectedLeagues.length) d = d.filter((m) => selectedLeagues.includes(m.league));
+		if (selectedSeasons.length) d = d.filter((m) => selectedSeasons.includes(String(m.season)));
+		if (selectedRounds.length) d = d.filter((m) => selectedRounds.includes(m.type));
+		if (selectedTracks.length) d = d.filter((m) => selectedTracks.includes(m.track));
 		const s = new Set<string>();
-		d.forEach(m => { if (m.homeTeamShort) s.add(m.homeTeamShort); if (m.awayTeamShort) s.add(m.awayTeamShort); });
+		d.forEach((m) => {
+			if (m.homeTeamShort) s.add(m.homeTeamShort);
+			if (m.awayTeamShort) s.add(m.awayTeamShort);
+		});
 		return s;
 	})();
 
-	$: disabledTeams = allTeamValues.filter(t => !availableTeams.has(t));
-	$: teamOptions = allTeamValues.map(t => ({ value: t, label: t }));
+	$: disabledTeams = allTeamValues.filter((t) => !availableTeams.has(t));
+	$: teamOptions = allTeamValues.map((t) => ({ value: t, label: t }));
 
 	// ── Filtering & sorting ─────────────────────────────────────────
 	$: filteredData = (() => {
 		let data = initialData;
-		if (selectedLeagues.length) data = data.filter(m => selectedLeagues.includes(m.league));
-		if (selectedSeasons.length) data = data.filter(m => selectedSeasons.includes(String(m.season)));
-		if (selectedRounds.length) data = data.filter(m => selectedRounds.includes(m.type));
-		if (selectedTracks.length) data = data.filter(m => selectedTracks.includes(m.track));
-		if (selectedTeams.length) data = data.filter(m => selectedTeams.includes(m.homeTeamShort) || selectedTeams.includes(m.awayTeamShort));
+		if (selectedLeagues.length) data = data.filter((m) => selectedLeagues.includes(m.league));
+		if (selectedSeasons.length)
+			data = data.filter((m) => selectedSeasons.includes(String(m.season)));
+		if (selectedRounds.length) data = data.filter((m) => selectedRounds.includes(m.type));
+		if (selectedTracks.length) data = data.filter((m) => selectedTracks.includes(m.track));
+		if (selectedTeams.length)
+			data = data.filter(
+				(m) => selectedTeams.includes(m.homeTeamShort) || selectedTeams.includes(m.awayTeamShort)
+			);
 
 		if (sortColumns.length > 0) {
 			data = [...data].sort((a, b) => {
 				for (const { column, direction: dir } of sortColumns) {
 					const av = getColValue(a, column);
 					const bv = getColValue(b, column);
-					if (av == null) { if (bv == null) continue; return 1; }
+					if (av == null) {
+						if (bv == null) continue;
+						return 1;
+					}
 					if (bv == null) return -1;
 					const sign = dir === 'asc' ? 1 : -1;
 					const result = typeof av === 'string' ? sign * av.localeCompare(bv) : sign * (av - bv);
@@ -109,27 +137,38 @@
 
 	function getColValue(row: any, col: string): any {
 		switch (col) {
-			case 'round':      return row.round ?? null;
-			case 'type':       return row.type ?? null;
-			case 'date':       return row.datetime ?? null;
-			case 'match':      return row.matchName ?? null;
-			case 'score':      return row.homeScore ?? null;
-			case 'total':      return row.homeTotal ?? null;
-			case 'attendance': return row.attendance ?? null;
-			case 'track':      return row.track ?? null;
-			case 'league':     return row.league ?? null;
-			case 'season':     return row.season ?? null;
-			default:           return null;
+			case 'round':
+				return row.round ?? null;
+			case 'type':
+				return row.type ?? null;
+			case 'date':
+				return row.datetime ?? null;
+			case 'match':
+				return row.matchName ?? null;
+			case 'score':
+				return row.homeScore ?? null;
+			case 'total':
+				return row.homeTotal ?? null;
+			case 'attendance':
+				return row.attendance ?? null;
+			case 'track':
+				return row.track ?? null;
+			case 'league':
+				return row.league ?? null;
+			case 'season':
+				return row.season ?? null;
+			default:
+				return null;
 		}
 	}
 
 	// ── Sorting ─────────────────────────────────────────────────────
 	function handleSort(column: string, event: MouseEvent) {
 		if (event.shiftKey) {
-			const idx = sortColumns.findIndex(s => s.column === column);
+			const idx = sortColumns.findIndex((s) => s.column === column);
 			if (idx >= 0) {
 				if (sortColumns[idx].direction === 'desc') {
-					sortColumns = sortColumns.map((s, i) => i === idx ? { ...s, direction: 'asc' } : s);
+					sortColumns = sortColumns.map((s, i) => (i === idx ? { ...s, direction: 'asc' } : s));
 				} else {
 					sortColumns = sortColumns.filter((_, i) => i !== idx);
 				}
@@ -137,7 +176,7 @@
 				sortColumns = [...sortColumns, { column, direction: 'desc' }];
 			}
 		} else {
-			const existing = sortColumns.find(s => s.column === column);
+			const existing = sortColumns.find((s) => s.column === column);
 			if (sortColumns.length === 1 && existing) {
 				if (existing.direction === 'desc') {
 					sortColumns = [{ column, direction: 'asc' }];
@@ -160,8 +199,8 @@
 		if (selectedTeams.length) params.set('team', selectedTeams.join(','));
 		if (selectedTracks.length) params.set('track', selectedTracks.join(','));
 		if (sortColumns.length) {
-			params.set('sortColumn', sortColumns.map(s => s.column).join(','));
-			params.set('sortDirection', sortColumns.map(s => s.direction).join(','));
+			params.set('sortColumn', sortColumns.map((s) => s.column).join(','));
+			params.set('sortDirection', sortColumns.map((s) => s.direction).join(','));
 		}
 		const newURL = params.toString()
 			? `${window.location.pathname}?${params.toString()}`
@@ -194,13 +233,57 @@
 	const scheduleColumns = [
 		{ key: 'round', sortKey: 'round', label: '#', align: 'left' as const, noWrap: true },
 		{ key: 'type', sortKey: 'type', label: 'Round', align: 'left' as const, noWrap: true },
-		{ key: 'datetime', sortKey: 'date', label: 'Date', align: 'left' as const, noWrap: true, customCell: true },
+		{
+			key: 'datetime',
+			sortKey: 'date',
+			label: 'Date',
+			align: 'left' as const,
+			noWrap: true,
+			customCell: true,
+		},
 		{ key: 'matchName', sortKey: 'match', label: 'Match', align: 'left' as const },
-		{ key: 'homeScore', sortKey: 'score', label: 'Score', align: 'left' as const, noWrap: true, customCell: true },
-		{ key: 'homeTotal', sortKey: 'total', label: 'Total', align: 'left' as const, noWrap: true, customCell: true },
-		{ key: 'attendance', sortKey: 'attendance', label: 'Attendance', align: 'right' as const, noWrap: true, responsiveClass: 'max-lg:hidden', customCell: true },
-		{ key: 'track', sortKey: 'track', label: 'Track', align: 'left' as const, noWrap: true, isLink: true, responsiveClass: 'max-md:hidden' },
-		{ key: 'league', sortKey: 'league', label: 'League', align: 'left' as const, noWrap: true, responsiveClass: 'max-md:hidden' },
+		{
+			key: 'homeScore',
+			sortKey: 'score',
+			label: 'Score',
+			align: 'left' as const,
+			noWrap: true,
+			customCell: true,
+		},
+		{
+			key: 'homeTotal',
+			sortKey: 'total',
+			label: 'Total',
+			align: 'left' as const,
+			noWrap: true,
+			customCell: true,
+		},
+		{
+			key: 'attendance',
+			sortKey: 'attendance',
+			label: 'Attendance',
+			align: 'right' as const,
+			noWrap: true,
+			responsiveClass: 'max-lg:hidden',
+			customCell: true,
+		},
+		{
+			key: 'track',
+			sortKey: 'track',
+			label: 'Track',
+			align: 'left' as const,
+			noWrap: true,
+			isLink: true,
+			responsiveClass: 'max-md:hidden',
+		},
+		{
+			key: 'league',
+			sortKey: 'league',
+			label: 'League',
+			align: 'left' as const,
+			noWrap: true,
+			responsiveClass: 'max-md:hidden',
+		},
 	];
 </script>
 
@@ -213,7 +296,12 @@
 		bind:selected={selectedSeasons}
 		bind:isOpen={seasonOpen}
 		minWidth="140px"
-		on:change={(e) => { selectedSeasons = e.detail; closeAll(); seasonOpen = false; updateURL(); }}
+		on:change={(e) => {
+			selectedSeasons = e.detail;
+			closeAll();
+			seasonOpen = false;
+			updateURL();
+		}}
 	/>
 	<FilterDropdown
 		id="sched-league"
@@ -222,7 +310,12 @@
 		bind:selected={selectedLeagues}
 		bind:isOpen={leagueOpen}
 		minWidth="200px"
-		on:change={(e) => { selectedLeagues = e.detail; closeAll(); leagueOpen = false; updateURL(); }}
+		on:change={(e) => {
+			selectedLeagues = e.detail;
+			closeAll();
+			leagueOpen = false;
+			updateURL();
+		}}
 	/>
 	<FilterDropdown
 		id="sched-round"
@@ -231,7 +324,12 @@
 		bind:selected={selectedRounds}
 		bind:isOpen={roundOpen}
 		minWidth="120px"
-		on:change={(e) => { selectedRounds = e.detail; closeAll(); roundOpen = false; updateURL(); }}
+		on:change={(e) => {
+			selectedRounds = e.detail;
+			closeAll();
+			roundOpen = false;
+			updateURL();
+		}}
 	/>
 	<FilterDropdown
 		id="sched-team"
@@ -241,7 +339,12 @@
 		bind:selected={selectedTeams}
 		bind:isOpen={teamOpen}
 		minWidth="140px"
-		on:change={(e) => { selectedTeams = e.detail; closeAll(); teamOpen = false; updateURL(); }}
+		on:change={(e) => {
+			selectedTeams = e.detail;
+			closeAll();
+			teamOpen = false;
+			updateURL();
+		}}
 	/>
 	<FilterDropdown
 		id="sched-track"
@@ -251,20 +354,27 @@
 		bind:selected={selectedTracks}
 		bind:isOpen={trackOpen}
 		minWidth="160px"
-		on:change={(e) => { selectedTracks = e.detail; closeAll(); trackOpen = false; updateURL(); }}
+		on:change={(e) => {
+			selectedTracks = e.detail;
+			closeAll();
+			trackOpen = false;
+			updateURL();
+		}}
 	/>
 </div>
 
 <!-- Row count -->
-<div class="mb-2 flex items-center justify-between text-sm text-muted-foreground">
+<div class="text-muted-foreground mb-2 flex items-center justify-between text-sm">
 	<span>{filteredData.length} match{filteredData.length !== 1 ? 'es' : ''}</span>
 	<div class="text-xs opacity-75">
-		Hold <kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-xs font-mono">Shift</kbd> to sort by multiple columns
+		Hold <kbd class="bg-muted border-border rounded border px-1.5 py-0.5 font-mono text-xs"
+			>Shift</kbd
+		> to sort by multiple columns
 	</div>
 </div>
 
 <!-- Table -->
-<div class="overflow-x-auto border border-border rounded-lg">
+<div class="border-border overflow-x-auto rounded-lg border">
 	<SortableTable
 		columns={scheduleColumns}
 		rows={filteredData}
@@ -277,15 +387,29 @@
 			{:else if col.key === 'homeScore'}
 				{#if m.homeScore != null && m.awayScore != null}
 					<span class="inline-flex items-center gap-1.5">
-						<span class="inline-block text-[0.65rem] font-bold px-1 py-0.5 rounded leading-none {resultClass(m.homeScore, m.awayScore, true)}">{resultLabel(m.homeScore, m.awayScore, true)}</span>
+						<span
+							class="inline-block rounded px-1 py-0.5 text-[0.65rem] leading-none font-bold {resultClass(
+								m.homeScore,
+								m.awayScore,
+								true
+							)}">{resultLabel(m.homeScore, m.awayScore, true)}</span
+						>
 						<span class="font-medium">{m.homeScore}:{m.awayScore}</span>
-						<span class="inline-block text-[0.65rem] font-bold px-1 py-0.5 rounded leading-none {resultClass(m.homeScore, m.awayScore, false)}">{resultLabel(m.homeScore, m.awayScore, false)}</span>
+						<span
+							class="inline-block rounded px-1 py-0.5 text-[0.65rem] leading-none font-bold {resultClass(
+								m.homeScore,
+								m.awayScore,
+								false
+							)}">{resultLabel(m.homeScore, m.awayScore, false)}</span
+						>
 					</span>
 				{:else}
 					-
 				{/if}
 			{:else if col.key === 'homeTotal'}
-				<span class="text-muted-foreground">{m.homeTotal != null && m.awayTotal != null ? `${m.homeTotal}:${m.awayTotal}` : ''}</span>
+				<span class="text-muted-foreground"
+					>{m.homeTotal != null && m.awayTotal != null ? `${m.homeTotal}:${m.awayTotal}` : ''}</span
+				>
 			{:else if col.key === 'attendance'}
 				{m.attendance ? m.attendance.toLocaleString() : ''}
 			{/if}

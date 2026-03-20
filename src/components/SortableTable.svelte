@@ -45,7 +45,8 @@
 
 	// ── External sort mode ────────────────────────────────────────────────────
 	/** Sort state owned by the parent; when provided, SortableTable shows icons but does not sort rows */
-	export let externalSortColumns: Array<{ column: string; direction: string }> | undefined = undefined;
+	export let externalSortColumns: Array<{ column: string; direction: string }> | undefined =
+		undefined;
 	/** Called when a header is clicked in external sort mode */
 	export let onHeaderClick: ((col: string, e: MouseEvent) => void) | undefined = undefined;
 	/** Returns extra CSS classes for a cell or header (used for column visibility overrides) */
@@ -77,8 +78,8 @@
 		else cycleSort(key);
 	}
 
-	$: mainRows = pinnedBottom != null ? rows.filter(r => r[pinnedKey] !== pinnedBottom) : rows;
-	$: pinnedRow = pinnedBottom != null ? rows.find(r => r[pinnedKey] === pinnedBottom) : null;
+	$: mainRows = pinnedBottom != null ? rows.filter((r) => r[pinnedKey] !== pinnedBottom) : rows;
+	$: pinnedRow = pinnedBottom != null ? rows.find((r) => r[pinnedKey] === pinnedBottom) : null;
 
 	$: sortedRows = (() => {
 		// In external sort mode the parent pre-sorts rows
@@ -104,7 +105,9 @@
 		const map: Record<string, { min: number; max: number }> = {};
 		for (const col of columns) {
 			if (!col.heatmap && !col.heatmapInvert) continue;
-			const vals = mainRows.map(r => r[col.key]).filter((v): v is number => typeof v === 'number');
+			const vals = mainRows
+				.map((r) => r[col.key])
+				.filter((v): v is number => typeof v === 'number');
 			if (vals.length === 0) continue;
 			map[col.key] = { min: Math.min(...vals), max: Math.max(...vals) };
 		}
@@ -129,10 +132,13 @@
 		for (const col of columns) {
 			const key = col.sortKey ?? col.key;
 			if (isExternalSort && externalSortColumns) {
-				const s = externalSortColumns.find(sc => sc.column === key);
+				const s = externalSortColumns.find((sc) => sc.column === key);
 				if (s) {
 					const idx = externalSortColumns.indexOf(s);
-					map[key] = { arrow: s.direction === 'desc' ? '▼' : '▲', rank: externalSortColumns.length > 1 ? idx + 1 : null };
+					map[key] = {
+						arrow: s.direction === 'desc' ? '▼' : '▲',
+						rank: externalSortColumns.length > 1 ? idx + 1 : null,
+					};
 				}
 			} else if (sortKey && sortKey === key && sortDir) {
 				map[key] = { arrow: sortDir === 'desc' ? '▼' : '▲', rank: null };
@@ -153,28 +159,38 @@
 		<tr>
 			{#if showRowNumber}
 				<th
-					class="px-3 py-2 text-right font-medium w-10 text-muted-foreground whitespace-nowrap align-middle {getExtraClass?.({ key: '__rank', label: '#', id: rowNumberColId }, true) ?? ''}"
-					data-column-id={rowNumberColId}
-				>#</th>
+					class="text-muted-foreground w-10 px-3 py-2 text-right align-middle font-medium whitespace-nowrap {getExtraClass?.(
+						{ key: '__rank', label: '#', id: rowNumberColId },
+						true
+					) ?? ''}"
+					data-column-id={rowNumberColId}>#</th
+				>
 			{/if}
 			{#each columns as col}
 				{@const _icon = sortIcons[col.sortKey ?? col.key] ?? null}
 				<th
-					class="px-3 py-2 font-medium cursor-pointer select-none whitespace-nowrap align-middle hover:bg-muted/80
+					class="hover:bg-muted/80 cursor-pointer px-3 py-2 align-middle font-medium whitespace-nowrap select-none
 						{col.align === 'left' ? 'text-left' : 'text-right'}
-						{col.sticky ? 'sticky left-0 bg-muted z-10' : ''}
+						{col.sticky ? 'bg-muted sticky left-0 z-10' : ''}
 						{col.responsiveClass ?? ''}
 						{getExtraClass?.(col, true) ?? ''}"
-					style="{col.headerColor ? `background-color: ${col.headerColor}; color: #111827;` : ''}{col.width ? ` width: ${col.width};` : ''}"
+					style="{col.headerColor
+						? `background-color: ${col.headerColor}; color: #111827;`
+						: ''}{col.width ? ` width: ${col.width};` : ''}"
 					data-column-id={col.id}
 					on:click={(e) => handleHeaderClick(col, e)}
 				>
-					<span class="inline-flex items-center gap-1 {col.align !== 'left' ? 'flex-row-reverse' : ''}">
+					<span
+						class="inline-flex items-center gap-1 {col.align !== 'left' ? 'flex-row-reverse' : ''}"
+					>
 						{#if col.labelParts}
 							<span class="inline-flex items-center gap-0">
 								{#each col.labelParts as part}
 									{#if part.color}
-										<span class="px-1 rounded font-bold text-[#111827]" style="background-color: {part.color}">{part.text}</span>
+										<span
+											class="rounded px-1 font-bold text-[#111827]"
+											style="background-color: {part.color}">{part.text}</span
+										>
 									{:else}
 										<span>{part.text}</span>
 									{/if}
@@ -184,9 +200,11 @@
 							{col.label}
 						{/if}
 						{#if _icon}
-							<span class="text-xs inline-flex items-baseline gap-[1px]">
+							<span class="inline-flex items-baseline gap-[1px] text-xs">
 								{_icon.arrow}
-								{#if _icon.rank !== null}<sup class="text-[0.6rem] font-semibold leading-none">{_icon.rank}</sup>{/if}
+								{#if _icon.rank !== null}<sup class="text-[0.6rem] leading-none font-semibold"
+										>{_icon.rank}</sup
+									>{/if}
 							</span>
 						{:else}
 							<span class="text-muted-foreground/40 text-xs">↕</span>
@@ -198,19 +216,22 @@
 	</thead>
 	<tbody>
 		{#each sortedRows as row, i}
-			<tr class="border-t border-border hover:bg-muted/50">
+			<tr class="border-border hover:bg-muted/50 border-t">
 				{#if showRowNumber}
 					<td
-						class="px-3 py-2 text-right tabular-nums text-muted-foreground {getExtraClass?.({ key: '__rank', label: '#', id: rowNumberColId }, false) ?? ''}"
-						data-column-id={rowNumberColId}
-					>{i + 1}</td>
+						class="text-muted-foreground px-3 py-2 text-right tabular-nums {getExtraClass?.(
+							{ key: '__rank', label: '#', id: rowNumberColId },
+							false
+						) ?? ''}"
+						data-column-id={rowNumberColId}>{i + 1}</td
+					>
 				{/if}
 				{#each columns as col}
 					{@const hue = heatHue(col, row[col.key])}
 					<td
 						class="px-3 py-2 tabular-nums
 							{col.align === 'left' ? 'text-left' : 'text-right'}
-							{col.sticky ? 'sticky left-0 bg-background z-10' : ''}
+							{col.sticky ? 'bg-background sticky left-0 z-10' : ''}
 							{row._bold ? 'font-bold' : col.bold ? 'font-semibold' : col.align === 'left' ? 'font-medium' : ''}
 							{hue !== null ? 'heat' : ''}
 							{col.noWrap ? 'whitespace-nowrap' : ''}
@@ -223,13 +244,16 @@
 						{#if col.customCell && cell}
 							{@render cell(row, col)}
 						{:else if col.isLink && row[col.key] != null}
-							<a href="/sel/tracks/{encodeURIComponent(String(row[col.key]))}" class="hover:underline">{row[col.key]}</a>
+							<a
+								href="/sel/tracks/{encodeURIComponent(String(row[col.key]))}"
+								class="hover:underline">{row[col.key]}</a
+							>
 						{:else if row[col.key] == null}
-						{#if col.nullValue === undefined || col.nullValue === null}
-							<span class="text-muted-foreground">-</span>
-						{:else}
-							{col.nullValue}
-						{/if}
+							{#if col.nullValue === undefined || col.nullValue === null}
+								<span class="text-muted-foreground">-</span>
+							{:else}
+								{col.nullValue}
+							{/if}
 						{:else}
 							{fmt(row[col.key], col)}
 						{/if}
@@ -238,7 +262,7 @@
 			</tr>
 		{/each}
 		{#if pinnedRow}
-			<tr class="border-t-2 border-border hover:bg-muted/50 font-semibold bg-muted/30">
+			<tr class="border-border hover:bg-muted/50 bg-muted/30 border-t-2 font-semibold">
 				{#if showRowNumber}
 					<td class="px-3 py-2" data-column-id={rowNumberColId}></td>
 				{/if}
@@ -246,7 +270,7 @@
 					<td
 						class="px-3 py-2 tabular-nums
 							{col.align === 'left' ? 'text-left' : 'text-right'}
-							{col.sticky ? 'sticky left-0 bg-muted/30 z-10' : ''}
+							{col.sticky ? 'bg-muted/30 sticky left-0 z-10' : ''}
 							{col.responsiveClass ?? ''}
 							{getExtraClass?.(col, false) ?? ''}"
 						data-column-id={col.id}

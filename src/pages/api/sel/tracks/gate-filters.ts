@@ -13,7 +13,9 @@ export const GET: APIRoute = async ({ locals }) => {
 	}
 
 	try {
-		const result = await db.prepare(`
+		const result = await db
+			.prepare(
+				`
 			SELECT DISTINCT
 				m.season AS season,
 				m.match_type_shortname AS code,
@@ -25,7 +27,9 @@ export const GET: APIRoute = async ({ locals }) => {
 				AND h.canceled = 0
 				AND h.points IS NOT NULL
 			ORDER BY m.season DESC
-		`).all();
+		`
+			)
+			.all();
 
 		const rows = result.results || [];
 		const seasons = [...new Set(rows.map((r: any) => r.season as number))].sort((a, b) => b - a);

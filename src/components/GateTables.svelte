@@ -4,8 +4,23 @@
 	import GateChart from './GateChart.svelte';
 	import FilterDropdown from './FilterDropdown.svelte';
 
-	type GateStatsRow = { Track: string; A: number | null; B: number | null; C: number | null; D: number | null; 'AC/BD': string | null; Bias: number | null };
-	type GateWinRow = { Track: string; A: number | null; B: number | null; C: number | null; D: number | null; Bias: number | null };
+	type GateStatsRow = {
+		Track: string;
+		A: number | null;
+		B: number | null;
+		C: number | null;
+		D: number | null;
+		'AC/BD': string | null;
+		Bias: number | null;
+	};
+	type GateWinRow = {
+		Track: string;
+		A: number | null;
+		B: number | null;
+		C: number | null;
+		D: number | null;
+		Bias: number | null;
+	};
 	type TrendRow = { season: number; A: number; B: number; C: number; D: number };
 
 	let seasons: number[] = [];
@@ -15,10 +30,16 @@
 	let seasonOpen = false;
 	let leagueOpen = false;
 
-	function closeAll() { seasonOpen = false; leagueOpen = false; }
+	function closeAll() {
+		seasonOpen = false;
+		leagueOpen = false;
+	}
 
-	$: seasonOptions = seasons.slice().reverse().map(s => ({ value: String(s), label: String(s) }));
-	$: leagueOptions = leagues.map(l => ({ value: l.code, label: l.name }));
+	$: seasonOptions = seasons
+		.slice()
+		.reverse()
+		.map((s) => ({ value: String(s), label: String(s) }));
+	$: leagueOptions = leagues.map((l) => ({ value: l.code, label: l.name }));
 	let gateStats: GateStatsRow[] = [];
 	let gateWin: GateWinRow[] = [];
 	let trendAvgPoints: TrendRow[] = [];
@@ -84,7 +105,10 @@
 	onMount(async () => {
 		const filtersRes = await fetch('/api/sel/tracks/gate-filters');
 		if (filtersRes.ok) {
-			const data = (await filtersRes.json()) as { seasons: number[]; leagues: { code: string; name: string }[] };
+			const data = (await filtersRes.json()) as {
+				seasons: number[];
+				leagues: { code: string; name: string }[];
+			};
 			seasons = data.seasons ?? [];
 			leagues = data.leagues ?? [];
 		}
@@ -92,8 +116,8 @@
 	});
 </script>
 
-<h2 class="text-xl font-bold mt-6 mb-4">Gate stats</h2>
-<div class="mb-4 flex flex-wrap gap-3 items-center">
+<h2 class="mt-6 mb-4 text-xl font-bold">Gate stats</h2>
+<div class="mb-4 flex flex-wrap items-center gap-3">
 	<FilterDropdown
 		id="gate-season"
 		label="All seasons"
@@ -101,7 +125,10 @@
 		bind:selected={selectedSeasons}
 		bind:isOpen={seasonOpen}
 		minWidth="160px"
-		on:change={() => { closeAll(); fetchData(); }}
+		on:change={() => {
+			closeAll();
+			fetchData();
+		}}
 	/>
 	<FilterDropdown
 		id="gate-league"
@@ -110,10 +137,14 @@
 		bind:selected={selectedLeagues}
 		bind:isOpen={leagueOpen}
 		minWidth="160px"
-		on:change={() => { closeAll(); fetchData(); fetchTrends(); }}
+		on:change={() => {
+			closeAll();
+			fetchData();
+			fetchTrends();
+		}}
 	/>
 	{#if loading || trendsLoading}
-		<span class="text-sm text-muted-foreground">Loading…</span>
+		<span class="text-muted-foreground text-sm">Loading…</span>
 	{/if}
 </div>
 {#if !trendsLoading && trendAvgPoints.length > 0}
@@ -122,17 +153,31 @@
 	</div>
 {/if}
 
-<div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+<div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
 	<div>
-        <h3 class="text-base font-semibold mb-2 text-muted-foreground">Gate points average</h3>
-		<div class="overflow-x-auto border border-border rounded-lg">
-			<SortableTable columns={gateColumns} rows={gateStats} pinnedBottom="Total Average" defaultSortKey="Bias" defaultSortDir="asc" showRowNumber />
+		<h3 class="text-muted-foreground mb-2 text-base font-semibold">Gate points average</h3>
+		<div class="border-border overflow-x-auto rounded-lg border">
+			<SortableTable
+				columns={gateColumns}
+				rows={gateStats}
+				pinnedBottom="Total Average"
+				defaultSortKey="Bias"
+				defaultSortDir="asc"
+				showRowNumber
+			/>
 		</div>
 	</div>
 	<div>
-		<h3 class="text-base font-semibold mb-2 text-muted-foreground">Gate win percentage</h3>
-		<div class="overflow-x-auto border border-border rounded-lg">
-			<SortableTable columns={gateWinColumns} rows={gateWin} pinnedBottom="Total Average" defaultSortKey="Bias" defaultSortDir="asc" showRowNumber />
+		<h3 class="text-muted-foreground mb-2 text-base font-semibold">Gate win percentage</h3>
+		<div class="border-border overflow-x-auto rounded-lg border">
+			<SortableTable
+				columns={gateWinColumns}
+				rows={gateWin}
+				pinnedBottom="Total Average"
+				defaultSortKey="Bias"
+				defaultSortDir="asc"
+				showRowNumber
+			/>
 		</div>
 	</div>
 </div>

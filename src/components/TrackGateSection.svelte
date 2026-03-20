@@ -7,14 +7,34 @@
 	export let track: string;
 
 	type SeasonRow = { season: number; A: number; B: number; C: number; D: number };
-	type OverallGate = { A: number | null; B: number | null; C: number | null; D: number | null; Bias: number | null };
+	type OverallGate = {
+		A: number | null;
+		B: number | null;
+		C: number | null;
+		D: number | null;
+		Bias: number | null;
+	};
 
 	let avgPoints: SeasonRow[] = [];
 	let winPct: SeasonRow[] = [];
-	let overallAvg: OverallGate & { 'AC/BD': string | null } = { A: null, B: null, C: null, D: null, 'AC/BD': null, Bias: null };
+	let overallAvg: OverallGate & { 'AC/BD': string | null } = {
+		A: null,
+		B: null,
+		C: null,
+		D: null,
+		'AC/BD': null,
+		Bias: null,
+	};
 	let overallWin: OverallGate = { A: null, B: null, C: null, D: null, Bias: null };
 	// Static totals — set once on first (unfiltered) load, never updated by filter changes
-	let staticAvg: OverallGate & { 'AC/BD': string | null } = { A: null, B: null, C: null, D: null, 'AC/BD': null, Bias: null };
+	let staticAvg: OverallGate & { 'AC/BD': string | null } = {
+		A: null,
+		B: null,
+		C: null,
+		D: null,
+		'AC/BD': null,
+		Bias: null,
+	};
 	let staticWin: OverallGate = { A: null, B: null, C: null, D: null, Bias: null };
 	let staticLoaded = false;
 	let leagues: { code: string; name: string }[] = [];
@@ -22,49 +42,126 @@
 	let leagueOpen = false;
 	let loading = true;
 
-	$: leagueOptions = leagues.map(l => ({ value: l.code, label: l.name }));
+	$: leagueOptions = leagues.map((l) => ({ value: l.code, label: l.name }));
 
 	$: avgSeasonRows = [
-		...avgPoints.map(r => ({
+		...avgPoints.map((r) => ({
 			Season: r.season,
 			A: r.A,
 			B: r.B,
 			C: r.C,
 			D: r.D,
 			'AC/BD': r.A != null ? `${(r.A + r.C).toFixed(2)}/${(r.B + r.D).toFixed(2)}` : null,
-			Bias: r.A != null ? parseFloat((Math.max(r.A, r.B, r.C, r.D) - Math.min(r.A, r.B, r.C, r.D)).toFixed(2)) : null,
+			Bias:
+				r.A != null
+					? parseFloat((Math.max(r.A, r.B, r.C, r.D) - Math.min(r.A, r.B, r.C, r.D)).toFixed(2))
+					: null,
 		})),
-		{ Season: 'Total Average', A: overallAvg.A, B: overallAvg.B, C: overallAvg.C, D: overallAvg.D, 'AC/BD': overallAvg['AC/BD'], Bias: overallAvg.Bias },
+		{
+			Season: 'Total Average',
+			A: overallAvg.A,
+			B: overallAvg.B,
+			C: overallAvg.C,
+			D: overallAvg.D,
+			'AC/BD': overallAvg['AC/BD'],
+			Bias: overallAvg.Bias,
+		},
 	];
 
 	$: winSeasonRows = [
-		...winPct.map(r => ({
+		...winPct.map((r) => ({
 			Season: r.season,
 			A: r.A,
 			B: r.B,
 			C: r.C,
 			D: r.D,
-			Bias: r.A != null ? parseFloat((Math.max(r.A, r.B, r.C, r.D) - Math.min(r.A, r.B, r.C, r.D)).toFixed(1)) : null,
+			Bias:
+				r.A != null
+					? parseFloat((Math.max(r.A, r.B, r.C, r.D) - Math.min(r.A, r.B, r.C, r.D)).toFixed(1))
+					: null,
 		})),
-		{ Season: 'Total Average', A: overallWin.A, B: overallWin.B, C: overallWin.C, D: overallWin.D, Bias: overallWin.Bias },
+		{
+			Season: 'Total Average',
+			A: overallWin.A,
+			B: overallWin.B,
+			C: overallWin.C,
+			D: overallWin.D,
+			Bias: overallWin.Bias,
+		},
 	];
 
 	const avgSeasonColumns = [
 		{ key: 'Season', label: 'Season', align: 'left' as const },
-		{ key: 'A', label: 'Gate A', align: 'right' as const, decimals: 2, heatmap: true, headerColor: '#fca5a5' },
-		{ key: 'B', label: 'Gate B', align: 'right' as const, decimals: 2, heatmap: true, headerColor: '#93c5fd' },
-		{ key: 'C', label: 'Gate C', align: 'right' as const, decimals: 2, heatmap: true, headerColor: '#d1d5db' },
-		{ key: 'D', label: 'Gate D', align: 'right' as const, decimals: 2, heatmap: true, headerColor: '#fde047' },
+		{
+			key: 'A',
+			label: 'Gate A',
+			align: 'right' as const,
+			decimals: 2,
+			heatmap: true,
+			headerColor: '#fca5a5',
+		},
+		{
+			key: 'B',
+			label: 'Gate B',
+			align: 'right' as const,
+			decimals: 2,
+			heatmap: true,
+			headerColor: '#93c5fd',
+		},
+		{
+			key: 'C',
+			label: 'Gate C',
+			align: 'right' as const,
+			decimals: 2,
+			heatmap: true,
+			headerColor: '#d1d5db',
+		},
+		{
+			key: 'D',
+			label: 'Gate D',
+			align: 'right' as const,
+			decimals: 2,
+			heatmap: true,
+			headerColor: '#fde047',
+		},
 		{ key: 'AC/BD', label: 'AC/BD', align: 'right' as const, width: '4rem' },
 		{ key: 'Bias', label: 'Bias', align: 'right' as const, decimals: 2, heatmapInvert: true },
 	];
 
 	const winSeasonColumns = [
 		{ key: 'Season', label: 'Season', align: 'left' as const },
-		{ key: 'A', label: 'Gate A %', align: 'right' as const, decimals: 1, heatmap: true, headerColor: '#fca5a5' },
-		{ key: 'B', label: 'Gate B %', align: 'right' as const, decimals: 1, heatmap: true, headerColor: '#93c5fd' },
-		{ key: 'C', label: 'Gate C %', align: 'right' as const, decimals: 1, heatmap: true, headerColor: '#d1d5db' },
-		{ key: 'D', label: 'Gate D %', align: 'right' as const, decimals: 1, heatmap: true, headerColor: '#fde047' },
+		{
+			key: 'A',
+			label: 'Gate A %',
+			align: 'right' as const,
+			decimals: 1,
+			heatmap: true,
+			headerColor: '#fca5a5',
+		},
+		{
+			key: 'B',
+			label: 'Gate B %',
+			align: 'right' as const,
+			decimals: 1,
+			heatmap: true,
+			headerColor: '#93c5fd',
+		},
+		{
+			key: 'C',
+			label: 'Gate C %',
+			align: 'right' as const,
+			decimals: 1,
+			heatmap: true,
+			headerColor: '#d1d5db',
+		},
+		{
+			key: 'D',
+			label: 'Gate D %',
+			align: 'right' as const,
+			decimals: 1,
+			heatmap: true,
+			headerColor: '#fde047',
+		},
 		{ key: 'Bias', label: 'Bias', align: 'right' as const, decimals: 1, heatmapInvert: true },
 	];
 
@@ -76,7 +173,7 @@
 
 		const res = await fetch(`/api/sel/tracks/${encodeURIComponent(track)}/gate-history${qs}`);
 		if (res.ok) {
-			const data = await res.json() as {
+			const data = (await res.json()) as {
 				avgPoints: SeasonRow[];
 				winPct: SeasonRow[];
 				overall: { avgPoints: typeof overallAvg; winPct: OverallGate };
@@ -103,29 +200,36 @@
 
 <div>
 	{#if loading}
-		<div class="text-muted-foreground text-sm py-8 text-center">Loading…</div>
+		<div class="text-muted-foreground py-8 text-center text-sm">Loading…</div>
 	{:else if avgPoints.length === 0}
-		<div class="text-muted-foreground text-sm py-8 text-center">No gate data available for this track.</div>
+		<div class="text-muted-foreground py-8 text-center text-sm">
+			No gate data available for this track.
+		</div>
 	{:else}
 		<!-- Overall summary — one card per gate -->
-		{@const GATE_COLORS = { A: { bg: '#fca5a5', border: '#ef4444', text: '#7f1d1d' }, B: { bg: '#93c5fd', border: '#3b82f6', text: '#1e3a5f' }, C: { bg: '#e5e7eb', border: '#9ca3af', text: '#374151' }, D: { bg: '#fde047', border: '#eab308', text: '#713f12' } }}
+		{@const GATE_COLORS = {
+			A: { bg: '#fca5a5', border: '#ef4444', text: '#7f1d1d' },
+			B: { bg: '#93c5fd', border: '#3b82f6', text: '#1e3a5f' },
+			C: { bg: '#e5e7eb', border: '#9ca3af', text: '#374151' },
+			D: { bg: '#fde047', border: '#eab308', text: '#713f12' },
+		}}
 		<div class="mb-6" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;">
-			{#each (['A', 'B', 'C', 'D'] as const) as gate}
+			{#each ['A', 'B', 'C', 'D'] as const as gate}
 				{@const c = GATE_COLORS[gate]}
-				<div
-					class="rounded-lg overflow-hidden border"
-					style="border-color: {c.border};"
-				>
-					<div class="px-3 py-1.5 font-bold text-sm text-center" style="background-color: {c.border}; color: #fff;">
+				<div class="overflow-hidden rounded-lg border" style="border-color: {c.border};">
+					<div
+						class="px-3 py-1.5 text-center text-sm font-bold"
+						style="background-color: {c.border}; color: #fff;"
+					>
 						Gate {gate}
 					</div>
 					<div class="px-3 py-3 text-center" style="background-color: {c.bg}; color: {c.text};">
-						<div class="text-xs font-medium mb-1 opacity-80">Avg pts</div>
-						<div class="text-2xl font-mono font-bold tabular-nums">
+						<div class="mb-1 text-xs font-medium opacity-80">Avg pts</div>
+						<div class="font-mono text-2xl font-bold tabular-nums">
 							{staticAvg[gate]?.toFixed(2) ?? '—'}
 						</div>
 						<div class="mt-2 text-xs font-medium opacity-80">Win %</div>
-						<div class="text-lg font-mono font-semibold tabular-nums">
+						<div class="font-mono text-lg font-semibold tabular-nums">
 							{staticWin[gate]?.toFixed(1) ?? '—'}%
 						</div>
 					</div>
@@ -133,15 +237,17 @@
 			{/each}
 		</div>
 		{#if overallAvg.Bias != null || overallWin.Bias != null}
-			<div class="mb-4 text-xs text-muted-foreground flex flex-wrap gap-4">
-				{#if overallAvg.Bias != null}<span>Avg pts AC/BD: {overallAvg['AC/BD']} · Bias: {overallAvg.Bias?.toFixed(2)}</span>{/if}
+			<div class="text-muted-foreground mb-4 flex flex-wrap gap-4 text-xs">
+				{#if overallAvg.Bias != null}<span
+						>Avg pts AC/BD: {overallAvg['AC/BD']} · Bias: {overallAvg.Bias?.toFixed(2)}</span
+					>{/if}
 				{#if overallWin.Bias != null}<span>Win % Bias: {overallWin.Bias?.toFixed(1)}</span>{/if}
 			</div>
 		{/if}
 
 		<!-- League filter -->
 		{#if leagues.length > 0}
-			<div class="mb-6 flex flex-wrap gap-3 items-center">
+			<div class="mb-6 flex flex-wrap items-center gap-3">
 				<FilterDropdown
 					id="track-gate-league"
 					label="All leagues"
@@ -162,9 +268,9 @@
 		{/if}
 
 		<!-- Per-season breakdown tables -->
-		<div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+		<div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
 			<div>
-				<h3 class="text-base font-semibold mb-2">Average Points by Season</h3>
+				<h3 class="mb-2 text-base font-semibold">Average Points by Season</h3>
 				<SortableTable
 					columns={avgSeasonColumns}
 					rows={avgSeasonRows}
@@ -175,7 +281,7 @@
 				/>
 			</div>
 			<div>
-				<h3 class="text-base font-semibold mb-2">Win % by Season</h3>
+				<h3 class="mb-2 text-base font-semibold">Win % by Season</h3>
 				<SortableTable
 					columns={winSeasonColumns}
 					rows={winSeasonRows}

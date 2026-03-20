@@ -13,7 +13,9 @@ export const GET: APIRoute = async ({ locals }) => {
 	}
 
 	try {
-		const result = await db.prepare(`
+		const result = await db
+			.prepare(
+				`
 			WITH season_avgs AS (
 				SELECT
 					m.track_city AS Track,
@@ -33,7 +35,9 @@ export const GET: APIRoute = async ({ locals }) => {
 			FROM season_avgs
 			GROUP BY Track
 			ORDER BY Average DESC
-		`).all();
+		`
+			)
+			.all();
 
 		const rows = result.results || [];
 		const seasons: number[] = rows.length > 0 ? JSON.parse((rows[0] as any).all_seasons) : [];

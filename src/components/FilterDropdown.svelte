@@ -27,13 +27,13 @@
 		selected.length === 0
 			? label
 			: selected.length === 1
-				? (options.find(o => o.value === selected[0])?.label ?? selected[0])
+				? (options.find((o) => o.value === selected[0])?.label ?? selected[0])
 				: `${label} (${selected.length})`;
 
 	function toggle(value: string) {
 		if (disabledValues.includes(value)) return;
 		selected = selected.includes(value)
-			? selected.filter(v => v !== value)
+			? selected.filter((v) => v !== value)
 			: [...selected, value];
 		dispatch('change', selected);
 	}
@@ -54,10 +54,10 @@
 <div class="relative" style="min-width: {minWidth}">
 	<button
 		on:click|stopPropagation={() => (isOpen = !isOpen)}
-		class="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground text-sm text-left flex justify-between items-center focus:outline-none focus:ring-2 focus:ring-muted"
+		class="border-border bg-background text-foreground focus:ring-muted flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm focus:ring-2 focus:outline-none"
 	>
 		<span>{buttonLabel}</span>
-		<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+		<svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
 		</svg>
 	</button>
@@ -66,34 +66,38 @@
 		<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
 		<div
 			on:click|stopPropagation={() => {}}
-			class="absolute z-50 mt-1 w-full max-h-[70vh] overflow-y-auto rounded-md border border-border bg-background shadow-lg"
+			class="border-border bg-background absolute z-50 mt-1 max-h-[70vh] w-full overflow-y-auto rounded-md border shadow-lg"
 		>
-			<div class="sticky top-0 bg-background border-b border-border p-2">
+			<div class="bg-background border-border sticky top-0 border-b p-2">
 				<button
-					class="text-sm px-3 py-2 rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 hover:text-red-700 active:bg-red-500/30 disabled:bg-muted/50 disabled:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150 w-full font-medium cursor-pointer"
+					class="disabled:bg-muted/50 disabled:text-muted-foreground w-full cursor-pointer rounded bg-red-500/10 px-3 py-2 text-sm font-medium text-red-600 transition-all duration-150 hover:bg-red-500/20 hover:text-red-700 active:bg-red-500/30 disabled:cursor-not-allowed disabled:opacity-50"
 					disabled={selected.length === 0}
-					on:click={clear}
-				>Clear Filter</button>
+					on:click={clear}>Clear Filter</button
+				>
 			</div>
 			<div class="p-2">
 				{#each options as opt}
 					{@const isDisabled = disabledValues.includes(opt.value)}
 					<div
-						class="flex items-center gap-2 py-1 rounded px-1 {isDisabled ? 'opacity-40' : 'hover:bg-muted/50'}"
+						class="flex items-center gap-2 rounded px-1 py-1 {isDisabled
+							? 'opacity-40'
+							: 'hover:bg-muted/50'}"
 					>
 						<input
 							type="checkbox"
 							id="{id}-{opt.value}"
 							checked={selected.includes(opt.value)}
 							disabled={isDisabled}
-							class="{isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}"
+							class={isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}
 							on:change={() => toggle(opt.value)}
 						/>
 						<button
-							class="flex-1 text-sm text-left {isDisabled ? 'cursor-not-allowed' : 'hover:underline cursor-pointer'}"
+							class="flex-1 text-left text-sm {isDisabled
+								? 'cursor-not-allowed'
+								: 'cursor-pointer hover:underline'}"
 							disabled={isDisabled}
-							on:click={() => selectOnly(opt.value)}
-						>{opt.label}</button>
+							on:click={() => selectOnly(opt.value)}>{opt.label}</button
+						>
 					</div>
 				{/each}
 			</div>

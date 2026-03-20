@@ -21,7 +21,9 @@ export const GET: APIRoute = async ({ locals, params }) => {
 	}
 
 	try {
-		const result = await db.prepare(`
+		const result = await db
+			.prepare(
+				`
 			SELECT
 				m.match_id AS id,
 				substr(m.datetime, 1, 10) AS date,
@@ -44,7 +46,10 @@ export const GET: APIRoute = async ({ locals, params }) => {
 			WHERE m.track_city = ?
 			GROUP BY m.match_id
 			ORDER BY m.datetime DESC
-		`).bind(track).all();
+		`
+			)
+			.bind(track)
+			.all();
 
 		return new Response(
 			JSON.stringify({

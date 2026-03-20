@@ -8,17 +8,17 @@ import svelte from '@astrojs/svelte';
 
 // https://astro.build/config
 export default defineConfig({
-  vite: {
-    plugins: [tailwindcss()],
-  },
+	vite: {
+		plugins: [tailwindcss()],
+	},
 
-  adapter: cloudflare({
-    platformProxy: {
-      enabled: true
-    },
+	adapter: cloudflare({
+		platformProxy: {
+			enabled: true,
+		},
 
-    imageService: "cloudflare"
-  }),
+		imageService: 'cloudflare',
+	}),
 
-  integrations: [svelte()]
+	integrations: [svelte()],
 });

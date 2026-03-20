@@ -5,14 +5,17 @@ export const prerender = false;
 
 export const GET: APIRoute = async ({ locals }) => {
 	const db = locals.runtime?.env?.DB;
-	
+
 	if (!db) {
-		return new Response(JSON.stringify({ 
-			error: 'Database not available' 
-		}), {
-			status: 503,
-			headers: { 'Content-Type': 'application/json' }
-		});
+		return new Response(
+			JSON.stringify({
+				error: 'Database not available',
+			}),
+			{
+				status: 503,
+				headers: { 'Content-Type': 'application/json' },
+			}
+		);
 	}
 
 	try {
@@ -23,18 +26,21 @@ export const GET: APIRoute = async ({ locals }) => {
 
 		return new Response(JSON.stringify(seasons), {
 			status: 200,
-			headers: { 
+			headers: {
 				'Content-Type': 'application/json',
-				'Cache-Control': 'public, max-age=3600'
-			}
+				'Cache-Control': 'public, max-age=3600',
+			},
 		});
 	} catch (error) {
 		console.error('Database error:', error);
-		return new Response(JSON.stringify({ 
-			error: 'Failed to fetch telemetry seasons'
-		}), {
-			status: 500,
-			headers: { 'Content-Type': 'application/json' }
-		});
+		return new Response(
+			JSON.stringify({
+				error: 'Failed to fetch telemetry seasons',
+			}),
+			{
+				status: 500,
+				headers: { 'Content-Type': 'application/json' },
+			}
+		);
 	}
 };

@@ -20,9 +20,7 @@ export const GET: APIRoute = async ({ locals }) => {
 					 FROM matches ORDER BY match_type_name`
 				)
 				.all(),
-			db
-				.prepare(`SELECT DISTINCT season FROM matches ORDER BY season ASC`)
-				.all(),
+			db.prepare(`SELECT DISTINCT season FROM matches ORDER BY season ASC`).all(),
 		]);
 
 		const leagues = (leaguesResult.results ?? []).map((r: any) => ({
@@ -40,9 +38,9 @@ export const GET: APIRoute = async ({ locals }) => {
 		});
 	} catch (error) {
 		console.error('[schedule/filters] Error:', error);
-		return new Response(
-			JSON.stringify({ error: 'Failed to fetch schedule filters' }),
-			{ status: 500, headers: { 'Content-Type': 'application/json' } }
-		);
+		return new Response(JSON.stringify({ error: 'Failed to fetch schedule filters' }), {
+			status: 500,
+			headers: { 'Content-Type': 'application/json' },
+		});
 	}
 };

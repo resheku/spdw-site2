@@ -41,9 +41,9 @@ try {
 	// Fetch stats and filter options in parallel
 	const [statsResponse, filtersResponse] = await Promise.all([
 		fetch(statsUrl.toString()),
-		fetch(filtersUrl.toString())
+		fetch(filtersUrl.toString()),
 	]);
-	
+
 	if (statsResponse.ok && filtersResponse.ok) {
 		const statsData = (await statsResponse.json()) as any;
 		filterMapping = (await filtersResponse.json()) as any;
@@ -60,49 +60,80 @@ try {
 <Layout title="SEL Stats - spdw">
 	<div class="p-4">
 		<nav aria-label="breadcrumb">
-			<ol class="text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm break-words sm:gap-2.5">
+			<ol
+				class="text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm break-words sm:gap-2.5"
+			>
 				<li class="inline-flex items-center gap-1.5">
 					<a href="/" class="hover:text-foreground transition-colors">Home</a>
 				</li>
 				<li role="presentation" aria-hidden="true" class="[&>svg]:size-3.5">
-					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<path d="m9 18 6-6-6-6"/>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="24"
+						height="24"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="m9 18 6-6-6-6"></path>
 					</svg>
 				</li>
 				<li class="inline-flex items-center gap-1.5">
 					<a href="/sel" class="hover:text-foreground transition-colors">sel</a>
 				</li>
 				<li role="presentation" aria-hidden="true" class="[&>svg]:size-3.5">
-					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<path d="m9 18 6-6-6-6"/>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="24"
+						height="24"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="m9 18 6-6-6-6"></path>
 					</svg>
 				</li>
 				<li class="inline-flex items-center gap-1.5">
-					<span class="text-foreground font-normal" role="link" aria-disabled="true" aria-current="page">stats</span>
+					<span
+						class="text-foreground font-normal"
+						role="link"
+						aria-disabled="true"
+						aria-current="page">stats</span
+					>
 				</li>
 			</ol>
 		</nav>
 	</div>
 
-	<div class="px-4 pb-8 max-w-full">
-		<h1 class="text-2xl font-bold mb-6">SEL Stats</h1>
+	<div class="max-w-full px-4 pb-8">
+		<h1 class="mb-6 text-2xl font-bold">SEL Stats</h1>
 
-		{error ? (
-			<div class="p-4 bg-muted rounded-md text-muted-foreground"><p>{error}</p></div>
-		) : (
-			<StatsTable
-				client:load
-				initialData={stats}
-				filterMapping={filterMapping}
-				initialTeams={initialTeams}
-				initialLeagues={initialLeagues}
-				initialSeasons={initialSeasons}
-				initialHeatsMin={initialHeatsMin}
-				initialHeatsMax={initialHeatsMax}
-				initialSortColumns={initialSortColumns}
-				initialSortDirections={initialSortDirections}
-				initialSearch={initialSearch}
-			/>
-		)}
+		{
+			error ? (
+				<div class="bg-muted text-muted-foreground rounded-md p-4">
+					<p>{error}</p>
+				</div>
+			) : (
+				<StatsTable
+					client:load
+					initialData={stats}
+					filterMapping={filterMapping}
+					initialTeams={initialTeams}
+					initialLeagues={initialLeagues}
+					initialSeasons={initialSeasons}
+					initialHeatsMin={initialHeatsMin}
+					initialHeatsMax={initialHeatsMax}
+					initialSortColumns={initialSortColumns}
+					initialSortDirections={initialSortDirections}
+					initialSearch={initialSearch}
+				/>
+			)
+		}
 	</div>
 </Layout>

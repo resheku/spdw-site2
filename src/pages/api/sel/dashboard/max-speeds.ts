@@ -1,12 +1,13 @@
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 import latestSeasonQuery from './queries/max-speeds-latest-season.sql?raw';
 import thisSeasonQuery from './queries/max-speeds-latest.sql?raw';
 import allTimeQuery from './queries/max-speeds-all-time.sql?raw';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ locals }) => {
-	const db = locals.runtime?.env?.DB;
+export const GET: APIRoute = async () => {
+	const db = env.DB;
 
 	if (!db) {
 		return new Response(

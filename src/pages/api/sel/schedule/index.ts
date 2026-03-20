@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 
 export const prerender = false;
 
@@ -15,8 +16,8 @@ const VALID_SORT_COLUMNS: Record<string, string> = {
 	season: 'season',
 };
 
-export const GET: APIRoute = async ({ locals, url }) => {
-	const db = locals.runtime?.env?.DB;
+export const GET: APIRoute = async ({ url }) => {
+	const db = env.DB;
 
 	if (!db) {
 		return new Response(JSON.stringify({ error: 'Database not available' }), {

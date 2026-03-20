@@ -1,9 +1,10 @@
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ locals, url, params }) => {
-	const db = locals.runtime?.env?.DB;
+export const GET: APIRoute = async ({ url, params }) => {
+	const db = env.DB;
 	const track = params.track ?? '';
 
 	if (!db) {

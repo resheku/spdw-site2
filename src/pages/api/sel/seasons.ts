@@ -1,10 +1,11 @@
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 import seasonsQuery from './queries/seasons.sql?raw';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ locals }) => {
-	const db = locals.runtime?.env?.DB;
+export const GET: APIRoute = async () => {
+	const db = env.DB;
 
 	if (!db) {
 		return new Response(

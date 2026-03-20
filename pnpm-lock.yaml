@@ -66,6 +66,9 @@ importers:
       svelte-eslint-parser:
         specifier: ^1.6.0
         version: 1.6.0(svelte@5.53.7)
+      tailwindcss:
+        specifier: ^4.2.1
+        version: 4.2.1
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

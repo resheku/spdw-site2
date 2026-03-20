@@ -1,5 +1,6 @@
 <script lang="ts">
 	import FilterDropdown from './FilterDropdown.svelte';
+	import SortableTable from './SortableTable.svelte';
 
 	export let initialData: any[] = [];
 	export let allLeagues: Array<{ shortname: string; name: string }> = [];
@@ -82,28 +83,28 @@
 
 	// ── Filtering & sorting ─────────────────────────────────────────
 	$: filteredData = (() => {
-		let d = initialData;
-		if (selectedLeagues.length) d = d.filter(m => selectedLeagues.includes(m.league));
-		if (selectedSeasons.length) d = d.filter(m => selectedSeasons.includes(String(m.season)));
-		if (selectedRounds.length) d = d.filter(m => selectedRounds.includes(m.type));
-		if (selectedTracks.length) d = d.filter(m => selectedTracks.includes(m.track));
-		if (selectedTeams.length) d = d.filter(m => selectedTeams.includes(m.homeTeamShort) || selectedTeams.includes(m.awayTeamShort));
+		let data = initialData;
+		if (selectedLeagues.length) data = data.filter(m => selectedLeagues.includes(m.league));
+		if (selectedSeasons.length) data = data.filter(m => selectedSeasons.includes(String(m.season)));
+		if (selectedRounds.length) data = data.filter(m => selectedRounds.includes(m.type));
+		if (selectedTracks.length) data = data.filter(m => selectedTracks.includes(m.track));
+		if (selectedTeams.length) data = data.filter(m => selectedTeams.includes(m.homeTeamShort) || selectedTeams.includes(m.awayTeamShort));
 
 		if (sortColumns.length > 0) {
-			d = [...d].sort((a, b) => {
+			data = [...data].sort((a, b) => {
 				for (const { column, direction: dir } of sortColumns) {
 					const av = getColValue(a, column);
 					const bv = getColValue(b, column);
 					if (av == null) { if (bv == null) continue; return 1; }
 					if (bv == null) return -1;
-					const d = dir === 'asc' ? 1 : -1;
-					const result = typeof av === 'string' ? d * av.localeCompare(bv) : d * (av - bv);
+					const sign = dir === 'asc' ? 1 : -1;
+					const result = typeof av === 'string' ? sign * av.localeCompare(bv) : sign * (av - bv);
 					if (result !== 0) return result;
 				}
 				return 0;
 			});
 		}
-		return d;
+		return data;
 	})();
 
 	function getColValue(row: any, col: string): any {
@@ -150,14 +151,6 @@
 		updateURL();
 	}
 
-	function sortIcon(column: string): string {
-		const s = sortColumns.find(sc => sc.column === column);
-		if (!s) return '↕';
-		const idx = sortColumns.indexOf(s);
-		const arrow = s.direction === 'desc' ? '▼' : '▲';
-		return sortColumns.length > 1 ? `${arrow}${idx + 1}` : arrow;
-	}
-
 	// ── URL sync ────────────────────────────────────────────────────
 	function updateURL() {
 		const params = new URLSearchParams();
@@ -197,6 +190,18 @@
 		const loss = forHome ? home < away : away < home;
 		return win ? 'W' : loss ? 'L' : 'D';
 	}
+
+	const scheduleColumns = [
+		{ key: 'round', sortKey: 'round', label: '#', align: 'left' as const, noWrap: true },
+		{ key: 'type', sortKey: 'type', label: 'Round', align: 'left' as const, noWrap: true },
+		{ key: 'datetime', sortKey: 'date', label: 'Date', align: 'left' as const, noWrap: true, customCell: true },
+		{ key: 'matchName', sortKey: 'match', label: 'Match', align: 'left' as const },
+		{ key: 'homeScore', sortKey: 'score', label: 'Score', align: 'left' as const, noWrap: true, customCell: true },
+		{ key: 'homeTotal', sortKey: 'total', label: 'Total', align: 'left' as const, noWrap: true, customCell: true },
+		{ key: 'attendance', sortKey: 'attendance', label: 'Attendance', align: 'right' as const, noWrap: true, responsiveClass: 'max-lg:hidden', customCell: true },
+		{ key: 'track', sortKey: 'track', label: 'Track', align: 'left' as const, noWrap: true, isLink: true, responsiveClass: 'max-md:hidden' },
+		{ key: 'league', sortKey: 'league', label: 'League', align: 'left' as const, noWrap: true, responsiveClass: 'max-md:hidden' },
+	];
 </script>
 
 <!-- Filters -->
@@ -260,61 +265,30 @@
 
 <!-- Table -->
 <div class="overflow-x-auto border border-border rounded-lg">
-	<table class="w-full text-sm">
-		<thead class="bg-muted sticky top-0">
-			<tr>
-				{#each [
-					{ col: 'round', label: '#', cls: 'whitespace-nowrap' },
-					{ col: 'type', label: 'Round', cls: 'whitespace-nowrap' },
-					{ col: 'date', label: 'Date', cls: 'whitespace-nowrap' },
-					{ col: 'match', label: 'Match', cls: '' },
-					{ col: 'score', label: 'Score', cls: 'whitespace-nowrap pl-1 pr-3' },
-					{ col: 'total', label: 'Total', cls: 'whitespace-nowrap' },
-					{ col: 'attendance', label: 'Attendance', cls: 'whitespace-nowrap pl-6 pr-3 text-right max-lg:hidden' },
-					{ col: 'track', label: 'Track', cls: 'whitespace-nowrap max-md:hidden' },
-					{ col: 'league', label: 'League', cls: 'whitespace-nowrap max-md:hidden' },
-				] as h}
-					<th
-						class="px-3 py-2 text-left font-medium cursor-pointer select-none hover:bg-muted/80 align-middle {h.cls}"
-						on:click={(e) => handleSort(h.col, e)}
-					>
-						{h.label}<span class="ml-1 text-muted-foreground/60 text-xs">{sortIcon(h.col)}</span>
-					</th>
-				{/each}
-			</tr>
-		</thead>
-		<tbody>
-			{#each filteredData as m}
-				<tr class="border-t border-border hover:bg-muted/50">
-					<td class="px-3 py-2 text-left whitespace-nowrap">{m.round ?? '-'}</td>
-					<td class="px-3 py-2 text-left whitespace-nowrap">{m.type ?? '-'}</td>
-					<td class="px-3 py-2 text-left font-mono text-xs whitespace-nowrap">{formatDate(m.datetime)}</td>
-					<td class="px-3 py-2 text-left">{m.matchName ?? ''}</td>
-					<td class="pl-1 pr-3 py-2 text-left whitespace-nowrap">
-						{#if m.homeScore != null && m.awayScore != null}
-							<span class="inline-flex items-center gap-1.5">
-								<span class="inline-block text-[0.65rem] font-bold px-1 py-0.5 rounded leading-none {resultClass(m.homeScore, m.awayScore, true)}">{resultLabel(m.homeScore, m.awayScore, true)}</span>
-								<span class="font-medium">{m.homeScore}:{m.awayScore}</span>
-								<span class="inline-block text-[0.65rem] font-bold px-1 py-0.5 rounded leading-none {resultClass(m.homeScore, m.awayScore, false)}">{resultLabel(m.homeScore, m.awayScore, false)}</span>
-							</span>
-						{:else}
-							-
-						{/if}
-					</td>
-					<td class="px-3 py-2 text-left whitespace-nowrap text-muted-foreground">
-						{m.homeTotal != null && m.awayTotal != null ? `${m.homeTotal}:${m.awayTotal}` : ''}
-					</td>
-					<td class="pl-6 pr-3 py-2 text-right whitespace-nowrap max-lg:hidden">
-						{m.attendance ? m.attendance.toLocaleString() : ''}
-					</td>
-					<td class="px-3 py-2 text-left whitespace-nowrap max-md:hidden">
-						{#if m.track}
-							<a href="/sel/tracks/{encodeURIComponent(m.track)}" class="hover:underline">{m.track}</a>
-						{/if}
-					</td>
-					<td class="px-3 py-2 text-left whitespace-nowrap max-md:hidden">{m.league ?? ''}</td>
-				</tr>
-			{/each}
-		</tbody>
-	</table>
+	<SortableTable
+		columns={scheduleColumns}
+		rows={filteredData}
+		externalSortColumns={sortColumns}
+		onHeaderClick={handleSort}
+	>
+		{#snippet cell(m, col)}
+			{#if col.key === 'datetime'}
+				<span class="font-mono text-xs">{formatDate(m.datetime)}</span>
+			{:else if col.key === 'homeScore'}
+				{#if m.homeScore != null && m.awayScore != null}
+					<span class="inline-flex items-center gap-1.5">
+						<span class="inline-block text-[0.65rem] font-bold px-1 py-0.5 rounded leading-none {resultClass(m.homeScore, m.awayScore, true)}">{resultLabel(m.homeScore, m.awayScore, true)}</span>
+						<span class="font-medium">{m.homeScore}:{m.awayScore}</span>
+						<span class="inline-block text-[0.65rem] font-bold px-1 py-0.5 rounded leading-none {resultClass(m.homeScore, m.awayScore, false)}">{resultLabel(m.homeScore, m.awayScore, false)}</span>
+					</span>
+				{:else}
+					-
+				{/if}
+			{:else if col.key === 'homeTotal'}
+				<span class="text-muted-foreground">{m.homeTotal != null && m.awayTotal != null ? `${m.homeTotal}:${m.awayTotal}` : ''}</span>
+			{:else if col.key === 'attendance'}
+				{m.attendance ? m.attendance.toLocaleString() : ''}
+			{/if}
+		{/snippet}
+	</SortableTable>
 </div>

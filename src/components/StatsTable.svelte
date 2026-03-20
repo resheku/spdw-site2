@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import FilterDropdown from './FilterDropdown.svelte';
+	import SortableTable from './SortableTable.svelte';
 
 	export let initialData: any[] = [];
 	export let filterMapping: any = null;
@@ -142,6 +143,32 @@
 		{ id: 'season', label: 'Season', responsiveClass: 'max-md:hidden' },
 	];
 
+	/** Column definitions for SortableTable (rank is handled via showRowNumber) */
+	const tableColumns = [
+		{ id: 'name',     key: 'Name',      label: 'Name',     align: 'left'  as const, nullValue: '' as string | number,  alwaysVisible: true },
+		{ id: 'team',     key: 'Team',      label: 'Team',     align: 'left'  as const, nullValue: '' as string | number,  alwaysVisible: true },
+		{ id: 'average',  key: 'Average',   label: 'Average',  align: 'right' as const, alwaysVisible: true },
+		{ id: 'match',    key: 'Match',     label: 'M',        align: 'right' as const, nullValue: 0 as string | number,   responsiveClass: 'max-lg:hidden' },
+		{ id: 'heats',    key: 'Heats',     label: 'H',        align: 'right' as const, nullValue: 0 as string | number,   responsiveClass: 'max-lg:hidden' },
+		{ id: 'points',   key: 'Points',    label: 'Pts',      align: 'right' as const, nullValue: 0 as string | number,   responsiveClass: 'max-lg:hidden' },
+		{ id: 'bonus',    key: 'Bonus',     label: 'Bon',      align: 'right' as const, nullValue: 0 as string | number,   responsiveClass: 'max-lg:hidden' },
+		{ id: 'home',     key: 'Home Avg.', label: 'Home',     align: 'right' as const, decimals: 3,   responsiveClass: 'max-sm:hidden' },
+		{ id: 'away',     key: 'Away Avg.', label: 'Away',     align: 'right' as const, decimals: 3,   responsiveClass: 'max-sm:hidden' },
+		{ id: 'i',        key: 'I',         label: 'I',        align: 'right' as const, nullValue: 0 as string | number,   responsiveClass: 'max-xl:hidden' },
+		{ id: 'ii',       key: 'II',        label: 'II',       align: 'right' as const, nullValue: 0 as string | number,   responsiveClass: 'max-xl:hidden' },
+		{ id: 'iii',      key: 'III',       label: 'III',      align: 'right' as const, nullValue: 0 as string | number,   responsiveClass: 'max-xl:hidden' },
+		{ id: 'iv',       key: 'IV',        label: 'IV',       align: 'right' as const, nullValue: 0 as string | number,   responsiveClass: 'max-xl:hidden' },
+		{ id: 'r',        key: 'R',         label: 'R',        align: 'right' as const, nullValue: 0 as string | number,   responsiveClass: 'max-xl:hidden' },
+		{ id: 't',        key: 'T',         label: 'T',        align: 'right' as const, nullValue: 0 as string | number,   responsiveClass: 'max-xl:hidden' },
+		{ id: 'm',        key: 'M',         label: 'M',        align: 'right' as const, nullValue: 0 as string | number,   responsiveClass: 'max-xl:hidden' },
+		{ id: 'x',        key: 'X',         label: 'X',        align: 'right' as const, nullValue: 0 as string | number,   responsiveClass: 'max-xl:hidden' },
+		{ id: 'f',        key: 'F',         label: 'F',        align: 'right' as const, nullValue: 0 as string | number,   responsiveClass: 'max-xl:hidden' },
+		{ id: 'warn',     key: 'Warn',      label: 'W',        align: 'right' as const, nullValue: 0 as string | number,   responsiveClass: 'max-xl:hidden' },
+		{ id: 'maxspeed', key: 'Max Speed', label: 'Mx Speed', align: 'right' as const, decimals: 2,   responsiveClass: 'max-md:hidden' },
+		{ id: 'league',   key: 'League',    label: 'League',   align: 'left'  as const, nullValue: '' as string | number,  responsiveClass: 'max-md:hidden' },
+		{ id: 'season',   key: 'Season',    label: 'Season',   align: 'left'  as const, nullValue: '' as string | number,  responsiveClass: 'max-md:hidden' },
+	];
+
 	let columnOverrides: Record<string, 'show' | 'hide' | null> = {};
 
 	function colClass(id: string): string {
@@ -220,8 +247,7 @@
 			const idx = sortColumns.findIndex(s => s.column === col);
 			if (idx >= 0) {
 				if (sortColumns[idx].direction === 'desc') {
-					sortColumns[idx].direction = 'asc';
-					sortColumns = [...sortColumns];
+					sortColumns = sortColumns.map((s, i) => i === idx ? { ...s, direction: 'asc' } : s);
 				} else {
 					sortColumns = sortColumns.filter((_, i) => i !== idx);
 				}
@@ -237,13 +263,6 @@
 			}
 		}
 		applyFiltersAndSort();
-	}
-
-	function sortIndicator(col: string): string {
-		const idx = sortColumns.findIndex(s => s.column === col);
-		if (idx < 0) return '';
-		const arrow = sortColumns[idx].direction === 'desc' ? '▼' : '▲';
-		return sortColumns.length > 1 ? ` ${arrow}${idx + 1}` : ` ${arrow}`;
 	}
 
 	// ── Data cache + filtering ────────────────────────────────────────────────
@@ -605,102 +624,23 @@
 
 <!-- Table -->
 <div class="overflow-x-auto border border-border rounded-lg">
-	<table class="w-full text-sm">
-		<thead class="bg-muted sticky top-0">
-			<tr>
-				<th class="px-2 py-2 text-right font-medium w-16 {colClass('rank')}" data-column-id="rank">#</th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class="px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80 min-w-[150px] {colClass('name')}" data-column-id="name" on:click={e => handleSort('Name', e)}>Name<span class="sort-indicator">{sortIndicator('Name')}</span></th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class="px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80 {colClass('team')}" data-column-id="team" on:click={e => handleSort('Team', e)}>Team<span class="sort-indicator">{sortIndicator('Team')}</span></th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class="px-0 py-2 text-center font-medium cursor-pointer hover:bg-muted/80 {colClass('average')}" data-column-id="average" on:click={e => handleSort('Average', e)}>Average<span class="sort-indicator">{sortIndicator('Average')}</span></th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class="px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-lg:hidden {colClass('match')}" data-column-id="match" on:click={e => handleSort('Match', e)}>M<span class="sort-indicator">{sortIndicator('Match')}</span></th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class="px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-lg:hidden {colClass('heats')}" data-column-id="heats" on:click={e => handleSort('Heats', e)}>H<span class="sort-indicator">{sortIndicator('Heats')}</span></th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class="px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-lg:hidden {colClass('points')}" data-column-id="points" on:click={e => handleSort('Points', e)}>Pts<span class="sort-indicator">{sortIndicator('Points')}</span></th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class="px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-lg:hidden {colClass('bonus')}" data-column-id="bonus" on:click={e => handleSort('Bonus', e)}>Bon<span class="sort-indicator">{sortIndicator('Bonus')}</span></th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class="px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-sm:hidden {colClass('home')}" data-column-id="home" on:click={e => handleSort('Home Avg.', e)}>Home<span class="sort-indicator">{sortIndicator('Home Avg.')}</span></th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class="px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-sm:hidden {colClass('away')}" data-column-id="away" on:click={e => handleSort('Away Avg.', e)}>Away<span class="sort-indicator">{sortIndicator('Away Avg.')}</span></th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class="px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-xl:hidden {colClass('i')}" data-column-id="i" on:click={e => handleSort('I', e)}>I<span class="sort-indicator">{sortIndicator('I')}</span></th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class="px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-xl:hidden {colClass('ii')}" data-column-id="ii" on:click={e => handleSort('II', e)}>II<span class="sort-indicator">{sortIndicator('II')}</span></th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class="px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-xl:hidden {colClass('iii')}" data-column-id="iii" on:click={e => handleSort('III', e)}>III<span class="sort-indicator">{sortIndicator('III')}</span></th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class="px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-xl:hidden {colClass('iv')}" data-column-id="iv" on:click={e => handleSort('IV', e)}>IV<span class="sort-indicator">{sortIndicator('IV')}</span></th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class="px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-xl:hidden {colClass('r')}" data-column-id="r" on:click={e => handleSort('R', e)}>R<span class="sort-indicator">{sortIndicator('R')}</span></th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class="px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-xl:hidden {colClass('t')}" data-column-id="t" on:click={e => handleSort('T', e)}>T<span class="sort-indicator">{sortIndicator('T')}</span></th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class="px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-xl:hidden {colClass('m')}" data-column-id="m" on:click={e => handleSort('M', e)}>M<span class="sort-indicator">{sortIndicator('M')}</span></th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class="px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-xl:hidden {colClass('x')}" data-column-id="x" on:click={e => handleSort('X', e)}>X<span class="sort-indicator">{sortIndicator('X')}</span></th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class="px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-xl:hidden {colClass('f')}" data-column-id="f" on:click={e => handleSort('F', e)}>F<span class="sort-indicator">{sortIndicator('F')}</span></th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class="px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-xl:hidden {colClass('warn')}" data-column-id="warn" on:click={e => handleSort('Warn', e)}>W<span class="sort-indicator">{sortIndicator('Warn')}</span></th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class="px-0 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 max-md:hidden {colClass('maxspeed')}" data-column-id="maxspeed" on:click={e => handleSort('Max Speed', e)}>Mx Speed<span class="sort-indicator">{sortIndicator('Max Speed')}</span></th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class="px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80 max-md:hidden {colClass('league')}" data-column-id="league" on:click={e => handleSort('League', e)}>League<span class="sort-indicator">{sortIndicator('League')}</span></th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class="px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80 max-md:hidden {colClass('season')}" data-column-id="season" on:click={e => handleSort('Season', e)}>Season<span class="sort-indicator">{sortIndicator('Season')}</span></th>
-			</tr>
-		</thead>
-		<tbody>
-			{#if isLoading}
-				<tr><td colspan="24" class="px-3 py-8 text-center text-muted-foreground">Loading…</td></tr>
-			{:else}
-				{#each displayData as stat, index}
-					<tr class="border-t border-border hover:bg-muted/50">
-						<td class="px-2 py-2 text-right text-muted-foreground {colClass('rank')}" data-column-id="rank">{index + 1}</td>
-						<td class="px-3 py-2 text-left font-medium {colClass('name')}" data-column-id="name">{stat.Name ?? ''}</td>
-						<td class="px-3 py-2 text-left {colClass('team')}" data-column-id="team">{stat.Team ?? ''}</td>
-						<td class="px-3 py-2 text-right {colClass('average')}" data-column-id="average">{stat.Average != null ? stat.Average.toFixed(3) : '-'}</td>
-						<td class="px-3 py-2 text-right max-lg:hidden {colClass('match')}" data-column-id="match">{stat.Match ?? 0}</td>
-						<td class="px-3 py-2 text-right max-lg:hidden {colClass('heats')}" data-column-id="heats">{stat.Heats ?? 0}</td>
-						<td class="px-3 py-2 text-right max-lg:hidden {colClass('points')}" data-column-id="points">{stat.Points ?? 0}</td>
-						<td class="px-3 py-2 text-right max-lg:hidden {colClass('bonus')}" data-column-id="bonus">{stat.Bonus ?? 0}</td>
-						<td class="px-3 py-2 text-right max-sm:hidden {colClass('home')}" data-column-id="home">{stat['Home Avg.'] != null ? stat['Home Avg.'].toFixed(3) : '-'}</td>
-						<td class="px-3 py-2 text-right max-sm:hidden {colClass('away')}" data-column-id="away">{stat['Away Avg.'] != null ? stat['Away Avg.'].toFixed(3) : '-'}</td>
-						<td class="px-3 py-2 text-right max-xl:hidden {colClass('i')}" data-column-id="i">{stat.I ?? 0}</td>
-						<td class="px-3 py-2 text-right max-xl:hidden {colClass('ii')}" data-column-id="ii">{stat.II ?? 0}</td>
-						<td class="px-3 py-2 text-right max-xl:hidden {colClass('iii')}" data-column-id="iii">{stat.III ?? 0}</td>
-						<td class="px-3 py-2 text-right max-xl:hidden {colClass('iv')}" data-column-id="iv">{stat.IV ?? 0}</td>
-						<td class="px-3 py-2 text-right max-xl:hidden {colClass('r')}" data-column-id="r">{stat.R ?? 0}</td>
-						<td class="px-3 py-2 text-right max-xl:hidden {colClass('t')}" data-column-id="t">{stat.T ?? 0}</td>
-						<td class="px-3 py-2 text-right max-xl:hidden {colClass('m')}" data-column-id="m">{stat.M ?? 0}</td>
-						<td class="px-3 py-2 text-right max-xl:hidden {colClass('x')}" data-column-id="x">{stat.X ?? 0}</td>
-						<td class="px-3 py-2 text-right max-xl:hidden {colClass('f')}" data-column-id="f">{stat.F ?? 0}</td>
-						<td class="px-3 py-2 text-right max-xl:hidden {colClass('warn')}" data-column-id="warn">{stat.Warn ?? 0}</td>
-						<td class="px-3 py-2 text-right max-md:hidden {colClass('maxspeed')}" data-column-id="maxspeed">{stat['Max Speed'] != null ? stat['Max Speed'].toFixed(2) : '-'}</td>
-						<td class="px-3 py-2 text-left max-md:hidden {colClass('league')}" data-column-id="league">{stat.League ?? ''}</td>
-						<td class="px-3 py-2 text-left max-md:hidden {colClass('season')}" data-column-id="season">{stat.Season ?? ''}</td>
-					</tr>
-				{/each}
-			{/if}
-		</tbody>
-	</table>
+	{#if isLoading}
+		<div class="px-3 py-8 text-center text-muted-foreground text-sm">Loading…</div>
+	{:else}
+		<SortableTable
+			columns={tableColumns}
+			rows={displayData}
+			showRowNumber
+			rowNumberColId="rank"
+			externalSortColumns={sortColumns}
+			onHeaderClick={handleSort}
+			getExtraClass={(col, _isHeader) => colClass(col.id ?? '')}
+		/>
+	{/if}
 </div>
 
-<style>
-	.sort-indicator {
-		display: inline-block;
-		min-width: 1.5em;
-		text-align: left;
-		font-size: 0.75em;
-		opacity: 0.7;
-		margin-left: 0.25em;
-	}
 
+<style>
 	kbd {
 		font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 	}

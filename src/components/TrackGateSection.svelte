@@ -68,11 +68,6 @@
 		{ key: 'Bias', label: 'Bias', align: 'right' as const, decimals: 1, heatmapInvert: true },
 	];
 
-	function onLeaguesChange(e: CustomEvent<string[]>) {
-		selectedLeagues = e.detail;
-		fetchData();
-	}
-
 	async function fetchData() {
 		loading = true;
 		const params = new URLSearchParams();
@@ -154,7 +149,7 @@
 					bind:selected={selectedLeagues}
 					bind:isOpen={leagueOpen}
 					minWidth="200px"
-					on:change={onLeaguesChange}
+					on:change={() => fetchData()}
 				/>
 			</div>
 		{/if}

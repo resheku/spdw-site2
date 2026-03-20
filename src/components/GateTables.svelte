@@ -15,6 +15,8 @@
 	let seasonOpen = false;
 	let leagueOpen = false;
 
+	function closeAll() { seasonOpen = false; leagueOpen = false; }
+
 	$: seasonOptions = seasons.slice().reverse().map(s => ({ value: String(s), label: String(s) }));
 	$: leagueOptions = leagues.map(l => ({ value: l.code, label: l.name }));
 	let gateStats: GateStatsRow[] = [];
@@ -42,16 +44,6 @@
 		{ key: 'D', label: 'Gate D %', align: 'right' as const, decimals: 1, heatmap: true },
 		{ key: 'Bias', label: 'Bias', align: 'right' as const, decimals: 1, heatmapInvert: true },
 	];
-
-	function onSeasonsChange(e: CustomEvent<string[]>) {
-		selectedSeasons = e.detail;
-		fetchData();
-	}
-
-	function onLeaguesChange(e: CustomEvent<string[]>) {
-		selectedLeagues = e.detail;
-		handleLeagueChange();
-	}
 
 	async function fetchData() {
 		loading = true;
@@ -89,10 +81,6 @@
 		trendsLoading = false;
 	}
 
-	async function handleLeagueChange() {
-		await Promise.all([fetchData(), fetchTrends()]);
-	}
-
 	onMount(async () => {
 		const filtersRes = await fetch('/api/sel/tracks/gate-filters');
 		if (filtersRes.ok) {
@@ -113,7 +101,7 @@
 		bind:selected={selectedSeasons}
 		bind:isOpen={seasonOpen}
 		minWidth="160px"
-		on:change={(e) => { leagueOpen = false; onSeasonsChange(e); }}
+		on:change={() => { closeAll(); fetchData(); }}
 	/>
 	<FilterDropdown
 		id="gate-league"
@@ -122,7 +110,7 @@
 		bind:selected={selectedLeagues}
 		bind:isOpen={leagueOpen}
 		minWidth="160px"
-		on:change={(e) => { seasonOpen = false; onLeaguesChange(e); }}
+		on:change={() => { closeAll(); fetchData(); fetchTrends(); }}
 	/>
 	{#if loading || trendsLoading}
 		<span class="text-sm text-muted-foreground">Loading…</span>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import SortableTable from './SortableTable.svelte';
 	import GateChart from './GateChart.svelte';
 	import FilterDropdown from './FilterDropdown.svelte';
@@ -167,7 +168,7 @@
 
 	async function fetchData() {
 		loading = true;
-		const params = new URLSearchParams();
+		const params = new SvelteURLSearchParams();
 		if (selectedLeagues.length > 0) params.set('league', selectedLeagues.join(','));
 		const qs = params.toString() ? `?${params.toString()}` : '';
 
@@ -214,7 +215,7 @@
 			D: { bg: '#fde047', border: '#eab308', text: '#713f12' },
 		}}
 		<div class="mb-6" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;">
-			{#each ['A', 'B', 'C', 'D'] as const as gate}
+			{#each ['A', 'B', 'C', 'D'] as const as gate (gate)}
 				{@const c = GATE_COLORS[gate]}
 				<div class="overflow-hidden rounded-lg border" style="border-color: {c.border};">
 					<div

@@ -11,7 +11,6 @@ export const prerender = false;
 const { track } = Astro.params;
 const trackName = track ?? '';
 
-type SeasonAvg = { season: number; avgSpeed: number | null };
 type MatchAvg = {
 	matchId: number;
 	date: string;

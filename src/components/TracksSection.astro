@@ -14,7 +14,9 @@ try {
 		tracks = data.tracks;
 		seasons = data.seasons;
 	}
-} catch (e) {}
+} catch {
+	/* ignored */
+}
 
 const speedRows = tracks.map((t) => ({
 	Track: t.Track,

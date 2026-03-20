@@ -28,7 +28,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
 
 		// Build SQL query with filters
 		let query = 'SELECT * FROM stats WHERE 1=1';
-		const params: any[] = [];
+		const params: (string | number)[] = [];
 
 		if (search) {
 			query += ' AND LOWER(Name) LIKE ?';

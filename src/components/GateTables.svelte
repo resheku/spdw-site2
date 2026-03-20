@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import SortableTable from './SortableTable.svelte';
 	import GateChart from './GateChart.svelte';
 	import FilterDropdown from './FilterDropdown.svelte';
@@ -68,7 +69,7 @@
 
 	async function fetchData() {
 		loading = true;
-		const params = new URLSearchParams();
+		const params = new SvelteURLSearchParams();
 		if (selectedSeasons.length > 0) params.set('season', selectedSeasons.join(','));
 		if (selectedLeagues.length > 0) params.set('league', selectedLeagues.join(','));
 		const qs = params.toString() ? `?${params.toString()}` : '';
@@ -89,7 +90,7 @@
 
 	async function fetchTrends() {
 		trendsLoading = true;
-		const params = new URLSearchParams();
+		const params = new SvelteURLSearchParams();
 		if (selectedLeagues.length > 0) params.set('league', selectedLeagues.join(','));
 		const qs = params.toString() ? `?${params.toString()}` : '';
 

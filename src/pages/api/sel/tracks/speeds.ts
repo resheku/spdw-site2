@@ -40,8 +40,9 @@ export const GET: APIRoute = async ({ locals }) => {
 			.all();
 
 		const rows = result.results || [];
-		const seasons: number[] = rows.length > 0 ? JSON.parse((rows[0] as any).all_seasons) : [];
-		const tracks = rows.map((r: any) => ({
+		const seasons: number[] =
+			rows.length > 0 ? JSON.parse((rows[0] as Record<string, unknown>).all_seasons as string) : [];
+		const tracks = rows.map((r: Record<string, unknown>) => ({
 			Track: r.Track as string,
 			Average: r.Average as number | null,
 			seasons: JSON.parse(r.seasons) as Record<string, number>,

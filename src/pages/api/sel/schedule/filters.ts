@@ -23,11 +23,11 @@ export const GET: APIRoute = async ({ locals }) => {
 			db.prepare(`SELECT DISTINCT season FROM matches ORDER BY season ASC`).all(),
 		]);
 
-		const leagues = (leaguesResult.results ?? []).map((r: any) => ({
+		const leagues = (leaguesResult.results ?? []).map((r: Record<string, unknown>) => ({
 			shortname: r.shortname,
 			name: r.name,
 		}));
-		const seasons = (seasonsResult.results ?? []).map((r: any) => r.season);
+		const seasons = (seasonsResult.results ?? []).map((r: Record<string, unknown>) => r.season);
 
 		return new Response(JSON.stringify({ leagues, seasons }), {
 			status: 200,

@@ -1,10 +1,25 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { SvelteURLSearchParams, SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import FilterDropdown from './FilterDropdown.svelte';
 	import SortableTable from './SortableTable.svelte';
 
-	export let initialData: any[] = [];
-	export let filterMapping: any = null;
+	type StatsRow = Record<string, unknown> & { __originalIndex?: number };
+	type FilterMapping = {
+		heatsRange?: { min: number; max: number };
+		all?: { teams: string[]; leagues: string[]; seasons: number[] };
+		byTeam?: Record<string, { seasons: (string | number)[]; leagues: string[] }>;
+		bySeason?: Record<string, { teams: string[]; leagues: string[] }>;
+		byLeague?: Record<string, { teams: string[]; seasons: (string | number)[] }>;
+		combinations?: {
+			teamSeason?: Record<string, string[]>;
+			teamLeague?: Record<string, (string | number)[]>;
+			seasonLeague?: Record<string, string[]>;
+		};
+	} | null;
+
+	export let initialData: StatsRow[] = [];
+	export let filterMapping: FilterMapping = null;
 	export let initialTeams: string[] = [];
 	export let initialLeagues: string[] = [];
 	export let initialSeasons: string[] = [];
@@ -103,14 +118,14 @@
 	}
 
 	async function updateHeatsRange() {
-		const params = new URLSearchParams();
+		const params = new SvelteURLSearchParams();
 		if (selectedTeams.length > 0) params.set('team', selectedTeams.join(','));
 		if (selectedLeagues.length > 0) params.set('league', selectedLeagues.join(','));
 		if (selectedSeasons.length > 0) params.set('season', selectedSeasons.join(','));
 		try {
 			const res = await fetch(`/api/sel/stats/filters?${params}`);
 			if (!res.ok) return;
-			const data = (await res.json()) as any;
+			const data = (await res.json()) as { heatsRange?: { min: number; max: number } };
 			if (data.heatsRange) {
 				heatsRangeMin = data.heatsRange.min || 0;
 				heatsRangeMax = data.heatsRange.max || 100;
@@ -346,7 +361,9 @@
 		columnOverrides = { ...columnOverrides, [id]: visible ? 'show' : 'hide' };
 		try {
 			localStorage.setItem(COLUMN_OVERRIDE_KEY, JSON.stringify(columnOverrides));
-		} catch {}
+		} catch {
+			/* ignored */
+		}
 	}
 
 	function showAllColumns() {
@@ -357,7 +374,9 @@
 		columnOverrides = next;
 		try {
 			localStorage.setItem(COLUMN_OVERRIDE_KEY, JSON.stringify(columnOverrides));
-		} catch {}
+		} catch {
+			/* ignored */
+		}
 	}
 
 	function resetColumns() {
@@ -368,7 +387,9 @@
 		columnOverrides = next;
 		try {
 			localStorage.setItem(COLUMN_OVERRIDE_KEY, JSON.stringify(columnOverrides));
-		} catch {}
+		} catch {
+			/* ignored */
+		}
 	}
 
 	// ── Filter options (computed from filterMapping) ───────────────────────────
@@ -389,7 +410,7 @@
 			if (target === 'season') return (filterMapping.all?.seasons ?? []).map(String);
 			return [];
 		}
-		const valid = new Set<string>();
+		const valid = new SvelteSet<string>();
 		if (target === 'team') {
 			const [leagues, seasons] = [other1, other2];
 			if (leagues.length === 0)
@@ -430,16 +451,16 @@
 			const [teams, leagues] = [other1, other2];
 			if (teams.length === 0)
 				leagues.forEach((l: string) =>
-					(filterMapping.byLeague?.[l]?.seasons ?? []).forEach((s: any) => valid.add(String(s)))
+					(filterMapping?.byLeague?.[l]?.seasons ?? []).forEach((s) => valid.add(String(s)))
 				);
 			else if (leagues.length === 0)
 				teams.forEach((t: string) =>
-					(filterMapping.byTeam?.[t]?.seasons ?? []).forEach((s: any) => valid.add(String(s)))
+					(filterMapping?.byTeam?.[t]?.seasons ?? []).forEach((s) => valid.add(String(s)))
 				);
 			else
 				teams.forEach((t: string) =>
 					leagues.forEach((l: string) =>
-						(filterMapping.combinations?.teamLeague?.[`${t}:${l}`] ?? []).forEach((s: any) =>
+						(filterMapping?.combinations?.teamLeague?.[`${t}:${l}`] ?? []).forEach((s) =>
 							valid.add(String(s))
 						)
 					)
@@ -486,16 +507,16 @@
 	}
 
 	// ── Data cache + filtering ────────────────────────────────────────────────
-	const dataCache = new Map<string, any[]>();
+	const dataCache = new SvelteMap<string, StatsRow[]>();
 	let isLoading = false;
 	let debounceTimer: ReturnType<typeof setTimeout>;
-	let displayData: any[] = [];
+	let displayData: StatsRow[] = [];
 
 	function getCacheKey(teams: string[], leagues: string[], seasons: string[]): string {
 		return `${[...teams].sort().join(',')}:${[...leagues].sort().join(',')}:${[...seasons].sort().join(',')}`;
 	}
 
-	function findSupersetInCache(): any[] | null {
+	function findSupersetInCache(): StatsRow[] | null {
 		const exactKey = getCacheKey(selectedTeams, selectedLeagues, selectedSeasons);
 		if (dataCache.has(exactKey)) return dataCache.get(exactKey)!;
 		for (const [key, data] of dataCache.entries()) {
@@ -517,7 +538,7 @@
 
 	const specialEmpty = ['Average', 'Home Avg.', 'Away Avg.', 'Max Speed'];
 
-	function filterAndSortClientSide(src: any[]): any[] {
+	function filterAndSortClientSide(src: StatsRow[]): StatsRow[] {
 		let data = src;
 		if (selectedTeams.length > 0)
 			data = data.filter((s) =>
@@ -550,7 +571,10 @@
 						if (ae) return 1;
 						if (be) return -1;
 					}
-					const result = typeof av === 'string' ? d * av.localeCompare(bv) : d * (av - bv);
+					const result =
+						typeof av === 'string'
+							? d * av.localeCompare(String(bv))
+							: d * ((av as number) - (bv as number));
 					if (result !== 0) return result;
 				}
 				return 0;
@@ -570,15 +594,15 @@
 	async function fetchStats() {
 		if (isLoading) return;
 		isLoading = true;
-		const params = new URLSearchParams();
+		const params = new SvelteURLSearchParams();
 		if (selectedTeams.length > 0) params.set('team', selectedTeams.join(','));
 		if (selectedLeagues.length > 0) params.set('league', selectedLeagues.join(','));
 		if (selectedSeasons.length > 0) params.set('season', selectedSeasons.join(','));
 		try {
 			const res = await fetch(`/api/sel/stats?${params}`);
 			if (!res.ok) throw new Error('fetch failed');
-			const data = (await res.json()) as any;
-			const indexed = (data.stats as any[]).map((item, i) => ({ ...item, __originalIndex: i }));
+			const data = (await res.json()) as { stats: StatsRow[] };
+			const indexed = data.stats.map((item, i) => ({ ...item, __originalIndex: i }));
 			dataCache.set(getCacheKey(selectedTeams, selectedLeagues, selectedSeasons), indexed);
 			displayData = filterAndSortClientSide(indexed);
 		} catch (e) {
@@ -596,7 +620,7 @@
 	}
 
 	function updateURL() {
-		const params = new URLSearchParams();
+		const params = new SvelteURLSearchParams();
 		if (search) params.set('search', search);
 		if (selectedTeams.length > 0) params.set('team', selectedTeams.join(','));
 		if (selectedLeagues.length > 0) params.set('league', selectedLeagues.join(','));
@@ -689,7 +713,6 @@
 
 	<!-- Heats Filter -->
 	<div class="relative min-w-[140px]">
-		<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
 		<button
 			on:click|stopPropagation={() => {
 				openOtherFilter('heats');
@@ -724,7 +747,7 @@
 								class="text-muted-foreground pointer-events-none absolute left-0 h-full font-mono text-xs"
 								style="width: 20px;"
 							>
-								{#each heatsTickValues as v}
+								{#each heatsTickValues as v (v)}
 									<span
 										class="absolute block text-right leading-none"
 										style="top: {tickPct(v)}%; transform: translateY(-50%); width: 100%;">{v}</span
@@ -736,7 +759,7 @@
 								<div
 									class="bg-foreground/20 absolute top-0 bottom-0 left-1/2 w-[2px] -translate-x-1/2"
 								></div>
-								{#each heatsTickValues as v}
+								{#each heatsTickValues as v (v)}
 									<div
 										class="absolute left-1/2 h-[2px] -translate-x-1/2 {v === heatsRangeMin ||
 										v === heatsRangeMax
@@ -829,7 +852,6 @@
 
 	<!-- Column Selector -->
 	<div class="relative">
-		<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
 		<button
 			on:click|stopPropagation={() => {
 				openOtherFilter('column');
@@ -855,7 +877,7 @@
 			>
 				<div class="text-foreground mb-2 text-xs font-semibold">Toggle Columns</div>
 				<div class="max-h-[400px] space-y-1 overflow-y-auto">
-					{#each columns as col}
+					{#each columns as col (col.id)}
 						<div class="hover:bg-muted/50 flex items-center gap-2 rounded px-2 py-1.5">
 							<input
 								type="checkbox"
@@ -911,7 +933,7 @@
 			rowNumberColId="rank"
 			externalSortColumns={sortColumns}
 			onHeaderClick={handleSort}
-			getExtraClass={(col, _isHeader) => colClass(col.id ?? '')}
+			getExtraClass={(col) => colClass(col.id ?? '')}
 		/>
 	{/if}
 </div>

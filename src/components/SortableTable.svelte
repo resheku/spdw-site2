@@ -33,7 +33,7 @@
 	};
 
 	export let columns: Col[];
-	export let rows: Record<string, any>[];
+	export let rows: Record<string, unknown>[];
 	/** Value of pinnedKey that should always stay at the bottom regardless of sort */
 	export let pinnedBottom: string | undefined = undefined;
 	export let pinnedKey: string = 'Track';
@@ -52,7 +52,7 @@
 	/** Returns extra CSS classes for a cell or header (used for column visibility overrides) */
 	export let getExtraClass: ((col: Col, isHeader: boolean) => string) | undefined = undefined;
 	/** Svelte 5 snippet for custom cell rendering; only used when col.customCell === true */
-	export let cell: Snippet<[Record<string, any>, Col]> | undefined = undefined;
+	export let cell: Snippet<[Record<string, unknown>, Col]> | undefined = undefined;
 
 	$: isExternalSort = onHeaderClick !== undefined;
 
@@ -114,7 +114,7 @@
 		return map;
 	})();
 
-	function heatHue(col: Col, value: any): number | null {
+	function heatHue(col: Col, value: unknown): number | null {
 		if (!col.heatmap && !col.heatmapInvert) return null;
 		if (typeof value !== 'number') return null;
 		const range = colRanges[col.key];
@@ -147,7 +147,7 @@
 		return map;
 	})();
 
-	function fmt(value: any, col: Col): string {
+	function fmt(value: unknown, col: Col): string {
 		if (value == null) return String(col.nullValue ?? '-');
 		if (col.decimals != null && typeof value === 'number') return value.toFixed(col.decimals);
 		return String(value);
@@ -166,7 +166,7 @@
 					data-column-id={rowNumberColId}>#</th
 				>
 			{/if}
-			{#each columns as col}
+			{#each columns as col (col.key)}
 				{@const _icon = sortIcons[col.sortKey ?? col.key] ?? null}
 				<th
 					class="hover:bg-muted/80 cursor-pointer px-3 py-2 align-middle font-medium whitespace-nowrap select-none
@@ -185,7 +185,7 @@
 					>
 						{#if col.labelParts}
 							<span class="inline-flex items-center gap-0">
-								{#each col.labelParts as part}
+								{#each col.labelParts as part, pi (pi)}
 									{#if part.color}
 										<span
 											class="rounded px-1 font-bold text-[#111827]"
@@ -215,7 +215,7 @@
 		</tr>
 	</thead>
 	<tbody>
-		{#each sortedRows as row, i}
+		{#each sortedRows as row, i (i)}
 			<tr class="border-border hover:bg-muted/50 border-t">
 				{#if showRowNumber}
 					<td
@@ -226,7 +226,7 @@
 						data-column-id={rowNumberColId}>{i + 1}</td
 					>
 				{/if}
-				{#each columns as col}
+				{#each columns as col (col.key)}
 					{@const hue = heatHue(col, row[col.key])}
 					<td
 						class="px-3 py-2 tabular-nums
@@ -266,7 +266,7 @@
 				{#if showRowNumber}
 					<td class="px-3 py-2" data-column-id={rowNumberColId}></td>
 				{/if}
-				{#each columns as col}
+				{#each columns as col (col.key)}
 					<td
 						class="px-3 py-2 tabular-nums
 							{col.align === 'left' ? 'text-left' : 'text-right'}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { SvelteMap } from 'svelte/reactivity';
 	import SortableTable from './SortableTable.svelte';
 
 	export let matches: Array<{
@@ -27,7 +28,7 @@
 
 	// Per-team stats — grouped by team ID
 	$: teamRows = (() => {
-		const map = new Map<
+		const map = new SvelteMap<
 			number,
 			{
 				short: string;

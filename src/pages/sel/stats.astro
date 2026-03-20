@@ -16,8 +16,8 @@ const initialSortColumns = urlParams.get('sortColumn')?.split(',').filter(Boolea
 const initialSortDirections = urlParams.get('sortDirection')?.split(',').filter(Boolean) || [];
 
 // Fetch initial data from API endpoints with URL params
-let stats: any[] = [];
-let filterMapping: any = null;
+let stats: Record<string, unknown>[] = [];
+let filterMapping: Record<string, unknown> | null = null;
 let error: string | null = null;
 
 try {
@@ -45,8 +45,8 @@ try {
 	]);
 
 	if (statsResponse.ok && filtersResponse.ok) {
-		const statsData = (await statsResponse.json()) as any;
-		filterMapping = (await filtersResponse.json()) as any;
+		const statsData = (await statsResponse.json()) as { stats: Record<string, unknown>[] };
+		filterMapping = (await filtersResponse.json()) as Record<string, unknown>;
 		stats = statsData.stats || [];
 	} else {
 		error = 'Failed to load stats';

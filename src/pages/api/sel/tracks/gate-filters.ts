@@ -32,9 +32,11 @@ export const GET: APIRoute = async ({ locals }) => {
 			.all();
 
 		const rows = result.results || [];
-		const seasons = [...new Set(rows.map((r: any) => r.season as number))].sort((a, b) => b - a);
+		const seasons = [...new Set(rows.map((r: Record<string, unknown>) => r.season as number))].sort(
+			(a, b) => b - a
+		);
 		const leagueMap = new Map<string, string>();
-		rows.forEach((r: any) => {
+		rows.forEach((r: Record<string, unknown>) => {
 			if (!leagueMap.has(r.code)) leagueMap.set(r.code, r.name);
 		});
 		const leagues = [...leagueMap.entries()].map(([code, name]) => ({ code, name }));

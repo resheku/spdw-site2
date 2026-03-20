@@ -1,8 +1,31 @@
 <script lang="ts">
+	import { SvelteURLSearchParams, SvelteSet } from 'svelte/reactivity';
 	import FilterDropdown from './FilterDropdown.svelte';
 	import SortableTable from './SortableTable.svelte';
 
-	export let initialData: any[] = [];
+	type ScheduleRow = {
+		match_id: number;
+		round: number | null;
+		league: string | null;
+		leagueName: string | null;
+		type: string | null;
+		typeName: string | null;
+		datetime: string | null;
+		matchName: string | null;
+		homeTeamId: number | null;
+		homeTeamShort: string | null;
+		awayTeamId: number | null;
+		awayTeamShort: string | null;
+		homeScore: number | null;
+		awayScore: number | null;
+		homeTotal: number | null;
+		awayTotal: number | null;
+		attendance: number | null;
+		season: number | null;
+		track: string | null;
+	};
+
+	export let initialData: ScheduleRow[] = [];
 	export let allLeagues: Array<{ shortname: string; name: string }> = [];
 	export let allSeasons: number[] = [];
 	// URL param initial values
@@ -71,14 +94,16 @@
 	// Compute which tracks are available given current league/season/round/team filters (but not track filter itself)
 	$: availableTracks = (() => {
 		let d = initialData;
-		if (selectedLeagues.length) d = d.filter((m) => selectedLeagues.includes(m.league));
+		if (selectedLeagues.length) d = d.filter((m) => selectedLeagues.includes(m.league ?? ''));
 		if (selectedSeasons.length) d = d.filter((m) => selectedSeasons.includes(String(m.season)));
-		if (selectedRounds.length) d = d.filter((m) => selectedRounds.includes(m.type));
+		if (selectedRounds.length) d = d.filter((m) => selectedRounds.includes(m.type ?? ''));
 		if (selectedTeams.length)
 			d = d.filter(
-				(m) => selectedTeams.includes(m.homeTeamShort) || selectedTeams.includes(m.awayTeamShort)
+				(m) =>
+					selectedTeams.includes(m.homeTeamShort ?? '') ||
+					selectedTeams.includes(m.awayTeamShort ?? '')
 			);
-		return new Set(d.map((m) => m.track).filter(Boolean));
+		return new SvelteSet(d.map((m) => m.track).filter((t): t is string => t != null));
 	})();
 
 	$: disabledTracks = allTrackValues.filter((t) => !availableTracks.has(t));
@@ -87,11 +112,11 @@
 	// Compute which teams are available given current filters (but not team filter itself)
 	$: availableTeams = (() => {
 		let d = initialData;
-		if (selectedLeagues.length) d = d.filter((m) => selectedLeagues.includes(m.league));
+		if (selectedLeagues.length) d = d.filter((m) => selectedLeagues.includes(m.league ?? ''));
 		if (selectedSeasons.length) d = d.filter((m) => selectedSeasons.includes(String(m.season)));
-		if (selectedRounds.length) d = d.filter((m) => selectedRounds.includes(m.type));
-		if (selectedTracks.length) d = d.filter((m) => selectedTracks.includes(m.track));
-		const s = new Set<string>();
+		if (selectedRounds.length) d = d.filter((m) => selectedRounds.includes(m.type ?? ''));
+		if (selectedTracks.length) d = d.filter((m) => selectedTracks.includes(m.track ?? ''));
+		const s = new SvelteSet<string>();
 		d.forEach((m) => {
 			if (m.homeTeamShort) s.add(m.homeTeamShort);
 			if (m.awayTeamShort) s.add(m.awayTeamShort);
@@ -135,7 +160,7 @@
 		return data;
 	})();
 
-	function getColValue(row: any, col: string): any {
+	function getColValue(row: ScheduleRow, col: string): string | number | null {
 		switch (col) {
 			case 'round':
 				return row.round ?? null;
@@ -192,7 +217,7 @@
 
 	// ── URL sync ────────────────────────────────────────────────────
 	function updateURL() {
-		const params = new URLSearchParams();
+		const params = new SvelteURLSearchParams();
 		if (selectedLeagues.length) params.set('league', selectedLeagues.join(','));
 		if (selectedSeasons.length) params.set('season', selectedSeasons.join(','));
 		if (selectedRounds.length) params.set('round', selectedRounds.join(','));

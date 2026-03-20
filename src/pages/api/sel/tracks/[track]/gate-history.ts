@@ -157,8 +157,8 @@ export const GET: APIRoute = async ({ locals, url, params }) => {
 					.all(),
 			]);
 
-		const oa = (overallAvgResult.results?.[0] as any) ?? {};
-		const ow = (overallWinResult.results?.[0] as any) ?? {};
+		const oa = (overallAvgResult.results?.[0] as Record<string, number | null>) ?? {};
+		const ow = (overallWinResult.results?.[0] as Record<string, number | null>) ?? {};
 
 		const overallAvgBias =
 			oa.A != null

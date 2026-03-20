@@ -22,7 +22,7 @@ export const GET: APIRoute = async ({ locals }) => {
 		const startTime = Date.now();
 		const result = await db.prepare(seasonsQuery).all();
 		console.log(`[seasons] Query time: ${Date.now() - startTime}ms`);
-		const seasons = result.results?.map((row: any) => row.Season) || [];
+		const seasons = result.results?.map((row: Record<string, unknown>) => row.Season) || [];
 
 		return new Response(JSON.stringify(seasons), {
 			status: 200,

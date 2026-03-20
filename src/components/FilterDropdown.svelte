@@ -76,7 +76,7 @@
 				>
 			</div>
 			<div class="p-2">
-				{#each options as opt}
+				{#each options as opt (opt.value)}
 					{@const isDisabled = disabledValues.includes(opt.value)}
 					<div
 						class="flex items-center gap-2 rounded px-1 py-1 {isDisabled

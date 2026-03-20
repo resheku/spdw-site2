@@ -34,7 +34,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
 		// Build query for heats range based on current filters (excluding heats filter itself)
 		let heatsQuery =
 			'SELECT MIN(Heats) as minHeats, MAX(Heats) as maxHeats FROM stats WHERE Heats IS NOT NULL AND Heats > 0';
-		const heatsParams: any[] = [];
+		const heatsParams: (string | number)[] = [];
 
 		if (teams.length > 0) {
 			const teamConditions = teams.map(() => 'Team LIKE ?').join(' OR ');
@@ -77,7 +77,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
 		const seasonLeagueToTeams: Record<string, Set<string>> = {};
 
 		// Process all rows to build mappings
-		rows.forEach((row: any) => {
+		rows.forEach((row: Record<string, unknown>) => {
 			const teamValue = row.Team;
 			const league = row.League;
 			const season = row.Season;

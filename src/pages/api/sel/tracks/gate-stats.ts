@@ -1,9 +1,10 @@
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ locals, url }) => {
-	const db = locals.runtime?.env?.DB;
+export const GET: APIRoute = async ({ url }) => {
+	const db = env.DB;
 
 	if (!db) {
 		return new Response(JSON.stringify({ error: 'Database not available' }), {
@@ -28,7 +29,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
 			mainParams.push(parseInt(selectedSeasons[0], 10));
 		} else if (selectedSeasons.length > 1) {
 			mainConditions.push(`m.season IN (${selectedSeasons.map(() => '?').join(',')})`);
-			mainParams.push(...selectedSeasons.map(s => parseInt(s, 10)));
+			mainParams.push(...selectedSeasons.map((s) => parseInt(s, 10)));
 		}
 		if (selectedLeagues.length === 1) {
 			mainConditions.push('m.match_type_shortname = ?');
@@ -51,13 +52,17 @@ export const GET: APIRoute = async ({ locals, url }) => {
 				`;
 			}
 		} else if (selectedLeagues.length > 1) {
-			mainConditions.push(`m.match_type_shortname IN (${selectedLeagues.map(() => '?').join(',')})`);
+			mainConditions.push(
+				`m.match_type_shortname IN (${selectedLeagues.map(() => '?').join(',')})`
+			);
 			mainParams.push(...selectedLeagues);
 		}
-		const extraWhere = mainConditions.map(c => `AND ${c}`).join(' ');
+		const extraWhere = mainConditions.map((c) => `AND ${c}`).join(' ');
 		const allParams = [...majorityParams, ...mainParams];
 
-		const result = await db.prepare(`
+		const result = await db
+			.prepare(
+				`
 			WITH ${majorityCteSql}base AS (
 				SELECT
 					m.track_city AS Track,
@@ -97,7 +102,10 @@ export const GET: APIRoute = async ({ locals, url }) => {
 				ROUND(MAX(A, B, C, D) - MIN(A, B, C, D), 2)
 			FROM totals
 			ORDER BY A DESC
-		`).bind(...allParams).all();
+		`
+			)
+			.bind(...allParams)
+			.all();
 
 		return new Response(JSON.stringify({ rows: result.results || [] }), {
 			status: 200,

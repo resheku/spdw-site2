@@ -1,4 +1,6 @@
 <script lang="ts">
+	import SortableTable from './SortableTable.svelte';
+
 	export let matches: Array<{
 		id: number;
 		date: string;
@@ -16,160 +18,191 @@
 	const PAGE_SIZE = 20;
 	let page = 0;
 
-	type SortKey = 'date' | 'league' | 'subtype' | 'home' | 'score' | 'away' | 'homeAvgSpeed' | 'awayAvgSpeed';
-	type SortDir = 'asc' | 'desc' | null;
+	// Multi-column sort state — same pattern as StatsTable / ScheduleTable
+	let sortColumns: Array<{ column: string; direction: string }> = [
+		{ column: 'date', direction: 'desc' },
+	];
 
-	let sortKey: SortKey = 'date';
-	let sortDir: SortDir = 'desc';
-
-	function cycleSort(key: SortKey) {
-		if (sortKey !== key) {
-			sortKey = key;
-			sortDir = 'desc';
-		} else if (sortDir === 'desc') {
-			sortDir = 'asc';
-		} else if (sortDir === 'asc') {
-			sortDir = null;
+	function handleSort(column: string, event: MouseEvent) {
+		if (event.shiftKey) {
+			const idx = sortColumns.findIndex((s) => s.column === column);
+			if (idx >= 0) {
+				if (sortColumns[idx].direction === 'desc') {
+					sortColumns = sortColumns.map((s, i) => (i === idx ? { ...s, direction: 'asc' } : s));
+				} else {
+					sortColumns = sortColumns.filter((_, i) => i !== idx);
+				}
+			} else {
+				sortColumns = [...sortColumns, { column, direction: 'desc' }];
+			}
 		} else {
-			sortDir = 'desc';
+			const existing = sortColumns.find((s) => s.column === column);
+			if (sortColumns.length === 1 && existing) {
+				if (existing.direction === 'desc') sortColumns = [{ column, direction: 'asc' }];
+				else sortColumns = [];
+			} else {
+				sortColumns = [{ column, direction: 'desc' }];
+			}
 		}
 		page = 0;
 	}
 
-	function sortIcon(key: SortKey) {
-		if (sortKey !== key || sortDir === null) return '↕';
-		return sortDir === 'desc' ? '↓' : '↑';
-	}
-
 	$: sorted = (() => {
-		if (sortDir === null) return matches;
+		if (!sortColumns.length) return matches;
 		return [...matches].sort((a, b) => {
-			let cmp: number;
-			if (sortKey === 'score') {
-				// sort by home score descending/ascending, then away score as tiebreak
-				const ah = a.homeScore ?? -1, bh = b.homeScore ?? -1;
-				const aa = a.awayScore ?? -1, ba = b.awayScore ?? -1;
-				cmp = ah !== bh ? ah - bh : aa - ba;
-			} else if (sortKey === 'homeAvgSpeed' || sortKey === 'awayAvgSpeed') {
-				const av = sortKey === 'homeAvgSpeed' ? (a.homeAvgSpeed ?? -1) : (a.awayAvgSpeed ?? -1);
-				const bv = sortKey === 'homeAvgSpeed' ? (b.homeAvgSpeed ?? -1) : (b.awayAvgSpeed ?? -1);
-				cmp = av - bv;
-			} else {
-				let av: string, bv: string;
-				if (sortKey === 'subtype') { av = a.matchSubtype ?? ''; bv = b.matchSubtype ?? ''; }
-				else if (sortKey === 'date') { av = a.date; bv = b.date; }
-				else if (sortKey === 'league') { av = a.league; bv = b.league; }
-				else if (sortKey === 'home') { av = a.home; bv = b.home; }
-				else { av = a.away; bv = b.away; }
-				cmp = av < bv ? -1 : av > bv ? 1 : 0;
+			for (const { column, direction: dir } of sortColumns) {
+				const d = dir === 'asc' ? 1 : -1;
+				let cmp = 0;
+				if (column === 'score') {
+					const ah = a.homeScore ?? -1,
+						bh = b.homeScore ?? -1;
+					const aa = a.awayScore ?? -1,
+						ba = b.awayScore ?? -1;
+					cmp = ah !== bh ? ah - bh : aa - ba;
+				} else if (column === 'homeAvgSpeed') {
+					cmp = (a.homeAvgSpeed ?? -Infinity) - (b.homeAvgSpeed ?? -Infinity);
+				} else if (column === 'awayAvgSpeed') {
+					cmp = (a.awayAvgSpeed ?? -Infinity) - (b.awayAvgSpeed ?? -Infinity);
+				} else if (column === 'subtype') {
+					cmp = (a.matchSubtype ?? '').localeCompare(b.matchSubtype ?? '');
+				} else if (column === 'date') {
+					cmp = a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+				} else if (column === 'league') {
+					cmp = a.league.localeCompare(b.league);
+				} else if (column === 'home') {
+					cmp = a.home.localeCompare(b.home);
+				} else if (column === 'away') {
+					cmp = a.away.localeCompare(b.away);
+				}
+				if (cmp !== 0) return d * cmp;
 			}
-			return sortDir === 'asc' ? cmp : -cmp;
+			return 0;
 		});
 	})();
 
 	$: totalPages = Math.ceil(sorted.length / PAGE_SIZE);
 	$: pageRows = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-	$: globalOffset = page * PAGE_SIZE;
 
-	function thClass(key: SortKey, align: 'left' | 'center' = 'left') {
-		const base = `px-3 py-2 font-medium cursor-pointer select-none hover:bg-muted/60 whitespace-nowrap text-${align}`;
-		return sortKey === key && sortDir !== null ? base + ' text-foreground' : base + ' text-muted-foreground';
-	}
+	const columns = [
+		{ key: 'date', sortKey: 'date', label: 'Date', align: 'left' as const, noWrap: true },
+		{
+			key: 'league',
+			sortKey: 'league',
+			label: 'League',
+			align: 'left' as const,
+			noWrap: true,
+			customCell: true,
+		},
+		{
+			key: 'matchSubtype',
+			sortKey: 'subtype',
+			label: 'Round',
+			align: 'left' as const,
+			noWrap: true,
+			customCell: true,
+		},
+		{ key: 'home', sortKey: 'home', label: 'Home', align: 'left' as const, customCell: true },
+		{
+			key: 'homeScore',
+			sortKey: 'score',
+			label: 'Score',
+			align: 'left' as const,
+			noWrap: true,
+			customCell: true,
+		},
+		{ key: 'away', sortKey: 'away', label: 'Away', align: 'left' as const, customCell: true },
+		{
+			key: 'homeAvgSpeed',
+			sortKey: 'homeAvgSpeed',
+			label: 'Home Avg',
+			align: 'right' as const,
+			noWrap: true,
+			decimals: 2,
+		},
+		{
+			key: 'awayAvgSpeed',
+			sortKey: 'awayAvgSpeed',
+			label: 'Away Avg',
+			align: 'right' as const,
+			noWrap: true,
+			decimals: 2,
+		},
+	];
 </script>
 
 <div>
-	<div class="overflow-x-auto">
-		<table class="w-full text-sm">
-			<thead class="bg-muted sticky top-0">
-				<tr>
-					<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-					<th class={thClass('date')} on:click={() => cycleSort('date')}>
-						Date <span class="text-xs opacity-60">{sortIcon('date')}</span>
-					</th>
-					<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-					<th class={thClass('league')} on:click={() => cycleSort('league')}>
-						League <span class="text-xs opacity-60">{sortIcon('league')}</span>
-					</th>
-					<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-					<th class={thClass('subtype')} on:click={() => cycleSort('subtype')}>
-						Round <span class="text-xs opacity-60">{sortIcon('subtype')}</span>
-					</th>
-					<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-					<th class={thClass('home')} on:click={() => cycleSort('home')}>
-						Home <span class="text-xs opacity-60">{sortIcon('home')}</span>
-					</th>
-					<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-					<th class={thClass('score', 'center')} on:click={() => cycleSort('score')}>
-						Score <span class="text-xs opacity-60">{sortIcon('score')}</span>
-					</th>
-					<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-					<th class={thClass('away')} on:click={() => cycleSort('away')}>
-						Away <span class="text-xs opacity-60">{sortIcon('away')}</span>
-					</th>				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class={thClass('homeAvgSpeed', 'center')} on:click={() => cycleSort('homeAvgSpeed')}>
-					Home Avg <span class="text-xs opacity-60">{sortIcon('homeAvgSpeed')}</span>
-				</th>
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<th class={thClass('awayAvgSpeed', 'center')} on:click={() => cycleSort('awayAvgSpeed')}>
-					Away Avg <span class="text-xs opacity-60">{sortIcon('awayAvgSpeed')}</span>
-				</th>				</tr>
-			</thead>
-			<tbody>
-				{#each pageRows as m, i}
+	<div class="border-border overflow-x-auto rounded-lg border">
+		<SortableTable
+			{columns}
+			rows={pageRows}
+			externalSortColumns={sortColumns}
+			onHeaderClick={handleSort}
+		>
+			{#snippet cell(m, col)}
+				{#if col.key === 'league'}
+					<span class="bg-muted rounded px-1.5 py-0.5 font-mono text-xs">{m.league}</span>
+				{:else if col.key === 'matchSubtype'}
+					{#if m.matchSubtype}
+						<span class="bg-muted rounded px-1.5 py-0.5 font-mono text-xs">{m.matchSubtype}</span>
+					{/if}
+				{:else if col.key === 'home'}
 					{@const homeWin = m.homeScore != null && m.awayScore != null && m.homeScore > m.awayScore}
 					{@const awayWin = m.homeScore != null && m.awayScore != null && m.awayScore > m.homeScore}
-					<tr class={(globalOffset + i) % 2 === 0 ? 'bg-background' : 'bg-muted/30'}>
-						<td class="px-3 py-2 tabular-nums">{m.date}</td>
-						<td class="px-3 py-2">
-						<span class="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">{m.league}</span>
-					</td>
-					<td class="px-3 py-2">
-						{#if m.matchSubtype}
-							<span class="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">{m.matchSubtype}</span>
-						{/if}
-					</td>
-						<td class="px-3 py-2 font-medium {homeWin ? 'text-green-600 dark:text-green-400' : awayWin ? 'text-red-500 dark:text-red-400' : ''}">{m.home}</td>
-						<td class="px-3 py-2 text-center tabular-nums font-mono font-semibold">
-							{m.homeScore ?? '–'}:{m.awayScore ?? '–'}
-						</td>
-						<td class="px-3 py-2 font-medium {awayWin ? 'text-green-600 dark:text-green-400' : homeWin ? 'text-red-500 dark:text-red-400' : ''}">{m.away}</td>
-					<td class="px-3 py-2 text-center tabular-nums">{m.homeAvgSpeed != null ? m.homeAvgSpeed.toFixed(2) : '–'}</td>
-					<td class="px-3 py-2 text-center tabular-nums">{m.awayAvgSpeed != null ? m.awayAvgSpeed.toFixed(2) : '–'}</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
+					<span
+						class="font-medium {homeWin
+							? 'text-green-600 dark:text-green-400'
+							: awayWin
+								? 'text-red-500 dark:text-red-400'
+								: ''}">{m.home}</span
+					>
+				{:else if col.key === 'homeScore'}
+					<span class="font-mono font-semibold">{m.homeScore ?? '–'}:{m.awayScore ?? '–'}</span>
+				{:else if col.key === 'away'}
+					{@const homeWin = m.homeScore != null && m.awayScore != null && m.homeScore > m.awayScore}
+					{@const awayWin = m.homeScore != null && m.awayScore != null && m.awayScore > m.homeScore}
+					<span
+						class="font-medium {awayWin
+							? 'text-green-600 dark:text-green-400'
+							: homeWin
+								? 'text-red-500 dark:text-red-400'
+								: ''}">{m.away}</span
+					>
+				{/if}
+			{/snippet}
+		</SortableTable>
 	</div>
 
 	{#if totalPages > 1}
-		<div class="flex items-center justify-between mt-3 text-sm text-muted-foreground">
-			<span>{page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, matches.length)} of {matches.length}</span>
+		<div class="text-muted-foreground mt-3 flex items-center justify-between text-sm">
+			<span
+				>{page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, matches.length)} of {matches.length}</span
+			>
 			<div class="flex items-center gap-1">
 				<button
-					class="px-2 py-1 rounded border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+					class="border-border hover:bg-muted rounded border px-2 py-1 disabled:cursor-not-allowed disabled:opacity-40"
 					disabled={page === 0}
 					on:click={() => (page = 0)}
-					aria-label="First page"
-				>«</button>
+					aria-label="First page">«</button
+				>
 				<button
-					class="px-2 py-1 rounded border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+					class="border-border hover:bg-muted rounded border px-2 py-1 disabled:cursor-not-allowed disabled:opacity-40"
 					disabled={page === 0}
 					on:click={() => page--}
-					aria-label="Previous page"
-				>‹</button>
+					aria-label="Previous page">‹</button
+				>
 				<span class="px-2">Page {page + 1} / {totalPages}</span>
 				<button
-					class="px-2 py-1 rounded border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+					class="border-border hover:bg-muted rounded border px-2 py-1 disabled:cursor-not-allowed disabled:opacity-40"
 					disabled={page === totalPages - 1}
 					on:click={() => page++}
-					aria-label="Next page"
-				>›</button>
+					aria-label="Next page">›</button
+				>
 				<button
-					class="px-2 py-1 rounded border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+					class="border-border hover:bg-muted rounded border px-2 py-1 disabled:cursor-not-allowed disabled:opacity-40"
 					disabled={page === totalPages - 1}
 					on:click={() => (page = totalPages - 1)}
-					aria-label="Last page"
-				>»</button>
+					aria-label="Last page">»</button
+				>
 			</div>
 		</div>
 	{/if}

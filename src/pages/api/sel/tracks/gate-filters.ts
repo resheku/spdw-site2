@@ -1,9 +1,10 @@
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ locals }) => {
-	const db = locals.runtime?.env?.DB;
+export const GET: APIRoute = async () => {
+	const db = env.DB;
 
 	if (!db) {
 		return new Response(JSON.stringify({ error: 'Database not available' }), {
@@ -13,7 +14,9 @@ export const GET: APIRoute = async ({ locals }) => {
 	}
 
 	try {
-		const result = await db.prepare(`
+		const result = await db
+			.prepare(
+				`
 			SELECT DISTINCT
 				m.season AS season,
 				m.match_type_shortname AS code,
@@ -25,13 +28,17 @@ export const GET: APIRoute = async ({ locals }) => {
 				AND h.canceled = 0
 				AND h.points IS NOT NULL
 			ORDER BY m.season DESC
-		`).all();
+		`
+			)
+			.all();
 
 		const rows = result.results || [];
-		const seasons = [...new Set(rows.map((r: any) => r.season as number))].sort((a, b) => b - a);
+		const seasons = [...new Set(rows.map((r: Record<string, unknown>) => r.season as number))].sort(
+			(a, b) => b - a
+		);
 		const leagueMap = new Map<string, string>();
-		rows.forEach((r: any) => {
-			if (!leagueMap.has(r.code)) leagueMap.set(r.code, r.name);
+		rows.forEach((r: Record<string, unknown>) => {
+			if (!leagueMap.has(r.code as string)) leagueMap.set(r.code as string, r.name as string);
 		});
 		const leagues = [...leagueMap.entries()].map(([code, name]) => ({ code, name }));
 

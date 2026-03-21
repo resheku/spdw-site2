@@ -1,17 +1,21 @@
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ locals, url }) => {
-	const db = locals.runtime?.env?.DB;
-	
+export const GET: APIRoute = async ({ url }) => {
+	const db = env.DB;
+
 	if (!db) {
-		return new Response(JSON.stringify({ 
-			error: 'Database not available' 
-		}), {
-			status: 503,
-			headers: { 'Content-Type': 'application/json' }
-		});
+		return new Response(
+			JSON.stringify({
+				error: 'Database not available',
+			}),
+			{
+				status: 503,
+				headers: { 'Content-Type': 'application/json' },
+			}
+		);
 	}
 
 	try {
@@ -21,17 +25,22 @@ export const GET: APIRoute = async ({ locals, url }) => {
 		const seasons = url.searchParams.get('season')?.split(',').filter(Boolean) || [];
 
 		// Fetch all unique combinations of Team, League, Season
-		const result = await db.prepare('SELECT DISTINCT Team, League, Season FROM stats ORDER BY Season DESC, Team ASC, League ASC').all();
+		const result = await db
+			.prepare(
+				'SELECT DISTINCT Team, League, Season FROM stats ORDER BY Season DESC, Team ASC, League ASC'
+			)
+			.all();
 		const rows = result.results || [];
 
 		// Build query for heats range based on current filters (excluding heats filter itself)
-		let heatsQuery = 'SELECT MIN(Heats) as minHeats, MAX(Heats) as maxHeats FROM stats WHERE Heats IS NOT NULL AND Heats > 0';
-		const heatsParams: any[] = [];
+		let heatsQuery =
+			'SELECT MIN(Heats) as minHeats, MAX(Heats) as maxHeats FROM stats WHERE Heats IS NOT NULL AND Heats > 0';
+		const heatsParams: (string | number)[] = [];
 
 		if (teams.length > 0) {
 			const teamConditions = teams.map(() => 'Team LIKE ?').join(' OR ');
 			heatsQuery += ` AND (${teamConditions})`;
-			heatsParams.push(...teams.map(t => `%${t}%`));
+			heatsParams.push(...teams.map((t) => `%${t}%`));
 		}
 
 		if (leagues.length > 0) {
@@ -41,13 +50,16 @@ export const GET: APIRoute = async ({ locals, url }) => {
 
 		if (seasons.length > 0) {
 			heatsQuery += ` AND Season IN (${seasons.map(() => '?').join(', ')})`;
-			heatsParams.push(...seasons.map(s => parseInt(s)));
+			heatsParams.push(...seasons.map((s) => parseInt(s)));
 		}
 
-		const heatsResult = await db.prepare(heatsQuery).bind(...heatsParams).first();
+		const heatsResult = await db
+			.prepare(heatsQuery)
+			.bind(...heatsParams)
+			.first();
 		const heatsRange = {
 			min: heatsResult?.minHeats || 0,
-			max: heatsResult?.maxHeats || 100
+			max: heatsResult?.maxHeats || 100,
 		};
 
 		// Build comprehensive mapping structure
@@ -56,29 +68,29 @@ export const GET: APIRoute = async ({ locals, url }) => {
 		const allSeasons = new Set<number>();
 
 		// Maps for relationships
-		const byTeam: Record<string, { seasons: Set<number>, leagues: Set<string> }> = {};
-		const bySeason: Record<number, { teams: Set<string>, leagues: Set<string> }> = {};
-		const byLeague: Record<string, { teams: Set<string>, seasons: Set<number> }> = {};
-		
+		const byTeam: Record<string, { seasons: Set<number>; leagues: Set<string> }> = {};
+		const bySeason: Record<number, { teams: Set<string>; leagues: Set<string> }> = {};
+		const byLeague: Record<string, { teams: Set<string>; seasons: Set<number> }> = {};
+
 		// Combinations: team+season -> leagues, team+league -> seasons, season+league -> teams
 		const teamSeasonToLeagues: Record<string, Set<string>> = {};
 		const teamLeagueToSeasons: Record<string, Set<number>> = {};
 		const seasonLeagueToTeams: Record<string, Set<string>> = {};
 
 		// Process all rows to build mappings
-		rows.forEach((row: any) => {
-			const teamValue = row.Team;
-			const league = row.League;
-			const season = row.Season;
+		rows.forEach((row: Record<string, unknown>) => {
+			const teamValue = row.Team as string;
+			const league = row.League as string;
+			const season = row.Season as number;
 
 			if (!teamValue || !league || !season) return;
 
 			// Split combined team values (e.g., "TAR/GOR" becomes ["TAR", "GOR"])
 			const individualTeams = teamValue.split('/').map((t: string) => t.trim());
-			
+
 			individualTeams.forEach((team: string) => {
 				allTeams.add(team);
-				
+
 				// By Team
 				if (!byTeam[team]) {
 					byTeam[team] = { seasons: new Set(), leagues: new Set() };
@@ -136,15 +148,15 @@ export const GET: APIRoute = async ({ locals, url }) => {
 			all: {
 				teams: Array.from(allTeams).sort(),
 				leagues: Array.from(allLeagues).sort(),
-				seasons: Array.from(allSeasons).sort((a, b) => b - a)
+				seasons: Array.from(allSeasons).sort((a, b) => b - a),
 			},
 			byTeam: Object.fromEntries(
 				Object.entries(byTeam).map(([team, data]) => [
 					team,
 					{
 						seasons: Array.from(data.seasons).sort((a, b) => b - a),
-						leagues: Array.from(data.leagues).sort()
-					}
+						leagues: Array.from(data.leagues).sort(),
+					},
 				])
 			),
 			bySeason: Object.fromEntries(
@@ -152,8 +164,8 @@ export const GET: APIRoute = async ({ locals, url }) => {
 					season,
 					{
 						teams: Array.from(data.teams).sort(),
-						leagues: Array.from(data.leagues).sort()
-					}
+						leagues: Array.from(data.leagues).sort(),
+					},
 				])
 			),
 			byLeague: Object.fromEntries(
@@ -161,48 +173,48 @@ export const GET: APIRoute = async ({ locals, url }) => {
 					league,
 					{
 						teams: Array.from(data.teams).sort(),
-						seasons: Array.from(data.seasons).sort((a, b) => b - a)
-					}
+						seasons: Array.from(data.seasons).sort((a, b) => b - a),
+					},
 				])
 			),
 			combinations: {
 				teamSeason: Object.fromEntries(
 					Object.entries(teamSeasonToLeagues).map(([key, leagues]) => [
 						key,
-						Array.from(leagues).sort()
+						Array.from(leagues).sort(),
 					])
 				),
 				teamLeague: Object.fromEntries(
 					Object.entries(teamLeagueToSeasons).map(([key, seasons]) => [
 						key,
-						Array.from(seasons).sort((a, b) => b - a)
+						Array.from(seasons).sort((a, b) => b - a),
 					])
 				),
 				seasonLeague: Object.fromEntries(
-					Object.entries(seasonLeagueToTeams).map(([key, teams]) => [
-						key,
-						Array.from(teams).sort()
-					])
-				)
+					Object.entries(seasonLeagueToTeams).map(([key, teams]) => [key, Array.from(teams).sort()])
+				),
 			},
-			heatsRange
+			heatsRange,
 		};
 
 		return new Response(JSON.stringify(filterMapping), {
 			status: 200,
-			headers: { 
+			headers: {
 				'Content-Type': 'application/json',
-				'Cache-Control': 'public, max-age=600' // Cache for 10 minutes
-			}
+				'Cache-Control': 'public, max-age=600', // Cache for 10 minutes
+			},
 		});
 	} catch (error) {
 		console.error('Database error:', error);
-		return new Response(JSON.stringify({ 
-			error: 'Failed to fetch filter options',
-			details: error instanceof Error ? error.message : String(error)
-		}), {
-			status: 500,
-			headers: { 'Content-Type': 'application/json' }
-		});
+		return new Response(
+			JSON.stringify({
+				error: 'Failed to fetch filter options',
+				details: error instanceof Error ? error.message : String(error),
+			}),
+			{
+				status: 500,
+				headers: { 'Content-Type': 'application/json' },
+			}
+		);
 	}
 };

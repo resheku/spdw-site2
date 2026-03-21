@@ -1,9 +1,10 @@
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ locals, params }) => {
-	const db = locals.runtime?.env?.DB;
+export const GET: APIRoute = async ({ params }) => {
+	const db = env.DB;
 	const track = params.track ?? '';
 
 	if (!db) {
@@ -22,7 +23,9 @@ export const GET: APIRoute = async ({ locals, params }) => {
 
 	try {
 		const [matchAvgResult, topSpeedsResult] = await Promise.all([
-			db.prepare(`
+			db
+				.prepare(
+					`
 				SELECT
 					m.match_id AS matchId,
 					substr(m.datetime, 1, 10) AS date,
@@ -42,9 +45,14 @@ export const GET: APIRoute = async ({ locals, params }) => {
 				  AND m.track_city = ?
 				GROUP BY m.match_id, m.datetime
 				ORDER BY m.datetime
-			`).bind(track).all(),
+			`
+				)
+				.bind(track)
+				.all(),
 
-			db.prepare(`
+			db
+				.prepare(
+					`
 				SELECT
 					l.rider_name || ' ' || l.rider_surname AS Name,
 					CASE
@@ -66,7 +74,10 @@ export const GET: APIRoute = async ({ locals, params }) => {
 				  AND m.track_city = ?
 				ORDER BY t.max_speed DESC
 				LIMIT 20
-			`).bind(track).all(),
+			`
+				)
+				.bind(track)
+				.all(),
 		]);
 
 		return new Response(

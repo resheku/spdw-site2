@@ -1,9 +1,10 @@
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ locals, url, params }) => {
-	const db = locals.runtime?.env?.DB;
+export const GET: APIRoute = async ({ url, params }) => {
+	const db = env.DB;
 	const track = params.track ?? '';
 
 	if (!db) {
@@ -34,12 +35,15 @@ export const GET: APIRoute = async ({ locals, url, params }) => {
 		bindParams.push(...selectedLeagues);
 	}
 
-	const whereClause = conditions.map(c => `AND ${c}`).join('\n\t\t\t\t');
+	const whereClause = conditions.map((c) => `AND ${c}`).join('\n\t\t\t\t');
 
 	try {
-		const [avgResult, winResult, overallAvgResult, overallWinResult, leaguesResult] = await Promise.all([
-			// per-season avg points
-			db.prepare(`
+		const [avgResult, winResult, overallAvgResult, overallWinResult, leaguesResult] =
+			await Promise.all([
+				// per-season avg points
+				db
+					.prepare(
+						`
 				SELECT
 					m.season AS season,
 					ROUND(AVG(CASE WHEN h.gate = 'a' THEN h.points END), 2) AS A,
@@ -58,10 +62,15 @@ export const GET: APIRoute = async ({ locals, url, params }) => {
 					${whereClause}
 				GROUP BY m.season
 				ORDER BY m.season
-			`).bind(...bindParams).all(),
+			`
+					)
+					.bind(...bindParams)
+					.all(),
 
-			// per-season win pct
-			db.prepare(`
+				// per-season win pct
+				db
+					.prepare(
+						`
 				SELECT
 					m.season AS season,
 					ROUND(SUM(CASE WHEN h.gate = 'a' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
@@ -81,10 +90,15 @@ export const GET: APIRoute = async ({ locals, url, params }) => {
 					${whereClause}
 				GROUP BY m.season
 				ORDER BY m.season
-			`).bind(...bindParams).all(),
+			`
+					)
+					.bind(...bindParams)
+					.all(),
 
-			// overall avg points
-			db.prepare(`
+				// overall avg points
+				db
+					.prepare(
+						`
 				SELECT
 					ROUND(AVG(CASE WHEN h.gate = 'a' THEN h.points END), 2) AS A,
 					ROUND(AVG(CASE WHEN h.gate = 'b' THEN h.points END), 2) AS B,
@@ -100,10 +114,15 @@ export const GET: APIRoute = async ({ locals, url, params }) => {
 					AND h.canceled = 0
 					AND h.points IS NOT NULL
 					${whereClause}
-			`).bind(...bindParams).all(),
+			`
+					)
+					.bind(...bindParams)
+					.all(),
 
-			// overall win pct
-			db.prepare(`
+				// overall win pct
+				db
+					.prepare(
+						`
 				SELECT
 					ROUND(SUM(CASE WHEN h.gate = 'a' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
 						/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1) AS A,
@@ -120,27 +139,39 @@ export const GET: APIRoute = async ({ locals, url, params }) => {
 					AND h.canceled = 0
 					AND h.points IS NOT NULL
 					${whereClause}
-			`).bind(...bindParams).all(),
+			`
+					)
+					.bind(...bindParams)
+					.all(),
 
-			// all leagues this track appears in
-			db.prepare(`
+				// all leagues this track appears in
+				db
+					.prepare(
+						`
 				SELECT DISTINCT m.match_type_shortname AS code, m.match_type_name AS name
 				FROM matches m
 				WHERE m.track_city = ?
 				ORDER BY m.match_type_shortname
-			`).bind(track).all(),
-		]);
+			`
+					)
+					.bind(track)
+					.all(),
+			]);
 
-		const oa = (overallAvgResult.results?.[0] as any) ?? {};
-		const ow = (overallWinResult.results?.[0] as any) ?? {};
+		const oa = (overallAvgResult.results?.[0] as Record<string, number | null>) ?? {};
+		const ow = (overallWinResult.results?.[0] as Record<string, number | null>) ?? {};
 
 		const overallAvgBias =
-			oa.A != null
-				? parseFloat((Math.max(oa.A, oa.B, oa.C, oa.D) - Math.min(oa.A, oa.B, oa.C, oa.D)).toFixed(2))
+			oa.A != null && oa.B != null && oa.C != null && oa.D != null
+				? parseFloat(
+						(Math.max(oa.A, oa.B, oa.C, oa.D) - Math.min(oa.A, oa.B, oa.C, oa.D)).toFixed(2)
+					)
 				: null;
 		const overallWinBias =
-			ow.A != null
-				? parseFloat((Math.max(ow.A, ow.B, ow.C, ow.D) - Math.min(ow.A, ow.B, ow.C, ow.D)).toFixed(1))
+			ow.A != null && ow.B != null && ow.C != null && ow.D != null
+				? parseFloat(
+						(Math.max(ow.A, ow.B, ow.C, ow.D) - Math.min(ow.A, ow.B, ow.C, ow.D)).toFixed(1)
+					)
 				: null;
 
 		return new Response(
@@ -154,7 +185,7 @@ export const GET: APIRoute = async ({ locals, url, params }) => {
 						C: oa.C,
 						D: oa.D,
 						'AC/BD':
-							oa.A != null
+							oa.A != null && oa.B != null && oa.C != null && oa.D != null
 								? `${(+oa.A + +oa.C).toFixed(2)}/${(+oa.B + +oa.D).toFixed(2)}`
 								: null,
 						Bias: overallAvgBias,

@@ -15,10 +15,18 @@
 	let chart: Chart | null = null;
 
 	const PALETTE = [
-		'oklch(65% 0.2 30)', 'oklch(65% 0.2 90)', 'oklch(65% 0.2 150)',
-		'oklch(65% 0.2 210)', 'oklch(65% 0.2 270)', 'oklch(65% 0.2 330)',
-		'oklch(70% 0.18 60)', 'oklch(70% 0.18 120)', 'oklch(70% 0.18 180)',
-		'oklch(70% 0.18 240)', 'oklch(70% 0.18 300)', 'oklch(70% 0.18 360)',
+		'oklch(65% 0.2 30)',
+		'oklch(65% 0.2 90)',
+		'oklch(65% 0.2 150)',
+		'oklch(65% 0.2 210)',
+		'oklch(65% 0.2 270)',
+		'oklch(65% 0.2 330)',
+		'oklch(70% 0.18 60)',
+		'oklch(70% 0.18 120)',
+		'oklch(70% 0.18 180)',
+		'oklch(70% 0.18 240)',
+		'oklch(70% 0.18 300)',
+		'oklch(70% 0.18 360)',
 	];
 
 	onMount(() => {
@@ -28,7 +36,7 @@
 				labels: seasons.map(String),
 				datasets: tracks.map((t, i) => ({
 					label: t.Track,
-					data: seasons.map(s => t.seasons[s] ?? null),
+					data: seasons.map((s) => t.seasons[s] ?? null),
 					borderColor: PALETTE[i % PALETTE.length],
 					backgroundColor: PALETTE[i % PALETTE.length],
 					spanGaps: false,
@@ -53,11 +61,13 @@
 							if (nativeEvent?.altKey) {
 								// Option/Alt + click: solo this track, or restore all if already soloed
 								const datasets = ci.data.datasets;
-								const isOnlyVisible = datasets.every((_, i) => i === index ? ci.isDatasetVisible(i) : !ci.isDatasetVisible(i));
+								const isOnlyVisible = datasets.every((_, i) =>
+									i === index ? ci.isDatasetVisible(i) : !ci.isDatasetVisible(i)
+								);
 								if (isOnlyVisible) {
 									datasets.forEach((_, i) => ci.show(i));
 								} else {
-									datasets.forEach((_, i) => i === index ? ci.show(i) : ci.hide(i));
+									datasets.forEach((_, i) => (i === index ? ci.show(i) : ci.hide(i)));
 								}
 							} else {
 								// Normal click: toggle as default
@@ -65,7 +75,11 @@
 							}
 						},
 					},
-					tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(2) ?? '-'} km/h` } },
+					tooltip: {
+						callbacks: {
+							label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(2) ?? '-'} km/h`,
+						},
+					},
 				},
 				scales: {
 					x: { title: { display: true, text: 'Season' } },

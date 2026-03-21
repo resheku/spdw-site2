@@ -1,9 +1,11 @@
 ---
+import '../styles/globals.css';
+
 interface Props {
 	title?: string;
 }
 
-const { title = "spdw" } = Astro.props;
+const { title = 'spdw' } = Astro.props;
 ---
 
 <!doctype html>
@@ -18,24 +20,18 @@ const { title = "spdw" } = Astro.props;
 		<title>{title}</title>
 	</head>
 	<body class="antialiased">
-		<div class="min-h-screen flex flex-col">
+		<div class="flex min-h-screen flex-col">
 			<main class="flex-1">
 				<slot />
 			</main>
-			<footer class="border-t py-1 mt-2">
+			<footer class="mt-2 border-t py-1">
 				<div class="content-area">
-					<div class="flex justify-center items-center space-x-4 text-sm text-muted-foreground">
+					<div class="text-muted-foreground flex items-center justify-center space-x-4 text-sm">
 						<span>© spdw 2025</span>
-						<a href="/about" class="about-link">
-							About
-						</a>
+						<a href="/about" class="about-link"> About </a>
 					</div>
 				</div>
 			</footer>
 		</div>
 	</body>
 </html>
-
-<style is:global>
-	@import "../styles/globals.css";
-</style>

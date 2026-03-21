@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import ScheduleTable from '../../components/ScheduleTable.svelte';
 
 export const prerender = false;
 
@@ -8,32 +9,51 @@ const initialLeagues = urlParams.get('league')?.split(',').filter(Boolean) ?? []
 const initialSeasons = urlParams.get('season')?.split(',').filter(Boolean) ?? [];
 const initialRounds = urlParams.get('round')?.split(',').filter(Boolean) ?? [];
 const initialTracks = urlParams.get('track')?.split(',').filter(Boolean) ?? [];
+const initialTeams = urlParams.get('team')?.split(',').filter(Boolean) ?? [];
 const initialSortColumns = urlParams.get('sortColumn')?.split(',').filter(Boolean) ?? [];
 const initialSortDirections = urlParams.get('sortDirection')?.split(',').filter(Boolean) ?? [];
 
-let schedule: any[] = [];
+type ScheduleRow = {
+	match_id: number;
+	round: number | null;
+	league: string | null;
+	leagueName: string | null;
+	type: string | null;
+	typeName: string | null;
+	datetime: string | null;
+	matchName: string | null;
+	homeTeamId: number | null;
+	homeTeamShort: string | null;
+	awayTeamId: number | null;
+	awayTeamShort: string | null;
+	homeScore: number | null;
+	awayScore: number | null;
+	homeTotal: number | null;
+	awayTotal: number | null;
+	attendance: number | null;
+	season: number | null;
+	track: string | null;
+};
+
+let schedule: ScheduleRow[] = [];
 let allLeagues: Array<{ shortname: string; name: string }> = [];
 let allSeasons: number[] = [];
 let error: string | null = null;
 
 try {
-	const scheduleUrl = new URL('/api/sel/schedule', Astro.url);
-	if (initialLeagues.length > 0) scheduleUrl.searchParams.set('league', initialLeagues.join(','));
-	if (initialSeasons.length > 0) scheduleUrl.searchParams.set('season', initialSeasons.join(','));
-	scheduleUrl.searchParams.set('sortColumn', initialSortColumns[0] ?? 'date');
-	scheduleUrl.searchParams.set('sortDirection', initialSortDirections[0] ?? 'desc');
-
 	const [scheduleRes, filtersRes] = await Promise.all([
-		fetch(scheduleUrl.toString()),
+		fetch(new URL('/api/sel/schedule?sortColumn=date&sortDirection=desc', Astro.url).toString()),
 		fetch(new URL('/api/sel/schedule/filters', Astro.url).toString()),
 	]);
 
 	if (scheduleRes.ok && filtersRes.ok) {
-		const scheduleData = await scheduleRes.json() as any;
-		const filtersData = await filtersRes.json() as any;
-		schedule = scheduleData.schedule ?? [];
-		allLeagues = filtersData.leagues ?? [];
-		allSeasons = filtersData.seasons ?? [];
+		schedule = ((await scheduleRes.json()) as { schedule: ScheduleRow[] }).schedule ?? [];
+		const fd = (await filtersRes.json()) as {
+			leagues: Array<{ shortname: string; name: string }>;
+			seasons: number[];
+		};
+		allLeagues = fd.leagues ?? [];
+		allSeasons = fd.seasons ?? [];
 	} else {
 		error = 'Failed to load schedule';
 	}
@@ -41,712 +61,85 @@ try {
 	console.error('[schedule page] Error:', err);
 	error = 'Failed to load schedule';
 }
-
-function formatDate(dt: string): string {
-	if (!dt) return '';
-	return dt.slice(0, 16); // "2025-10-05 19:30"
-}
 ---
 
 <Layout title="SEL Schedule - spdw">
 	<div class="p-4">
 		<nav aria-label="breadcrumb">
-			<ol class="text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm break-words sm:gap-2.5">
+			<ol
+				class="text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm break-words sm:gap-2.5"
+			>
 				<li class="inline-flex items-center gap-1.5">
 					<a href="/" class="hover:text-foreground transition-colors">Home</a>
 				</li>
 				<li role="presentation" aria-hidden="true" class="[&>svg]:size-3.5">
-					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<path d="m9 18 6-6-6-6"/>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="24"
+						height="24"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="m9 18 6-6-6-6"></path>
 					</svg>
 				</li>
 				<li class="inline-flex items-center gap-1.5">
 					<a href="/sel" class="hover:text-foreground transition-colors">sel</a>
 				</li>
 				<li role="presentation" aria-hidden="true" class="[&>svg]:size-3.5">
-					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<path d="m9 18 6-6-6-6"/>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="24"
+						height="24"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="m9 18 6-6-6-6"></path>
 					</svg>
 				</li>
 				<li class="inline-flex items-center gap-1.5">
-					<span class="text-foreground font-normal" role="link" aria-disabled="true" aria-current="page">schedule</span>
+					<span
+						class="text-foreground font-normal"
+						role="link"
+						aria-disabled="true"
+						aria-current="page">schedule</span
+					>
 				</li>
 			</ol>
 		</nav>
 	</div>
 
-	<div class="px-4 pb-8 max-w-full">
-		<h1 class="text-2xl font-bold mb-6">SEL Schedule</h1>
+	<div class="max-w-full px-4 pb-8">
+		<h1 class="mb-6 text-2xl font-bold">SEL Schedule</h1>
 
-		<!-- Controls -->
-		<div class="mb-4 flex flex-wrap gap-3">
-			<!-- Season Filter -->
-			<div class="min-w-[140px] relative">
-				<button
-					id="seasonFilterBtn"
-					class="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-muted text-left flex justify-between items-center"
-				>
-					<span id="seasonFilterLabel">Seasons</span>
-					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-					</svg>
-				</button>
-				<div id="seasonFilterDropdown" class="hidden absolute z-50 mt-1 w-full max-h-[70vh] overflow-y-auto rounded-md border border-border bg-background shadow-lg">
-					<div class="sticky top-0 bg-background border-b border-border p-2">
-						<button
-							id="seasonClearBtn"
-							class="text-sm px-3 py-2 rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 hover:text-red-700 active:bg-red-500/30 disabled:bg-muted/50 disabled:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150 w-full font-medium cursor-pointer"
-							data-action="clear" data-filter="season"
-							disabled
-						>Clear Filter</button>
-					</div>
-					<div id="seasonFilterOptions" class="p-2">
-						{allSeasons.slice().reverse().map(season => (
-							<div class="flex items-center gap-2 py-1 rounded px-1 hover:bg-muted/50">
-								<input
-									type="checkbox"
-									id={`season-${season}`}
-									value={String(season)}
-									checked={initialSeasons.includes(String(season))}
-									class="cursor-pointer"
-								/>
-								<a href="#" class="flex-1 text-sm hover:underline cursor-pointer" data-filter="season" data-value={String(season)}>
-									{season}
-								</a>
-							</div>
-						))}
-					</div>
+		{
+			error ? (
+				<div class="bg-muted text-muted-foreground rounded-md p-4">
+					<p>{error}</p>
 				</div>
-			</div>
-
-			<!-- League Filter -->
-			<div class="min-w-[200px] relative">
-				<button
-					id="leagueFilterBtn"
-					class="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-muted text-left flex justify-between items-center"
-				>
-					<span id="leagueFilterLabel">Leagues</span>
-					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-					</svg>
-				</button>
-				<div id="leagueFilterDropdown" class="hidden absolute z-50 mt-1 w-full max-h-[70vh] overflow-y-auto rounded-md border border-border bg-background shadow-lg">
-					<div class="sticky top-0 bg-background border-b border-border p-2">
-						<button
-							id="leagueClearBtn"
-							class="text-sm px-3 py-2 rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 hover:text-red-700 active:bg-red-500/30 disabled:bg-muted/50 disabled:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150 w-full font-medium cursor-pointer"
-							data-action="clear" data-filter="league"
-							disabled
-						>Clear Filter</button>
-					</div>
-					<div id="leagueFilterOptions" class="p-2">
-						{allLeagues.map(lg => (
-							<div class="flex items-center gap-2 py-1 rounded px-1 hover:bg-muted/50">
-								<input
-									type="checkbox"
-									id={`league-${lg.shortname}`}
-									value={lg.shortname}
-									checked={initialLeagues.includes(lg.shortname)}
-									class="cursor-pointer"
-								/>
-								<a href="#" class="flex-1 text-sm hover:underline cursor-pointer" data-filter="league" data-value={lg.shortname}>
-									{lg.shortname} – {lg.name}
-								</a>
-							</div>
-						))}
-					</div>
-				</div>
-			</div>
-
-			<!-- Round Filter -->
-			<div class="min-w-[120px] relative">
-				<button
-					id="roundFilterBtn"
-					class="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-muted text-left flex justify-between items-center"
-				>
-					<span id="roundFilterLabel">Rounds</span>
-					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-					</svg>
-				</button>
-				<div id="roundFilterDropdown" class="hidden absolute z-50 mt-1 w-full max-h-[70vh] overflow-y-auto rounded-md border border-border bg-background shadow-lg">
-					<div class="sticky top-0 bg-background border-b border-border p-2">
-						<button
-							id="roundClearBtn"
-							class="text-sm px-3 py-2 rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 hover:text-red-700 active:bg-red-500/30 disabled:bg-muted/50 disabled:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150 w-full font-medium cursor-pointer"
-							data-action="clear" data-filter="round"
-							disabled
-						>Clear Filter</button>
-					</div>
-					<div id="roundFilterOptions" class="p-2"></div>
-				</div>
-			</div>
-
-			<!-- Team Filter -->
-			<div class="min-w-[140px] relative">
-				<button
-					id="teamFilterBtn"
-					class="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-muted text-left flex justify-between items-center"
-				>
-					<span id="teamFilterLabel">Teams</span>
-					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-					</svg>
-				</button>
-				<div id="teamFilterDropdown" class="hidden absolute z-50 mt-1 w-full max-h-[70vh] overflow-y-auto rounded-md border border-border bg-background shadow-lg">
-					<div class="sticky top-0 bg-background border-b border-border p-2">
-						<button
-							id="teamClearBtn"
-							class="text-sm px-3 py-2 rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 hover:text-red-700 active:bg-red-500/30 disabled:bg-muted/50 disabled:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150 w-full font-medium cursor-pointer"
-							data-action="clear" data-filter="team"
-							disabled
-						>Clear Filter</button>
-					</div>
-					<div id="teamFilterOptions" class="p-2"></div>
-				</div>
-			</div>
-
-			<!-- Track Filter -->
-			<div class="min-w-[160px] relative">
-				<button
-					id="trackFilterBtn"
-					class="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-muted text-left flex justify-between items-center"
-				>
-					<span id="trackFilterLabel">Tracks</span>
-					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-					</svg>
-				</button>
-				<div id="trackFilterDropdown" class="hidden absolute z-50 mt-1 w-full max-h-[70vh] overflow-y-auto rounded-md border border-border bg-background shadow-lg">
-					<div class="sticky top-0 bg-background border-b border-border p-2">
-						<button
-							id="trackClearBtn"
-							class="text-sm px-3 py-2 rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 hover:text-red-700 active:bg-red-500/30 disabled:bg-muted/50 disabled:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150 w-full font-medium cursor-pointer"
-							data-action="clear" data-filter="track"
-							disabled
-						>Clear Filter</button>
-					</div>
-					<div id="trackFilterOptions" class="p-2"></div>
-				</div>
-			</div>
-		</div>
-
-		<!-- Row count -->
-		<div class="mb-2 flex items-center justify-between text-sm text-muted-foreground">
-			<span id="rowCount">{schedule.length} matches</span>
-			<div class="text-xs opacity-75">
-				Hold <kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-xs font-mono">Shift</kbd> to sort by multiple columns
-			</div>
-		</div>
-
-		<!-- Table -->
-		<div class="overflow-x-auto border border-border rounded-lg">
-			<table class="w-full text-sm" id="scheduleTable">
-				<thead class="bg-muted sticky top-0">
-					<tr>
-						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80 whitespace-nowrap align-middle" data-column="round">#<span class="sort-indicator"></span></th>
-						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80 whitespace-nowrap align-middle" data-column="type">Round<span class="sort-indicator"></span></th>
-						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80 whitespace-nowrap align-middle" data-column="date">Date<span class="sort-indicator"></span></th>
-						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80 align-middle" data-column="match">Match<span class="sort-indicator"></span></th>
-						<th class="sortable pl-1 pr-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80 whitespace-nowrap align-middle" data-column="score">Score<span class="sort-indicator"></span></th>
-						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80 whitespace-nowrap align-middle" data-column="total">Total<span class="sort-indicator"></span></th>
-						<th class="sortable pl-6 pr-3 py-2 text-right font-medium cursor-pointer hover:bg-muted/80 whitespace-nowrap align-middle max-lg:hidden" data-column="attendance">Attendance<span class="sort-indicator"></span></th>
-						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80 whitespace-nowrap align-middle max-md:hidden" data-column="track">Track<span class="sort-indicator"></span></th>
-						<th class="sortable px-3 py-2 text-left font-medium cursor-pointer hover:bg-muted/80 whitespace-nowrap align-middle max-md:hidden" data-column="league">League<span class="sort-indicator"></span></th>
-					</tr>
-				</thead>
-				<tbody id="scheduleBody">
-					{schedule.map((m) => (
-						<tr class="border-t border-border hover:bg-muted/50">
-							<td class="px-3 py-2 text-left whitespace-nowrap">{m.round ?? '-'}</td>
-							<td class="px-3 py-2 text-left whitespace-nowrap">{m.type ?? '-'}</td>
-							<td class="px-3 py-2 text-left font-mono text-xs whitespace-nowrap">{formatDate(m.datetime)}</td>
-							<td class="px-3 py-2 text-left">{m.matchName ?? ''}</td>
-						<td class="pl-1 pr-3 py-2 text-left whitespace-nowrap">
-							{m.homeScore != null && m.awayScore != null ? (
-								<span class="inline-flex items-center gap-1.5">
-									<span class={`inline-block text-[0.65rem] font-bold px-1 py-0.5 rounded leading-none ${
-										m.homeScore > m.awayScore ? 'bg-green-500/20 text-green-600 dark:text-green-400' :
-										m.homeScore < m.awayScore ? 'bg-red-500/20 text-red-600 dark:text-red-400' :
-										'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'
-									}`}>{m.homeScore > m.awayScore ? 'W' : m.homeScore < m.awayScore ? 'L' : 'D'}</span>
-									<span class="font-medium">{m.homeScore}:{m.awayScore}</span>								<span class={`inline-block text-[0.65rem] font-bold px-1 py-0.5 rounded leading-none ${
-									m.awayScore > m.homeScore ? 'bg-green-500/20 text-green-600 dark:text-green-400' :
-									m.awayScore < m.homeScore ? 'bg-red-500/20 text-red-600 dark:text-red-400' :
-									'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'
-								}`}>{m.awayScore > m.homeScore ? 'W' : m.awayScore < m.homeScore ? 'L' : 'D'}</span>								</span>
-							) : '-'}
-							</td>
-							<td class="px-3 py-2 text-left whitespace-nowrap text-muted-foreground">
-							{m.homeTotal != null && m.awayTotal != null ? `${m.homeTotal}:${m.awayTotal}` : ''}
-							</td>
-						<td class="pl-6 pr-3 py-2 text-right whitespace-nowrap max-lg:hidden">{m.attendance ? m.attendance.toLocaleString() : ''}</td>
-						<td class="px-3 py-2 text-left whitespace-nowrap max-md:hidden">
-							{m.track ? <a href={`/sel/tracks/${encodeURIComponent(m.track)}`} class="hover:underline">{m.track}</a> : ''}
-						</td>
-							<td class="px-3 py-2 text-left whitespace-nowrap max-md:hidden">{m.league ?? ''}</td>
-						</tr>
-					))}
-				</tbody>
-			</table>
-		</div>
-
-		{error && (
-			<div class="mt-4 p-4 bg-muted rounded-md text-muted-foreground">
-				<p>{error}</p>
-			</div>
-		)}
+			) : (
+				<ScheduleTable
+					client:load
+					initialData={schedule}
+					allLeagues={allLeagues}
+					allSeasons={allSeasons}
+					initialLeagues={initialLeagues}
+					initialSeasons={initialSeasons}
+					initialRounds={initialRounds}
+					initialTracks={initialTracks}
+					initialTeams={initialTeams}
+					initialSortColumns={initialSortColumns}
+					initialSortDirections={initialSortDirections}
+				/>
+			)
+		}
 	</div>
-
-	<script define:vars={{
-		initialSchedule: schedule,
-		initialLeagues,
-		initialSeasons,
-		initialRounds,
-		initialTracks,
-		initialSortColumns,
-		initialSortDirections,
-	}}>
-		window.__SCHEDULE__ = initialSchedule;
-		window.__INITIAL_LEAGUES__ = initialLeagues;
-		window.__INITIAL_SEASONS__ = initialSeasons;
-		window.__INITIAL_ROUNDS__ = initialRounds;
-		window.__INITIAL_TRACKS__ = initialTracks;
-		window.__INITIAL_SORT_COLUMNS__ = initialSortColumns;
-		window.__INITIAL_SORT_DIRECTIONS__ = initialSortDirections;
-	</script>
-
-	<script>
-		// ── State ──────────────────────────────────────────────────────────────
-		let allData: any[] = [];
-
-		let currentFilters = {
-			leagues: [] as string[],
-			seasons: [] as string[],
-			rounds: [] as string[],
-			tracks: [] as string[],
-			teams: [] as string[],
-			sortColumns: [] as Array<{ column: string, direction: string }>,
-		};
-
-		// ── Helpers ────────────────────────────────────────────────────────────
-		function getColValue(row: any, col: string): any {
-			switch (col) {
-				case 'round':      return row.round ?? null;
-				case 'type':       return row.type ?? null;
-				case 'date':       return row.datetime ?? null;
-				case 'match':      return row.matchName ?? null;
-				case 'score':      return row.homeScore ?? null;
-				case 'total':      return row.homeTotal ?? null;
-				case 'attendance': return row.attendance ?? null;
-				case 'track':      return row.track ?? null;
-				case 'league':     return row.league ?? null;
-				case 'season':     return row.season ?? null;
-				default:           return null;
-			}
-		}
-
-		function filterAndSort(): any[] {
-			let data = [...allData];
-
-			if (currentFilters.leagues.length > 0) {
-				data = data.filter(m => currentFilters.leagues.includes(m.league));
-			}
-			if (currentFilters.seasons.length > 0) {
-				data = data.filter(m => currentFilters.seasons.includes(String(m.season)));
-			}
-			if (currentFilters.rounds.length > 0) {
-				data = data.filter(m => currentFilters.rounds.includes(m.type));
-			}
-			if (currentFilters.tracks.length > 0) {
-				data = data.filter(m => currentFilters.tracks.includes(m.track));
-			}
-			if (currentFilters.teams.length > 0) {
-				data = data.filter(m =>
-					currentFilters.teams.includes(m.homeTeamShort) ||
-					currentFilters.teams.includes(m.awayTeamShort)
-				);
-			}
-
-			if (currentFilters.sortColumns.length > 0) {
-				data.sort((a, b) => {
-					for (const { column, direction: dir } of currentFilters.sortColumns) {
-						const av = getColValue(a, column);
-						const bv = getColValue(b, column);
-						if (av === null || av === undefined) { if (bv === null || bv === undefined) continue; return 1; }
-						if (bv === null || bv === undefined) return -1;
-						const d = dir === 'asc' ? 1 : -1;
-						const result = typeof av === 'string' ? d * av.localeCompare(bv) : d * (av - bv);
-						if (result !== 0) return result;
-					}
-					return 0;
-				});
-			}
-
-			return data;
-		}
-
-		function formatDate(dt: string): string {
-			if (!dt) return '';
-			return dt.slice(0, 16);
-		}
-
-		function escapeHtml(s: string): string {
-			return String(s)
-				.replace(/&/g, '&amp;')
-				.replace(/</g, '&lt;')
-				.replace(/>/g, '&gt;')
-				.replace(/"/g, '&quot;');
-		}
-
-		// ── Table rendering ────────────────────────────────────────────────────
-		function renderTable(data: any[]) {
-			const tbody = document.getElementById('scheduleBody');
-			if (!tbody) return;
-
-			const rowCount = document.getElementById('rowCount');
-			if (rowCount) {
-				rowCount.textContent = `${data.length} match${data.length !== 1 ? 'es' : ''}`;
-			}
-
-			const fragment = document.createDocumentFragment();
-
-			data.forEach((m: any) => {
-				const row = document.createElement('tr');
-				row.className = 'border-t border-border hover:bg-muted/50';
-
-				const scoreHtml = (m.homeScore != null && m.awayScore != null)
-					? `<span class="font-medium">${m.homeScore}:${m.awayScore}</span>`
-					: '<span class="text-muted-foreground">-</span>';
-
-				const matchHtml = (() => {
-					const name = escapeHtml(m.matchName ?? '');
-					if (m.homeScore == null || m.awayScore == null) return name;
-					const homeBadge = m.homeScore > m.awayScore ? 'W' : m.homeScore < m.awayScore ? 'L' : 'D';
-					const awayBadge = m.awayScore > m.homeScore ? 'W' : m.awayScore < m.homeScore ? 'L' : 'D';
-					const homeBadgeClass = m.homeScore > m.awayScore
-						? 'bg-green-500/20 text-green-600 dark:text-green-400'
-						: m.homeScore < m.awayScore
-							? 'bg-red-500/20 text-red-600 dark:text-red-400'
-							: 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400';
-					const awayBadgeClass = m.awayScore > m.homeScore
-						? 'bg-green-500/20 text-green-600 dark:text-green-400'
-						: m.awayScore < m.homeScore
-							? 'bg-red-500/20 text-red-600 dark:text-red-400'
-							: 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400';
-					return `<span class="inline-flex items-center gap-2 flex-wrap"><span class="inline-block text-[0.65rem] font-bold px-1 py-0.5 rounded leading-none ${homeBadgeClass}">${homeBadge}</span>${name}<span class="inline-block text-[0.65rem] font-bold px-1 py-0.5 rounded leading-none ${awayBadgeClass}">${awayBadge}</span></span>`;
-				})();
-
-				const totalHtml = (m.homeTotal != null && m.awayTotal != null)
-					? `<span class="text-muted-foreground">${m.homeTotal}:${m.awayTotal}</span>`
-				: '';
-
-				const attendance = m.attendance ? m.attendance.toLocaleString() : '';
-
-				row.innerHTML = `
-					<td class="px-3 py-2 text-left whitespace-nowrap">${escapeHtml(String(m.round ?? '-'))}</td>
-					<td class="px-3 py-2 text-left whitespace-nowrap">${escapeHtml(String(m.type ?? '-'))}</td>
-					<td class="px-3 py-2 text-left font-mono text-xs whitespace-nowrap">${escapeHtml(formatDate(m.datetime))}</td>
-					<td class="px-3 py-2 text-left">${matchHtml}</td>
-					<td class="pl-1 pr-3 py-2 text-left whitespace-nowrap">${scoreHtml}</td>
-					<td class="px-3 py-2 text-left whitespace-nowrap">${totalHtml}</td>
-					<td class="pl-6 pr-3 py-2 text-right whitespace-nowrap max-lg:hidden">${escapeHtml(attendance)}</td>
-					<td class="px-3 py-2 text-left whitespace-nowrap max-md:hidden">${m.track ? `<a href="/sel/tracks/${encodeURIComponent(m.track)}" class="hover:underline">${escapeHtml(m.track)}</a>` : ''}</td>
-					<td class="px-3 py-2 text-left whitespace-nowrap max-md:hidden">${escapeHtml(m.league ?? '')}</td>
-				`;
-				fragment.appendChild(row);
-			});
-
-			tbody.innerHTML = '';
-			tbody.appendChild(fragment);
-		}
-
-		// ── Filter option population (for dynamic dropdowns) ───────────────────
-		function populateFilterOptions(filterType: string, options: string[], selected: string[], validOptions: string[] | null = null) {
-			const container = document.getElementById(`${filterType}FilterOptions`);
-			if (!container) return;
-			container.innerHTML = '';
-
-			options.forEach(option => {
-				const isValid = validOptions === null || validOptions.includes(option);
-				const item = document.createElement('div');
-				item.className = `flex items-center gap-2 py-1 rounded px-1 ${isValid ? 'hover:bg-muted/50' : 'opacity-40'}`;
-
-				const cb = document.createElement('input');
-				cb.type = 'checkbox';
-				cb.value = option;
-				cb.checked = selected.includes(option);
-				cb.className = isValid ? 'cursor-pointer' : 'cursor-not-allowed';
-				cb.addEventListener('change', (e) => {
-					handleCheckboxChange(filterType, option, (e.target as HTMLInputElement).checked);
-				});
-
-				const link = document.createElement('a');
-				link.href = '#';
-				link.textContent = option;
-				link.className = `flex-1 text-sm ${isValid ? 'hover:underline cursor-pointer' : 'cursor-not-allowed'}`;
-				link.addEventListener('click', (e) => {
-					e.preventDefault();
-					if (isValid) handleLinkClick(filterType, option);
-				});
-
-				item.appendChild(cb);
-				item.appendChild(link);
-				container.appendChild(item);
-			});
-		}
-
-		// ── Track & Team filter state ─────────────────────────────────────────
-		function updateDependentFilterStates() {
-			// Available tracks: all other active filters except track itself
-			let forTracks = [...allData];
-			if (currentFilters.leagues.length > 0) forTracks = forTracks.filter((m: any) => currentFilters.leagues.includes(m.league));
-			if (currentFilters.seasons.length > 0) forTracks = forTracks.filter((m: any) => currentFilters.seasons.includes(String(m.season)));
-			if (currentFilters.rounds.length > 0) forTracks = forTracks.filter((m: any) => currentFilters.rounds.includes(m.type));
-			if (currentFilters.teams.length > 0) forTracks = forTracks.filter((m: any) => currentFilters.teams.includes(m.homeTeamShort) || currentFilters.teams.includes(m.awayTeamShort));
-			const availableTracks = new Set(forTracks.map((m: any) => m.track).filter(Boolean));
-			const allTracks = [...new Set(allData.map((m: any) => m.track).filter(Boolean))].sort() as string[];
-			populateFilterOptions('track', allTracks, currentFilters.tracks, [...availableTracks].sort());
-
-			// Available teams: all other active filters except team itself
-			let forTeams = [...allData];
-			if (currentFilters.leagues.length > 0) forTeams = forTeams.filter((m: any) => currentFilters.leagues.includes(m.league));
-			if (currentFilters.seasons.length > 0) forTeams = forTeams.filter((m: any) => currentFilters.seasons.includes(String(m.season)));
-			if (currentFilters.rounds.length > 0) forTeams = forTeams.filter((m: any) => currentFilters.rounds.includes(m.type));
-			if (currentFilters.tracks.length > 0) forTeams = forTeams.filter((m: any) => currentFilters.tracks.includes(m.track));
-			const availableTeams = new Set<string>();
-			forTeams.forEach((m: any) => { if (m.homeTeamShort) availableTeams.add(m.homeTeamShort); if (m.awayTeamShort) availableTeams.add(m.awayTeamShort); });
-			const allTeams = [...new Set([...allData.map((m: any) => m.homeTeamShort), ...allData.map((m: any) => m.awayTeamShort)].filter(Boolean))].sort() as string[];
-			populateFilterOptions('team', allTeams, currentFilters.teams, [...availableTeams].sort());
-		}
-
-		// ── Sort indicators ────────────────────────────────────────────────────
-		function updateSortIndicators() {
-			document.querySelectorAll('.sort-indicator').forEach(el => {
-				el.textContent = '';
-			});
-			currentFilters.sortColumns.forEach((sort, index) => {
-				const header = document.querySelector(`[data-column="${sort.column}"]`);
-				const indicator = header?.querySelector('.sort-indicator');
-				if (indicator) {
-					const arrow = sort.direction === 'desc' ? '▼' : '▲';
-					const priority = currentFilters.sortColumns.length > 1 ? `${index + 1}` : '';
-					indicator.textContent = ` ${arrow}${priority}`;
-				}
-			});
-		}
-
-		function handleSort(event: Event) {
-			const mouseEvent = event as MouseEvent;
-			const header = event.currentTarget as HTMLElement;
-			const column = header.dataset.column;
-			if (!column) return;
-
-			if (mouseEvent.shiftKey) {
-				const existingIndex = currentFilters.sortColumns.findIndex(s => s.column === column);
-				if (existingIndex >= 0) {
-					if (currentFilters.sortColumns[existingIndex].direction === 'desc') {
-						currentFilters.sortColumns[existingIndex].direction = 'asc';
-					} else {
-						currentFilters.sortColumns.splice(existingIndex, 1);
-					}
-				} else {
-					currentFilters.sortColumns.push({ column, direction: 'desc' });
-				}
-			} else {
-				const existingIndex = currentFilters.sortColumns.findIndex(s => s.column === column);
-				if (existingIndex === 0 && currentFilters.sortColumns.length === 1) {
-					if (currentFilters.sortColumns[0].direction === 'desc') {
-						currentFilters.sortColumns[0].direction = 'asc';
-					} else {
-						currentFilters.sortColumns = [];
-					}
-				} else {
-					currentFilters.sortColumns = [{ column, direction: 'desc' }];
-				}
-			}
-
-			updateSortIndicators();
-			updateURL();
-			renderTable(filterAndSort());
-		}
-
-		// ── Dropdown helpers ───────────────────────────────────────────────────
-		function toggleDropdown(filterType: string) {
-			const dropdown = document.getElementById(`${filterType}FilterDropdown`);
-			if (!dropdown) return;
-			const wasHidden = dropdown.classList.contains('hidden');
-			closeAllDropdowns();
-			if (wasHidden) dropdown.classList.remove('hidden');
-		}
-
-		function closeAllDropdowns() {
-			['league', 'season', 'round', 'team', 'track'].forEach(ft => {
-				document.getElementById(`${ft}FilterDropdown`)?.classList.add('hidden');
-			});
-		}
-
-		function updateFilterButtonLabel(filterType: string, selected: string[]) {
-			const label = document.getElementById(`${filterType}FilterLabel`);
-			if (!label) return;
-			const names: Record<string, string> = {
-				league: 'Leagues', season: 'Seasons', round: 'Rounds', team: 'Teams', track: 'Tracks',
-			};
-			const name = names[filterType] ?? (filterType.charAt(0).toUpperCase() + filterType.slice(1) + 's');
-			if (selected.length === 0) {
-				label.textContent = name;
-			} else if (selected.length === 1) {
-				label.textContent = selected[0];
-			} else {
-				label.textContent = `${name} (${selected.length})`;
-			}
-			const clearBtn = document.getElementById(`${filterType}ClearBtn`) as HTMLButtonElement | null;
-			if (clearBtn) clearBtn.disabled = selected.length === 0;
-		}
-
-		function handleCheckboxChange(filterType: string, value: string, checked: boolean) {
-			const key = `${filterType}s` as 'leagues' | 'seasons' | 'rounds' | 'tracks' | 'teams';
-			if (checked) {
-				if (!currentFilters[key].includes(value)) currentFilters[key].push(value);
-			} else {
-				currentFilters[key] = currentFilters[key].filter(v => v !== value);
-			}
-			updateFilterButtonLabel(filterType, currentFilters[key]);
-			updateURL();
-			renderTable(filterAndSort());
-			updateDependentFilterStates();
-		}
-
-		function handleLinkClick(filterType: string, value: string) {
-			const key = `${filterType}s` as 'leagues' | 'seasons' | 'rounds' | 'tracks' | 'teams';
-			currentFilters[key] = [value];
-			closeAllDropdowns();
-
-			const container = document.getElementById(`${filterType}FilterOptions`);
-			container?.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach(cb => {
-				cb.checked = cb.value === value;
-			});
-
-			updateFilterButtonLabel(filterType, currentFilters[key]);
-			updateURL();
-			renderTable(filterAndSort());
-			updateDependentFilterStates();
-		}
-
-		function handleClear(filterType: string) {
-			const key = `${filterType}s` as 'leagues' | 'seasons' | 'rounds' | 'tracks' | 'teams';
-			currentFilters[key] = [];
-
-			const container = document.getElementById(`${filterType}FilterOptions`);
-			container?.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach(cb => {
-				cb.checked = false;
-			});
-
-			updateFilterButtonLabel(filterType, []);
-			updateURL();
-			renderTable(filterAndSort());
-			updateDependentFilterStates();
-		}
-
-		// ── URL sync ───────────────────────────────────────────────────────────
-		function updateURL() {
-			const params = new URLSearchParams();
-			if (currentFilters.leagues.length > 0) params.set('league', currentFilters.leagues.join(','));
-			if (currentFilters.seasons.length > 0) params.set('season', currentFilters.seasons.join(','));
-			if (currentFilters.rounds.length > 0) params.set('round', currentFilters.rounds.join(','));
-			if (currentFilters.teams.length > 0) params.set('team', currentFilters.teams.join(','));
-			if (currentFilters.tracks.length > 0) params.set('track', currentFilters.tracks.join(','));
-			if (currentFilters.sortColumns.length > 0) {
-				params.set('sortColumn', currentFilters.sortColumns.map(s => s.column).join(','));
-				params.set('sortDirection', currentFilters.sortColumns.map(s => s.direction).join(','));
-			}
-			const newURL = params.toString()
-				? `${window.location.pathname}?${params.toString()}`
-				: window.location.pathname;
-			window.history.pushState({}, '', newURL);
-		}
-
-		// ── Init ───────────────────────────────────────────────────────────────
-		document.addEventListener('DOMContentLoaded', () => {
-			allData = (window as any).__SCHEDULE__ ?? [];
-
-			const urlParams = new URLSearchParams(window.location.search);
-			currentFilters.leagues = urlParams.get('league')?.split(',').filter(Boolean) ?? [];
-			currentFilters.seasons = urlParams.get('season')?.split(',').filter(Boolean) ?? [];
-			currentFilters.rounds  = urlParams.get('round')?.split(',').filter(Boolean) ?? [];
-			currentFilters.teams   = urlParams.get('team')?.split(',').filter(Boolean) ?? [];
-			currentFilters.tracks  = urlParams.get('track')?.split(',').filter(Boolean) ?? [];
-			const sortCols = urlParams.get('sortColumn')?.split(',').filter(Boolean) ?? [];
-			const sortDirs = urlParams.get('sortDirection')?.split(',').filter(Boolean) ?? [];
-			currentFilters.sortColumns = sortCols.length > 0
-				? sortCols.map((col, idx) => ({ column: col, direction: sortDirs[idx] || 'desc' }))
-				: [{ column: 'date', direction: 'desc' }];
-
-			// Populate dynamic dropdowns (Round, Team, Track) from data
-			const roundOptions = [...new Set(allData.map((m: any) => m.type).filter((t: any) => t != null))]
-				.sort() as string[];
-			populateFilterOptions('round', roundOptions, currentFilters.rounds);
-
-			updateDependentFilterStates();
-
-			// Sync all filter button labels
-			updateFilterButtonLabel('league', currentFilters.leagues);
-			updateFilterButtonLabel('season', currentFilters.seasons);
-			updateFilterButtonLabel('round', currentFilters.rounds);
-			updateFilterButtonLabel('team', currentFilters.teams);
-			updateFilterButtonLabel('track', currentFilters.tracks);
-
-			updateSortIndicators();
-
-			// Wire up dropdown toggle buttons
-			['league', 'season', 'round', 'team', 'track'].forEach(ft => {
-				document.getElementById(`${ft}FilterBtn`)?.addEventListener('click', () => toggleDropdown(ft));
-			});
-
-			// Close dropdowns when clicking outside
-			document.addEventListener('click', (e) => {
-				if (!(e.target as HTMLElement).closest('.relative')) closeAllDropdowns();
-			});
-
-			// Wire up clear buttons
-			document.querySelectorAll<HTMLButtonElement>('[data-action="clear"]').forEach(btn => {
-				btn.addEventListener('click', (e) => {
-					e.stopPropagation();
-					const ft = (btn as HTMLElement).dataset.filter;
-					if (ft) handleClear(ft);
-				});
-			});
-
-			// Wire up SSR-rendered checkboxes (league + season)
-			['league', 'season'].forEach(ft => {
-				const container = document.getElementById(`${ft}FilterOptions`);
-				container?.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach(cb => {
-					cb.addEventListener('change', (e) => {
-						handleCheckboxChange(ft, cb.value, (e.target as HTMLInputElement).checked);
-					});
-				});
-				container?.querySelectorAll<HTMLAnchorElement>('a[data-filter]').forEach(a => {
-					a.addEventListener('click', (e) => {
-						e.preventDefault();
-						handleLinkClick(ft, a.dataset.value ?? '');
-					});
-				});
-			});
-
-			// Wire up column sort
-			document.querySelectorAll('.sortable').forEach(th => {
-				th.addEventListener('click', handleSort);
-			});
-
-			renderTable(filterAndSort());
-		});
-	</script>
 </Layout>
-
-<style>
-	.sort-indicator {
-		display: inline-block;
-		min-width: 1.2em;
-		font-size: 0.75em;
-	}
-</style>

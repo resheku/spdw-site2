@@ -1,9 +1,10 @@
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ locals, url }) => {
-	const db = locals.runtime?.env?.DB;
+export const GET: APIRoute = async ({ url }) => {
+	const db = env.DB;
 
 	if (!db) {
 		return new Response(JSON.stringify({ error: 'Database not available' }), {
@@ -23,11 +24,14 @@ export const GET: APIRoute = async ({ locals, url }) => {
 		extraConditions.push(`m.match_type_shortname IN (${selectedLeagues.map(() => '?').join(',')})`);
 		params.push(...selectedLeagues);
 	}
-	const extraWhere = extraConditions.length > 0 ? 'AND ' + extraConditions.join('\n\t\t\t\tAND ') : '';
+	const extraWhere =
+		extraConditions.length > 0 ? 'AND ' + extraConditions.join('\n\t\t\t\tAND ') : '';
 
 	try {
 		const [avgResult, winResult] = await Promise.all([
-			db.prepare(`
+			db
+				.prepare(
+					`
 				SELECT
 					m.season AS season,
 					ROUND(AVG(CASE WHEN h.gate = 'a' THEN h.points END), 2) AS A,
@@ -46,9 +50,14 @@ export const GET: APIRoute = async ({ locals, url }) => {
 					${extraWhere}
 				GROUP BY m.season
 				ORDER BY m.season
-			`).bind(...params).all(),
+			`
+				)
+				.bind(...params)
+				.all(),
 
-			db.prepare(`
+			db
+				.prepare(
+					`
 				SELECT
 					m.season AS season,
 					ROUND(SUM(CASE WHEN h.gate = 'a' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
@@ -68,19 +77,25 @@ export const GET: APIRoute = async ({ locals, url }) => {
 					${extraWhere}
 				GROUP BY m.season
 				ORDER BY m.season
-			`).bind(...params).all(),
+			`
+				)
+				.bind(...params)
+				.all(),
 		]);
 
-		return new Response(JSON.stringify({
-			avgPoints: avgResult.results || [],
-			winPct: winResult.results || [],
-		}), {
-			status: 200,
-			headers: {
-				'Content-Type': 'application/json',
-				'Cache-Control': 'public, max-age=300',
-			},
-		});
+		return new Response(
+			JSON.stringify({
+				avgPoints: avgResult.results || [],
+				winPct: winResult.results || [],
+			}),
+			{
+				status: 200,
+				headers: {
+					'Content-Type': 'application/json',
+					'Cache-Control': 'public, max-age=300',
+				},
+			}
+		);
 	} catch (error) {
 		console.error('[tracks/gate-trends] Error:', error);
 		return new Response(

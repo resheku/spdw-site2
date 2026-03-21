@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 
 export const prerender = false;
 
@@ -15,8 +16,8 @@ const VALID_SORT_COLUMNS: Record<string, string> = {
 	season: 'season',
 };
 
-export const GET: APIRoute = async ({ locals, url }) => {
-	const db = locals.runtime?.env?.DB;
+export const GET: APIRoute = async ({ url }) => {
+	const db = env.DB;
 
 	if (!db) {
 		return new Response(JSON.stringify({ error: 'Database not available' }), {
@@ -46,7 +47,8 @@ export const GET: APIRoute = async ({ locals, url }) => {
 	}
 
 	const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-	const nullLast = dbSortCol === 'attendance' ? `CASE WHEN attendance IS NULL THEN 1 ELSE 0 END, ` : '';
+	const nullLast =
+		dbSortCol === 'attendance' ? `CASE WHEN attendance IS NULL THEN 1 ELSE 0 END, ` : '';
 	const orderBy = `ORDER BY ${nullLast}${dbSortCol} ${sortDir}`;
 
 	try {

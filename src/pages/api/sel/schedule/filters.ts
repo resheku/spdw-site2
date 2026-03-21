@@ -1,9 +1,10 @@
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ locals }) => {
-	const db = locals.runtime?.env?.DB;
+export const GET: APIRoute = async () => {
+	const db = env.DB;
 
 	if (!db) {
 		return new Response(JSON.stringify({ error: 'Database not available' }), {
@@ -20,16 +21,14 @@ export const GET: APIRoute = async ({ locals }) => {
 					 FROM matches ORDER BY match_type_name`
 				)
 				.all(),
-			db
-				.prepare(`SELECT DISTINCT season FROM matches ORDER BY season ASC`)
-				.all(),
+			db.prepare(`SELECT DISTINCT season FROM matches ORDER BY season ASC`).all(),
 		]);
 
-		const leagues = (leaguesResult.results ?? []).map((r: any) => ({
+		const leagues = (leaguesResult.results ?? []).map((r: Record<string, unknown>) => ({
 			shortname: r.shortname,
 			name: r.name,
 		}));
-		const seasons = (seasonsResult.results ?? []).map((r: any) => r.season);
+		const seasons = (seasonsResult.results ?? []).map((r: Record<string, unknown>) => r.season);
 
 		return new Response(JSON.stringify({ leagues, seasons }), {
 			status: 200,
@@ -40,9 +39,9 @@ export const GET: APIRoute = async ({ locals }) => {
 		});
 	} catch (error) {
 		console.error('[schedule/filters] Error:', error);
-		return new Response(
-			JSON.stringify({ error: 'Failed to fetch schedule filters' }),
-			{ status: 500, headers: { 'Content-Type': 'application/json' } }
-		);
+		return new Response(JSON.stringify({ error: 'Failed to fetch schedule filters' }), {
+			status: 500,
+			headers: { 'Content-Type': 'application/json' },
+		});
 	}
 };

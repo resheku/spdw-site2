@@ -1,9 +1,10 @@
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ locals }) => {
-	const db = locals.runtime?.env?.DB;
+export const GET: APIRoute = async () => {
+	const db = env.DB;
 
 	if (!db) {
 		return new Response(JSON.stringify({ error: 'Database not available' }), {
@@ -13,7 +14,9 @@ export const GET: APIRoute = async ({ locals }) => {
 	}
 
 	try {
-		const result = await db.prepare(`
+		const result = await db
+			.prepare(
+				`
 			WITH season_avgs AS (
 				SELECT
 					m.track_city AS Track,
@@ -33,14 +36,17 @@ export const GET: APIRoute = async ({ locals }) => {
 			FROM season_avgs
 			GROUP BY Track
 			ORDER BY Average DESC
-		`).all();
+		`
+			)
+			.all();
 
 		const rows = result.results || [];
-		const seasons: number[] = rows.length > 0 ? JSON.parse((rows[0] as any).all_seasons) : [];
-		const tracks = rows.map((r: any) => ({
+		const seasons: number[] =
+			rows.length > 0 ? JSON.parse((rows[0] as Record<string, unknown>).all_seasons as string) : [];
+		const tracks = rows.map((r: Record<string, unknown>) => ({
 			Track: r.Track as string,
 			Average: r.Average as number | null,
-			seasons: JSON.parse(r.seasons) as Record<string, number>,
+			seasons: JSON.parse(r.seasons as string) as Record<string, number>,
 		}));
 
 		return new Response(JSON.stringify({ tracks, seasons }), {

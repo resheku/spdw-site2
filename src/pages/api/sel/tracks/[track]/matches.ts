@@ -1,9 +1,10 @@
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ locals, params }) => {
-	const db = locals.runtime?.env?.DB;
+export const GET: APIRoute = async ({ params }) => {
+	const db = env.DB;
 	const track = params.track ?? '';
 
 	if (!db) {
@@ -21,7 +22,9 @@ export const GET: APIRoute = async ({ locals, params }) => {
 	}
 
 	try {
-		const result = await db.prepare(`
+		const result = await db
+			.prepare(
+				`
 			SELECT
 				m.match_id AS id,
 				substr(m.datetime, 1, 10) AS date,
@@ -44,7 +47,10 @@ export const GET: APIRoute = async ({ locals, params }) => {
 			WHERE m.track_city = ?
 			GROUP BY m.match_id
 			ORDER BY m.datetime DESC
-		`).bind(track).all();
+		`
+			)
+			.bind(track)
+			.all();
 
 		return new Response(
 			JSON.stringify({

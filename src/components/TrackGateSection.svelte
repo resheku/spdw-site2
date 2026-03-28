@@ -205,7 +205,10 @@
 			avgPoints = data.avgPoints ?? [];
 			winPct = data.winPct ?? [];
 			overallAvg = data.overall?.avgPoints
-				? { ...castGate(data.overall.avgPoints as Record<string, unknown>), 'AC/BD': (data.overall.avgPoints as typeof overallAvg)['AC/BD'] }
+				? {
+						...castGate(data.overall.avgPoints as Record<string, unknown>),
+						'AC/BD': (data.overall.avgPoints as typeof overallAvg)['AC/BD'],
+					}
 				: overallAvg;
 			overallWin = data.overall?.winPct
 				? (castGate(data.overall.winPct as Record<string, unknown>) as typeof overallWin)

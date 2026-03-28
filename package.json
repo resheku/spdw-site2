@@ -45,5 +45,10 @@
 		"typescript": "^5.9.3",
 		"typescript-eslint": "^8.57.1",
 		"wrangler": "^4.76.0"
+	},
+	"pnpm": {
+		"overrides": {
+			"yaml@>=2.0.0 <2.8.3": ">=2.8.3"
+		}
 	}
 }

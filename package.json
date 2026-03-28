@@ -18,7 +18,7 @@
 	},
 	"dependencies": {
 		"@astrojs/check": "^0.9.8",
-		"@astrojs/cloudflare": "^13.1.2",
+		"@astrojs/cloudflare": "^13.1.4",
 		"@astrojs/svelte": "^8.0.3",
 		"astro": "^6.0.7",
 		"chart.js": "^4.5.1",
@@ -44,11 +44,17 @@
 		"tailwindcss": "^4.2.2",
 		"typescript": "^5.9.3",
 		"typescript-eslint": "^8.57.1",
-		"wrangler": "^4.76.0"
+		"wrangler": "^4.78.0"
+	},
+	"knip": {
+		"ignoreDependencies": [
+			"miniflare"
+		]
 	},
 	"pnpm": {
 		"overrides": {
-			"yaml@>=2.0.0 <2.8.3": ">=2.8.3"
+			"yaml@>=2.0.0 <2.8.3": ">=2.8.3",
+			"@cloudflare/vite-plugin": "^1.30.2"
 		}
 	}
 }

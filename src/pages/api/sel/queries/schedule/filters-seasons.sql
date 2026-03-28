@@ -1,3 +1,3 @@
 SELECT DISTINCT season
-FROM matches
+FROM schedule
 ORDER BY season ASC

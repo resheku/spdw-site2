@@ -1,22 +1,23 @@
 SELECT
-	match_id,
-	round,
-	match_type_shortname AS league,
-	match_type_name AS "leagueName",
-	match_subtype_shortname AS type,
-	match_subtype_name AS "typeName",
-	datetime,
-	name AS "matchName",
-	home_team_id AS "homeTeamId",
-	home_team_shortcut AS "homeTeamShort",
-	away_team_id AS "awayTeamId",
-	away_team_shortcut AS "awayTeamShort",
-	home_match_score AS "homeScore",
-	away_match_score AS "awayScore",
-	home_match_tlt_score AS "homeTotal",
-	away_match_tlt_score AS "awayTotal",
-	attendance,
-	season,
-	track_city AS track
-FROM matches
+	s.id AS match_id,
+	m.round,
+	s.league AS league,
+	m.match_type_name AS "leagueName",
+	m.match_subtype_shortname AS type,
+	m.match_subtype_name AS "typeName",
+	m.datetime,
+	s.name AS "matchName",
+	m.home_team_id AS "homeTeamId",
+	m.home_team_shortcut AS "homeTeamShort",
+	m.away_team_id AS "awayTeamId",
+	m.away_team_shortcut AS "awayTeamShort",
+	m.home_match_score AS "homeScore",
+	m.away_match_score AS "awayScore",
+	m.home_match_tlt_score AS "homeTotal",
+	m.away_match_tlt_score AS "awayTotal",
+	m.attendance,
+	s.season,
+	m.track_city AS track
+FROM schedule s
+LEFT JOIN matches m ON s.id = m.match_id
 WHERE 1=1

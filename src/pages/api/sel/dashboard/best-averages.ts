@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { createSql } from '../../../../lib/sel/db';
 import { env } from 'cloudflare:workers';
 import latestQuery from './queries/best-averages-latest.sql?raw';
 import allTimeQuery from './queries/best-averages-all-time.sql?raw';
@@ -6,37 +7,18 @@ import allTimeQuery from './queries/best-averages-all-time.sql?raw';
 export const prerender = false;
 
 export const GET: APIRoute = async () => {
-	const db = env.DB;
-
-	if (!db) {
-		return new Response(
-			JSON.stringify({
-				error: 'Database not available',
-			}),
-			{
-				status: 503,
-				headers: { 'Content-Type': 'application/json' },
-			}
-		);
-	}
-
+	const sql = createSql(env.DATABASE_URL);
 	try {
 		const startTime = Date.now();
 
-		// Execute both queries in parallel
-		const [latestResult, allTimeResult] = await Promise.all([
-			db.prepare(latestQuery).all(),
-			db.prepare(allTimeQuery).all(),
+		const [latestRows, allTimeRows] = await Promise.all([
+			sql.unsafe(latestQuery),
+			sql.unsafe(allTimeQuery),
 		]);
-
-		const data = {
-			thisSeason: latestResult.results || [],
-			allTime: allTimeResult.results || [],
-		};
 
 		console.log(`[best-averages] Total time: ${Date.now() - startTime}ms`);
 
-		return new Response(JSON.stringify(data), {
+		return new Response(JSON.stringify({ thisSeason: latestRows, allTime: allTimeRows }), {
 			status: 200,
 			headers: {
 				'Content-Type': 'application/json',

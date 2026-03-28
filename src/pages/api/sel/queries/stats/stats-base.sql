@@ -1,0 +1,1 @@
+SELECT * FROM stats WHERE 1=1

@@ -1,5 +1,7 @@
 import type { APIRoute } from 'astro';
+import { createSql } from '../../../../lib/sel/db';
 import { env } from 'cloudflare:workers';
+import scheduleBase from '../queries/schedule/schedule-base.sql?raw';
 
 export const prerender = false;
 
@@ -17,15 +19,7 @@ const VALID_SORT_COLUMNS: Record<string, string> = {
 };
 
 export const GET: APIRoute = async ({ url }) => {
-	const db = env.DB;
-
-	if (!db) {
-		return new Response(JSON.stringify({ error: 'Database not available' }), {
-			status: 503,
-			headers: { 'Content-Type': 'application/json' },
-		});
-	}
-
+	const sql = createSql(env.DATABASE_URL);
 	const params = url.searchParams;
 	const leagues = params.get('league')?.split(',').filter(Boolean) ?? [];
 	const seasons = params.get('season')?.split(',').filter(Boolean).map(Number) ?? [];
@@ -34,54 +28,18 @@ export const GET: APIRoute = async ({ url }) => {
 
 	const dbSortCol = VALID_SORT_COLUMNS[sortCol] ?? 'datetime';
 
-	const conditions: string[] = [];
-	const bindings: (string | number)[] = [];
-
-	if (leagues.length > 0) {
-		conditions.push(`match_type_shortname IN (${leagues.map(() => '?').join(',')})`);
-		bindings.push(...leagues);
-	}
-	if (seasons.length > 0) {
-		conditions.push(`season IN (${seasons.map(() => '?').join(',')})`);
-		bindings.push(...seasons);
-	}
-
-	const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-	const nullLast =
-		dbSortCol === 'attendance' ? `CASE WHEN attendance IS NULL THEN 1 ELSE 0 END, ` : '';
-	const orderBy = `ORDER BY ${nullLast}${dbSortCol} ${sortDir}`;
-
 	try {
-		const query = `
-			SELECT
-				match_id,
-				round,
-				match_type_shortname AS league,
-				match_type_name AS leagueName,
-				match_subtype_shortname AS type,
-				match_subtype_name AS typeName,
-				datetime,
-				name AS matchName,
-				home_team_id AS homeTeamId,
-				home_team_shortcut AS homeTeamShort,
-				away_team_id AS awayTeamId,
-				away_team_shortcut AS awayTeamShort,
-				home_match_score AS homeScore,
-				away_match_score AS awayScore,
-				home_match_tlt_score AS homeTotal,
-				away_match_tlt_score AS awayTotal,
-				attendance,
-				season,
-				track_city AS track
-			FROM matches
-			${where}
-			${orderBy}
+		const dirSql = sortDir === 'DESC' ? sql`DESC` : sql`ASC`;
+		const nullLastSql = dbSortCol === 'attendance' ? sql`NULLS LAST` : sql``;
+
+		const rows = await sql`
+			${sql.unsafe(scheduleBase)}
+			${leagues.length ? sql`AND match_type_shortname = ANY(${leagues})` : sql``}
+			${seasons.length ? sql`AND season = ANY(${seasons})` : sql``}
+			ORDER BY ${sql(dbSortCol)} ${dirSql} ${nullLastSql}
 		`;
 
-		const stmt = db.prepare(query);
-		const result = await (bindings.length > 0 ? stmt.bind(...bindings) : stmt).all();
-
-		return new Response(JSON.stringify({ schedule: result.results ?? [] }), {
+		return new Response(JSON.stringify({ schedule: rows }), {
 			status: 200,
 			headers: {
 				'Content-Type': 'application/json',

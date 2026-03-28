@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { createSql } from '../../../../lib/sel/db';
 import { env } from 'cloudflare:workers';
 import latestSeasonQuery from './queries/max-speeds-latest-season.sql?raw';
 import thisSeasonQuery from './queries/max-speeds-latest.sql?raw';
@@ -7,46 +8,26 @@ import allTimeQuery from './queries/max-speeds-all-time.sql?raw';
 export const prerender = false;
 
 export const GET: APIRoute = async () => {
-	const db = env.DB;
-
-	if (!db) {
-		return new Response(
-			JSON.stringify({
-				error: 'Database not available',
-			}),
-			{
-				status: 503,
-				headers: { 'Content-Type': 'application/json' },
-			}
-		);
-	}
-
+	const sql = createSql(env.DATABASE_URL);
 	try {
 		const startTime = Date.now();
 
-		// Get the latest season with telemetry data (PGEE league only)
 		const seasonStart = Date.now();
-		const latestSeasonResult = await db.prepare(latestSeasonQuery).first();
+		const [latestSeasonRow] = await sql.unsafe(latestSeasonQuery);
 		console.log(`[max-speeds] Latest season query: ${Date.now() - seasonStart}ms`);
 
-		const latestSeason = latestSeasonResult?.latest_season || new Date().getFullYear();
+		const latestSeason = (latestSeasonRow?.latest_season as number) ?? new Date().getFullYear();
 
-		// Execute both queries in parallel
 		const queriesStart = Date.now();
-		const [thisSeasonResult, allTimeResult] = await Promise.all([
-			db.prepare(thisSeasonQuery).bind(latestSeason).all(),
-			db.prepare(allTimeQuery).all(),
+		const [thisSeasonRows, allTimeRows] = await Promise.all([
+			sql.unsafe(thisSeasonQuery, [latestSeason]),
+			sql.unsafe(allTimeQuery),
 		]);
 		console.log(`[max-speeds] Both queries: ${Date.now() - queriesStart}ms`);
 
-		const data = {
-			thisSeason: thisSeasonResult.results || [],
-			allTime: allTimeResult.results || [],
-		};
-
 		console.log(`[max-speeds] Total time: ${Date.now() - startTime}ms`);
 
-		return new Response(JSON.stringify(data), {
+		return new Response(JSON.stringify({ thisSeason: thisSeasonRows, allTime: allTimeRows }), {
 			status: 200,
 			headers: {
 				'Content-Type': 'application/json',

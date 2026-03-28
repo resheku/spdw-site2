@@ -1,18 +1,16 @@
 import type { APIRoute } from 'astro';
+import { createSql } from '../../../../../lib/sel/db';
 import { env } from 'cloudflare:workers';
+import avgBase from '../../queries/track/gate-history-avg-base.sql?raw';
+import winBase from '../../queries/track/gate-history-win-base.sql?raw';
+import overallAvgBase from '../../queries/track/gate-history-overall-avg-base.sql?raw';
+import overallWinBase from '../../queries/track/gate-history-overall-win-base.sql?raw';
+import leaguesQuery from '../../queries/track/gate-history-leagues.sql?raw';
 
 export const prerender = false;
 
 export const GET: APIRoute = async ({ url, params }) => {
-	const db = env.DB;
 	const track = params.track ?? '';
-
-	if (!db) {
-		return new Response(JSON.stringify({ error: 'Database not available' }), {
-			status: 503,
-			headers: { 'Content-Type': 'application/json' },
-		});
-	}
 
 	if (!track) {
 		return new Response(JSON.stringify({ error: 'Track not specified' }), {
@@ -21,145 +19,45 @@ export const GET: APIRoute = async ({ url, params }) => {
 		});
 	}
 
+	const sql = createSql(env.DATABASE_URL);
 	const leagueParam = url.searchParams.get('league');
 	const selectedLeagues = leagueParam ? leagueParam.split(',').filter(Boolean) : [];
 
-	const conditions: string[] = ['m.track_city = ?'];
-	const bindParams: (string | number)[] = [track];
-
-	if (selectedLeagues.length === 1) {
-		conditions.push('m.match_type_shortname = ?');
-		bindParams.push(selectedLeagues[0]);
-	} else if (selectedLeagues.length > 1) {
-		conditions.push(`m.match_type_shortname IN (${selectedLeagues.map(() => '?').join(',')})`);
-		bindParams.push(...selectedLeagues);
-	}
-
-	const whereClause = conditions.map((c) => `AND ${c}`).join('\n\t\t\t\t');
+	const leagueCond = selectedLeagues.length
+		? sql`AND m.match_type_shortname = ANY(${selectedLeagues})`
+		: sql``;
 
 	try {
-		const [avgResult, winResult, overallAvgResult, overallWinResult, leaguesResult] =
-			await Promise.all([
-				// per-season avg points
-				db
-					.prepare(
-						`
-				SELECT
-					m.season AS season,
-					ROUND(AVG(CASE WHEN h.gate = 'a' THEN h.points END), 2) AS A,
-					ROUND(AVG(CASE WHEN h.gate = 'b' THEN h.points END), 2) AS B,
-					ROUND(AVG(CASE WHEN h.gate = 'c' THEN h.points END), 2) AS C,
-					ROUND(6.0
-						- ROUND(AVG(CASE WHEN h.gate = 'a' THEN h.points END), 2)
-						- ROUND(AVG(CASE WHEN h.gate = 'b' THEN h.points END), 2)
-						- ROUND(AVG(CASE WHEN h.gate = 'c' THEN h.points END), 2), 2) AS D
-				FROM heats h
-				JOIN matches m ON h.match_id = m.match_id
-				WHERE
-					h.gate IN ('a', 'b', 'c', 'd')
-					AND h.canceled = 0
-					AND h.points IS NOT NULL
-					${whereClause}
+		const [avgRows, winRows, overallAvgRows, overallWinRows, leagueRows] = await Promise.all([
+			sql`
+				${sql.unsafe(avgBase)}
+				AND m.track_city = ${track}
+				${leagueCond}
 				GROUP BY m.season
 				ORDER BY m.season
-			`
-					)
-					.bind(...bindParams)
-					.all(),
-
-				// per-season win pct
-				db
-					.prepare(
-						`
-				SELECT
-					m.season AS season,
-					ROUND(SUM(CASE WHEN h.gate = 'a' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
-						/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1) AS A,
-					ROUND(SUM(CASE WHEN h.gate = 'b' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
-						/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1) AS B,
-					ROUND(SUM(CASE WHEN h.gate = 'c' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
-						/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1) AS C,
-					ROUND(SUM(CASE WHEN h.gate = 'd' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
-						/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1) AS D
-				FROM heats h
-				JOIN matches m ON h.match_id = m.match_id
-				WHERE
-					h.gate IN ('a', 'b', 'c', 'd')
-					AND h.canceled = 0
-					AND h.points IS NOT NULL
-					${whereClause}
+			`,
+			sql`
+				${sql.unsafe(winBase)}
+				AND m.track_city = ${track}
+				${leagueCond}
 				GROUP BY m.season
 				ORDER BY m.season
-			`
-					)
-					.bind(...bindParams)
-					.all(),
+			`,
+			sql`
+				${sql.unsafe(overallAvgBase)}
+				AND m.track_city = ${track}
+				${leagueCond}
+			`,
+			sql`
+				${sql.unsafe(overallWinBase)}
+				AND m.track_city = ${track}
+				${leagueCond}
+			`,
+			sql.unsafe(leaguesQuery, [track]),
+		]);
 
-				// overall avg points
-				db
-					.prepare(
-						`
-				SELECT
-					ROUND(AVG(CASE WHEN h.gate = 'a' THEN h.points END), 2) AS A,
-					ROUND(AVG(CASE WHEN h.gate = 'b' THEN h.points END), 2) AS B,
-					ROUND(AVG(CASE WHEN h.gate = 'c' THEN h.points END), 2) AS C,
-					ROUND(6.0
-						- ROUND(AVG(CASE WHEN h.gate = 'a' THEN h.points END), 2)
-						- ROUND(AVG(CASE WHEN h.gate = 'b' THEN h.points END), 2)
-						- ROUND(AVG(CASE WHEN h.gate = 'c' THEN h.points END), 2), 2) AS D
-				FROM heats h
-				JOIN matches m ON h.match_id = m.match_id
-				WHERE
-					h.gate IN ('a', 'b', 'c', 'd')
-					AND h.canceled = 0
-					AND h.points IS NOT NULL
-					${whereClause}
-			`
-					)
-					.bind(...bindParams)
-					.all(),
-
-				// overall win pct
-				db
-					.prepare(
-						`
-				SELECT
-					ROUND(SUM(CASE WHEN h.gate = 'a' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
-						/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1) AS A,
-					ROUND(SUM(CASE WHEN h.gate = 'b' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
-						/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1) AS B,
-					ROUND(SUM(CASE WHEN h.gate = 'c' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
-						/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1) AS C,
-					ROUND(SUM(CASE WHEN h.gate = 'd' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
-						/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1) AS D
-				FROM heats h
-				JOIN matches m ON h.match_id = m.match_id
-				WHERE
-					h.gate IN ('a', 'b', 'c', 'd')
-					AND h.canceled = 0
-					AND h.points IS NOT NULL
-					${whereClause}
-			`
-					)
-					.bind(...bindParams)
-					.all(),
-
-				// all leagues this track appears in
-				db
-					.prepare(
-						`
-				SELECT DISTINCT m.match_type_shortname AS code, m.match_type_name AS name
-				FROM matches m
-				WHERE m.track_city = ?
-				ORDER BY m.match_type_shortname
-			`
-					)
-					.bind(track)
-					.all(),
-			]);
-
-		const oa = (overallAvgResult.results?.[0] as Record<string, number | null>) ?? {};
-		const ow = (overallWinResult.results?.[0] as Record<string, number | null>) ?? {};
+		const oa = (overallAvgRows[0] as Record<string, number | null>) ?? {};
+		const ow = (overallWinRows[0] as Record<string, number | null>) ?? {};
 
 		const overallAvgBias =
 			oa.A != null && oa.B != null && oa.C != null && oa.D != null
@@ -174,16 +72,34 @@ export const GET: APIRoute = async ({ url, params }) => {
 					)
 				: null;
 
+		const toNum = (v: number | null | undefined) => (v != null ? +v : null);
+
+		// Cast per-season rows (postgres NUMERIC arrives as strings)
+		const avgRowsCast = (avgRows as Record<string, unknown>[]).map((r) => ({
+			season: r.season,
+			A: toNum(r.A as number | null),
+			B: toNum(r.B as number | null),
+			C: toNum(r.C as number | null),
+			D: toNum(r.D as number | null),
+		}));
+		const winRowsCast = (winRows as Record<string, unknown>[]).map((r) => ({
+			season: r.season,
+			A: toNum(r.A as number | null),
+			B: toNum(r.B as number | null),
+			C: toNum(r.C as number | null),
+			D: toNum(r.D as number | null),
+		}));
+
 		return new Response(
 			JSON.stringify({
-				avgPoints: avgResult.results ?? [],
-				winPct: winResult.results ?? [],
+				avgPoints: avgRowsCast,
+				winPct: winRowsCast,
 				overall: {
 					avgPoints: {
-						A: oa.A,
-						B: oa.B,
-						C: oa.C,
-						D: oa.D,
+						A: toNum(oa.A),
+						B: toNum(oa.B),
+						C: toNum(oa.C),
+						D: toNum(oa.D),
 						'AC/BD':
 							oa.A != null && oa.B != null && oa.C != null && oa.D != null
 								? `${(+oa.A + +oa.C).toFixed(2)}/${(+oa.B + +oa.D).toFixed(2)}`
@@ -191,14 +107,14 @@ export const GET: APIRoute = async ({ url, params }) => {
 						Bias: overallAvgBias,
 					},
 					winPct: {
-						A: ow.A,
-						B: ow.B,
-						C: ow.C,
-						D: ow.D,
+						A: toNum(ow.A),
+						B: toNum(ow.B),
+						C: toNum(ow.C),
+						D: toNum(ow.D),
 						Bias: overallWinBias,
 					},
 				},
-				leagues: leaguesResult.results ?? [],
+				leagues: leagueRows,
 			}),
 			{
 				status: 200,

@@ -1,4 +1,4 @@
-SELECT MAX(Season) as latest_season
+SELECT MAX("Season") AS latest_season
 FROM stats
-WHERE League = 'PGEE'
+WHERE "League" = 'PGEE'
 AND "Max Speed" IS NOT NULL

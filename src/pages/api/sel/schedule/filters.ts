@@ -1,34 +1,21 @@
 import type { APIRoute } from 'astro';
+import { createSql } from '../../../../lib/sel/db';
 import { env } from 'cloudflare:workers';
+import filtersLeaguesQuery from '../queries/schedule/filters-leagues.sql?raw';
+import filtersSeasonsQuery from '../queries/schedule/filters-seasons.sql?raw';
 
 export const prerender = false;
 
 export const GET: APIRoute = async () => {
-	const db = env.DB;
-
-	if (!db) {
-		return new Response(JSON.stringify({ error: 'Database not available' }), {
-			status: 503,
-			headers: { 'Content-Type': 'application/json' },
-		});
-	}
-
+	const sql = createSql(env.DATABASE_URL);
 	try {
-		const [leaguesResult, seasonsResult] = await Promise.all([
-			db
-				.prepare(
-					`SELECT DISTINCT match_type_shortname AS shortname, match_type_name AS name
-					 FROM matches ORDER BY match_type_name`
-				)
-				.all(),
-			db.prepare(`SELECT DISTINCT season FROM matches ORDER BY season ASC`).all(),
+		const [leagueRows, seasonRows] = await Promise.all([
+			sql.unsafe(filtersLeaguesQuery),
+			sql.unsafe(filtersSeasonsQuery),
 		]);
 
-		const leagues = (leaguesResult.results ?? []).map((r: Record<string, unknown>) => ({
-			shortname: r.shortname,
-			name: r.name,
-		}));
-		const seasons = (seasonsResult.results ?? []).map((r: Record<string, unknown>) => r.season);
+		const leagues = leagueRows.map((r) => ({ shortname: r.shortname, name: r.name }));
+		const seasons = seasonRows.map((r) => r.season);
 
 		return new Response(JSON.stringify({ leagues, seasons }), {
 			status: 200,

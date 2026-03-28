@@ -190,15 +190,17 @@ const topSpeedColumns = [
 		</section>
 
 		<!-- Teams section -->
-		{
-			matches.length > 0 && (
-				<section class="mb-10">
-					<h2 class="mb-4 text-xl font-bold">Teams</h2>
-					<TrackTeamsSection {matches} client:load />
-					<h3 class="mb-2 text-base font-semibold">Match History</h3>
-					<MatchHistoryTable {matches} client:load />
-				</section>
-			)
-		}
+		<section class="mb-10">
+			<h2 class="mb-4 text-xl font-bold">Teams</h2>
+			<TrackTeamsSection track={trackName} client:load />
+			{
+				matches.length > 0 && (
+					<>
+						<h3 class="mb-2 text-base font-semibold">Match History</h3>
+						<MatchHistoryTable {matches} client:load />
+					</>
+				)
+			}
+		</section>
 	</div>
 </Layout>

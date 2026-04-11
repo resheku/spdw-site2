@@ -16,7 +16,7 @@ export const GET: APIRoute = async () => {
 		const startTime = Date.now();
 
 		const seasonStart = Date.now();
-		const [latestSeasonRow] = await sql.unsafe(latestSeasonQuery);
+		const [latestSeasonRow] = await sql`${latestSeasonQuery}`;
 		console.log(`[max-speeds] Latest season query: ${Date.now() - seasonStart}ms`);
 
 		const latestSeason = (latestSeasonRow?.latest_season as number) ?? new Date().getFullYear();
@@ -24,7 +24,7 @@ export const GET: APIRoute = async () => {
 		const queriesStart = Date.now();
 		const [thisSeasonRows, allTimeRows] = await Promise.all([
 			sql.unsafe(thisSeasonQuery, [latestSeason]),
-			sql.unsafe(allTimeQuery),
+			sql`${allTimeQuery}`,
 		]);
 		console.log(`[max-speeds] Both queries: ${Date.now() - queriesStart}ms`);
 

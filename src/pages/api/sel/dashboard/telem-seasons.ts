@@ -12,7 +12,7 @@ export const GET: APIRoute = async () => {
 	const sql = postgres(env.HYPERDRIVE.connectionString)
 	try {
 		const startTime = Date.now();
-		const rows = await sql.unsafe(telemSeasonsQuery);
+		const rows = await sql`${telemSeasonsQuery}`;
 		console.log(`[telem-seasons] Query time: ${Date.now() - startTime}ms`);
 		const seasons = rows.map((row) => row.Season);
 

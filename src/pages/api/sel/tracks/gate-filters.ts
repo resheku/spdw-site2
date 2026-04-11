@@ -11,7 +11,7 @@ export const GET: APIRoute = async () => {
 	}
 	const sql = postgres(env.HYPERDRIVE.connectionString)
 	try {
-		const rows = await sql.unsafe(gateFiltersQuery);
+		const rows = await sql`${gateFiltersQuery}`;
 
 		const seasons = [...new Set(rows.map((r) => r.season as number))].sort((a, b) => b - a);
 		const leagueMap = new Map<string, string>();

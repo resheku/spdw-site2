@@ -15,8 +15,8 @@ export const GET: APIRoute = async () => {
 		const startTime = Date.now();
 
 		const [latestRows, allTimeRows] = await Promise.all([
-			sql.unsafe(latestQuery),
-			sql.unsafe(allTimeQuery),
+			sql`${latestQuery}`,
+			sql`${allTimeQuery}`,
 		]);
 
 		console.log(`[best-averages] Total time: ${Date.now() - startTime}ms`);

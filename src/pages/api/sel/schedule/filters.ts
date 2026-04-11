@@ -13,8 +13,8 @@ export const GET: APIRoute = async () => {
 	const sql = postgres(env.HYPERDRIVE.connectionString)
 	try {
 		const [leagueRows, seasonRows] = await Promise.all([
-			sql.unsafe(filtersLeaguesQuery),
-			sql.unsafe(filtersSeasonsQuery),
+			sql`${filtersLeaguesQuery}`,
+			sql`${filtersSeasonsQuery}`,
 		]);
 
 		const leagues = leagueRows.map((r) => ({ shortname: r.shortname, name: r.name }));

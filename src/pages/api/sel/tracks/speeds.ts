@@ -11,7 +11,7 @@ export const GET: APIRoute = async () => {
 	}
 	const sql = postgres(env.HYPERDRIVE.connectionString)
 	try {
-		const rows = await sql.unsafe(speedsQuery);
+		const rows = await sql`${speedsQuery}`;
 
 		const seasons: number[] = rows.length > 0 ? (rows[0].all_seasons as number[]) : [];
 		const tracks = rows.map((r) => ({

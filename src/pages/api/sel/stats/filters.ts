@@ -19,7 +19,7 @@ export const GET: APIRoute = async ({ url }) => {
 
 		// Fetch all unique combinations of Team, League, Season
 		const [rows, heatsRows] = await Promise.all([
-			sql.unsafe(filtersQuery),
+			sql`${filtersQuery}`,
 			sql`
 				${sql.unsafe(filtersHeatsBase)}
 				${teams.length ? sql`AND "Team" ILIKE ANY(${teams.map((t) => `%${t}%`)})` : sql``}

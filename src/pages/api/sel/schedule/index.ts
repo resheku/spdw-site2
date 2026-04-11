@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { createSql } from '../../../../lib/sel/db';
+import postgres from 'postgres';
 import { env } from 'cloudflare:workers';
 import scheduleBase from '../queries/schedule/schedule-base.sql?raw';
 
@@ -19,7 +19,10 @@ const VALID_SORT_COLUMNS: Record<string, string> = {
 };
 
 export const GET: APIRoute = async ({ url }) => {
-	const sql = createSql(env.DATABASE_URL);
+	if (!env.HYPERDRIVE?.connectionString) {
+		return new Response('Hyperdrive not bound', { status: 500 });
+	}
+	const sql = postgres(env.HYPERDRIVE.connectionString)
 	const params = url.searchParams;
 	const leagues = params.get('league')?.split(',').filter(Boolean) ?? [];
 	const seasons = params.get('season')?.split(',').filter(Boolean).map(Number) ?? [];

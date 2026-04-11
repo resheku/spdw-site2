@@ -1,3 +1,3 @@
 SELECT DISTINCT "Season"
-FROM stats
+FROM sel.stats
 ORDER BY "Season" ASC

@@ -3,8 +3,8 @@ WITH season_avgs AS (
 		m.track_city AS track,
 		m.season AS season,
 		ROUND(AVG(t.max_speed)::numeric, 2) AS avg_speed
-	FROM telemetry t
-	JOIN matches m ON t.match_id = m.match_id
+	FROM sel.telemetry t
+	JOIN sel.matches m ON t.match_id = m.match_id
 	WHERE t.max_speed IS NOT NULL AND t.max_speed > 0
 	  AND m.track_city IS NOT NULL
 	GROUP BY m.track_city, m.season

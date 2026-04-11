@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { createSql } from '../../../../../lib/sel/db';
+import postgres from 'postgres';
 import { env } from 'cloudflare:workers';
 import matchAvgQuery from '../../queries/track/speeds-match-avg.sql?raw';
 import topSpeedsQuery from '../../queries/track/speeds-top.sql?raw';
@@ -16,7 +16,10 @@ export const GET: APIRoute = async ({ params }) => {
 		});
 	}
 
-	const sql = createSql(env.DATABASE_URL);
+	if (!env.HYPERDRIVE?.connectionString) {
+		return new Response('Hyperdrive not bound', { status: 500 });
+	}
+	const sql = postgres(env.HYPERDRIVE.connectionString)
 	try {
 		const [matchAvgRows, topSpeedRows] = await Promise.all([
 			sql.unsafe(matchAvgQuery, [track]),

@@ -18,6 +18,6 @@ SELECT
 	m.attendance,
 	s.season,
 	m.track_city AS track
-FROM schedule s
-LEFT JOIN matches m ON s.id = m.match_id
+FROM sel.schedule s
+LEFT JOIN sel.matches m ON s.id = m.match_id
 WHERE 1=1

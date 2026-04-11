@@ -4,10 +4,10 @@ SELECT
 	"Season",
 	"Average",
 	ROW_NUMBER() OVER (ORDER BY "Average" DESC) AS "No"
-FROM stats
+FROM sel.stats
 WHERE "Average" IS NOT NULL
 	AND "Heats" >= 20
 	AND "League" = 'PGEE'
-	AND "Season" = (SELECT MAX("Season") FROM stats WHERE "League" = 'PGEE')
+	AND "Season" = (SELECT MAX("Season") FROM sel.stats WHERE "League" = 'PGEE')
 ORDER BY "Average" DESC
 LIMIT 10

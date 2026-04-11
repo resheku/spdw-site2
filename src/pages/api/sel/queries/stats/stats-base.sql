@@ -1,1 +1,1 @@
-SELECT * FROM stats WHERE 1=1
+SELECT * FROM sel.stats WHERE 1=1

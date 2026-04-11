@@ -4,7 +4,7 @@ SELECT
 	"Season",
 	"Average",
 	ROW_NUMBER() OVER (ORDER BY "Average" DESC) AS "No"
-FROM stats
+FROM sel.stats
 WHERE "Average" IS NOT NULL
 	AND "Heats" >= 20
 	AND "League" = 'PGEE'

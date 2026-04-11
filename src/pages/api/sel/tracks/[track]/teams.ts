@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { createSql } from '../../../../../lib/sel/db';
+import postgres from 'postgres';
 import { env } from 'cloudflare:workers';
 import summaryQuery from '../../queries/track/teams-summary.sql?raw';
 import byTeamQuery from '../../queries/track/teams-by-team.sql?raw';
@@ -16,7 +16,10 @@ export const GET: APIRoute = async ({ params }) => {
 		});
 	}
 
-	const sql = createSql(env.DATABASE_URL);
+	if (!env.HYPERDRIVE?.connectionString) {
+		return new Response('Hyperdrive not bound', { status: 500 });
+	}
+	const sql = postgres(env.HYPERDRIVE.connectionString)
 	try {
 		const [summaryRows, teamRows] = await Promise.all([
 			sql.unsafe(summaryQuery, [track]),

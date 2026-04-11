@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { createSql } from '../../../../lib/sel/db';
+import postgres from 'postgres';
 import { env } from 'cloudflare:workers';
 import latestQuery from './queries/best-averages-latest.sql?raw';
 import allTimeQuery from './queries/best-averages-all-time.sql?raw';
@@ -7,7 +7,10 @@ import allTimeQuery from './queries/best-averages-all-time.sql?raw';
 export const prerender = false;
 
 export const GET: APIRoute = async () => {
-	const sql = createSql(env.DATABASE_URL);
+	if (!env.HYPERDRIVE?.connectionString) {
+		return new Response('Hyperdrive not bound', { status: 500 });
+	}
+	const sql = postgres(env.HYPERDRIVE.connectionString)
 	try {
 		const startTime = Date.now();
 

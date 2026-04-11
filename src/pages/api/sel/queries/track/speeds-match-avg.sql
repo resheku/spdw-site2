@@ -10,9 +10,9 @@ SELECT
 	ROUND(AVG(CASE WHEN t.max_speed > 0 THEN t.max_speed END)::numeric, 2)::float AS "avgSpeed",
 	ROUND(AVG(CASE WHEN l.team_id = m.home_team_id AND t.max_speed > 0 THEN t.max_speed END)::numeric, 2)::float AS "homeAvgSpeed",
 	ROUND(AVG(CASE WHEN l.team_id = m.away_team_id AND t.max_speed > 0 THEN t.max_speed END)::numeric, 2)::float AS "awayAvgSpeed"
-FROM telemetry t
-JOIN matches m ON t.match_id = m.match_id
-LEFT JOIN lineup l ON t.match_id = l.match_id AND t.rider_id = l.rider_id
+FROM sel.telemetry t
+JOIN sel.matches m ON t.match_id = m.match_id
+LEFT JOIN sel.lineup l ON t.match_id = l.match_id AND t.rider_id = l.rider_id
 WHERE t.max_speed IS NOT NULL AND t.max_speed > 0
 	AND m.track_city = $1
 GROUP BY

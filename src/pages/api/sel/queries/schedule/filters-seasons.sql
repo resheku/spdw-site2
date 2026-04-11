@@ -1,3 +1,3 @@
 SELECT DISTINCT season
-FROM schedule
+FROM sel.schedule
 ORDER BY season ASC

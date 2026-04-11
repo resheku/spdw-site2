@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { createSql } from '../../../../lib/sel/db';
+import postgres from 'postgres';
 import { env } from 'cloudflare:workers';
 import filtersQuery from '../queries/stats/filters.sql?raw';
 import filtersHeatsBase from '../queries/stats/filters-heats-base.sql?raw';
@@ -7,7 +7,10 @@ import filtersHeatsBase from '../queries/stats/filters-heats-base.sql?raw';
 export const prerender = false;
 
 export const GET: APIRoute = async ({ url }) => {
-	const sql = createSql(env.DATABASE_URL);
+	if (!env.HYPERDRIVE?.connectionString) {
+		return new Response('Hyperdrive not bound', { status: 500 });
+	}
+	const sql = postgres(env.HYPERDRIVE.connectionString)
 	try {
 		// Get query parameters for heats range (exclude heats itself when computing range)
 		const teams = url.searchParams.get('team')?.split(',').filter(Boolean) || [];

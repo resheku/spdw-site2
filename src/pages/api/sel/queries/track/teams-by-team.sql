@@ -6,7 +6,7 @@ WITH match_scores AS (
 		m.home_match_score::int                                                             AS score,
 		m.away_match_score::int                                                             AS opp_score,
 		true                                                                                AS is_home
-	FROM matches m
+	FROM sel.matches m
 	WHERE m.track_city = $1
 		AND m.home_match_score IS NOT NULL
 		AND m.away_match_score IS NOT NULL
@@ -18,7 +18,7 @@ WITH match_scores AS (
 		m.away_match_score::int,
 		m.home_match_score::int,
 		false
-	FROM matches m
+	FROM sel.matches m
 	WHERE m.track_city = $1
 		AND m.home_match_score IS NOT NULL
 		AND m.away_match_score IS NOT NULL

@@ -3,7 +3,7 @@ WITH top_speeds AS (
 		t.match_id,
 		t.rider_id,
 		t.max_speed
-	FROM telemetry t
+	FROM sel.telemetry t
 	WHERE t.max_speed IS NOT NULL
 	ORDER BY t.max_speed DESC
 	LIMIT 50
@@ -21,10 +21,10 @@ SELECT
 	m.track_city AS "Track",
 	SUBSTR(m.datetime, 1, 10) AS "Date"
 FROM top_speeds ts
-JOIN matches m ON ts.match_id = m.match_id
-JOIN lineup l ON ts.match_id = l.match_id AND ts.rider_id = l.rider_id
+JOIN sel.matches m ON ts.match_id = m.match_id
+JOIN sel.lineup l ON ts.match_id = l.match_id AND ts.rider_id = l.rider_id
 WHERE EXISTS (
-	SELECT 1 FROM stats s
+	SELECT 1 FROM sel.stats s
 	WHERE s."Season" = m.season
 	AND s."Name" = (l.rider_name || ' ' || l.rider_surname)
 	AND s."League" = 'PGEE'

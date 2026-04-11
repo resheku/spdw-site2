@@ -1,12 +1,15 @@
 import type { APIRoute } from 'astro';
-import { createSql } from '../../../../lib/sel/db';
+import postgres from 'postgres';
 import { env } from 'cloudflare:workers';
 import statsBase from '../queries/stats/stats-base.sql?raw';
 
 export const prerender = false;
 
 export const GET: APIRoute = async ({ url }) => {
-	const sql = createSql(env.DATABASE_URL);
+	if (!env.HYPERDRIVE?.connectionString) {
+		return new Response('Hyperdrive not bound', { status: 500 });
+	}
+	const sql = postgres(env.HYPERDRIVE.connectionString)
 	try {
 		// Get query parameters (comma-separated values for filters)
 		const search = url.searchParams.get('search')?.toLowerCase() || '';

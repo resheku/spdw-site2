@@ -2,7 +2,7 @@ WITH majority_track AS (
 	SELECT track_city FROM (
 		SELECT track_city, match_type_shortname,
 		       RANK() OVER (PARTITION BY track_city ORDER BY COUNT(*) DESC) AS rnk
-		FROM matches
+		FROM sel.matches
 		WHERE season = $1 AND match_subtype_shortname = 'MR'
 		GROUP BY track_city, match_type_shortname
 	) AS sub
@@ -18,8 +18,8 @@ base AS (
 			- ROUND(AVG(CASE WHEN h.gate = 'a' THEN h.points END), 2)
 			- ROUND(AVG(CASE WHEN h.gate = 'b' THEN h.points END), 2)
 			- ROUND(AVG(CASE WHEN h.gate = 'c' THEN h.points END), 2), 2) AS "D"
-	FROM heats h
-	JOIN matches m ON h.match_id = m.match_id
+	FROM sel.heats h
+	JOIN sel.matches m ON h.match_id = m.match_id
 	WHERE
 		h.gate IN ('a', 'b', 'c', 'd')
 		AND h.canceled = 0

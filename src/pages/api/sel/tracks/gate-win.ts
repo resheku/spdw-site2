@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { createSql } from '../../../../lib/sel/db';
+import postgres from 'postgres';
 import { env } from 'cloudflare:workers';
 import gateWinBase from '../queries/tracks/gate-win-base.sql?raw';
 import gateWinMajority from '../queries/tracks/gate-win-majority.sql?raw';
@@ -7,7 +7,10 @@ import gateWinMajority from '../queries/tracks/gate-win-majority.sql?raw';
 export const prerender = false;
 
 export const GET: APIRoute = async ({ url }) => {
-	const sql = createSql(env.DATABASE_URL);
+	if (!env.HYPERDRIVE?.connectionString) {
+		return new Response('Hyperdrive not bound', { status: 500 });
+	}
+	const sql = postgres(env.HYPERDRIVE.connectionString)
 	try {
 		const seasonParam = url.searchParams.get('season');
 		const leagueParam = url.searchParams.get('league');

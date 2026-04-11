@@ -2,8 +2,8 @@ WITH majority_track AS (
 	SELECT track_city FROM (
 		SELECT track_city, match_type_shortname,
 		       RANK() OVER (PARTITION BY track_city ORDER BY COUNT(*) DESC) AS rnk
-		FROM matches
-		WHERE season = $1 AND match_subtype_shortname = 'MR'
+		FROM sel.matches
+		WHERE sel.season = $1 AND match_subtype_shortname = 'MR'
 		GROUP BY track_city, match_type_shortname
 	) AS sub
 	WHERE sub.rnk = 1 AND sub.match_type_shortname = $2
@@ -16,8 +16,8 @@ raw_counts AS (
 		SUM(CASE WHEN h.gate = 'b' AND h.points = 3 THEN 1 ELSE 0 END) AS wb,
 		SUM(CASE WHEN h.gate = 'c' AND h.points = 3 THEN 1 ELSE 0 END) AS wc,
 		SUM(CASE WHEN h.gate = 'd' AND h.points = 3 THEN 1 ELSE 0 END) AS wd
-	FROM heats h
-	JOIN matches m ON h.match_id = m.match_id
+	FROM sel.heats h
+	JOIN sel.matches m ON h.match_id = m.match_id
 	WHERE
 		h.gate IN ('a', 'b', 'c', 'd')
 		AND h.canceled = 0

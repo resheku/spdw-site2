@@ -36,7 +36,7 @@ export const GET: APIRoute = async ({ url }) => {
 		const nullLastSql = dbSortCol === 'attendance' ? sql`NULLS LAST` : sql``;
 
 		const rows = await sql`
-			${sql.unsafe(scheduleBase)}
+			${scheduleBase}
 			${leagues.length ? sql`AND match_type_shortname = ANY(${leagues})` : sql``}
 			${seasons.length ? sql`AND season = ANY(${seasons})` : sql``}
 			ORDER BY ${sql(dbSortCol)} ${dirSql} ${nullLastSql}

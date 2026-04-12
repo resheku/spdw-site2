@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import postgres from 'postgres';
 import { env } from 'cloudflare:workers';
-import matchesQuery from '../../queries/track/matches.sql?raw';
+import matchesQuery from '../../queries/track/matches.sql?params';
 
 export const prerender = false;
 
@@ -20,7 +20,7 @@ export const GET: APIRoute = async ({ params }) => {
 	}
 	const sql = postgres(env.HYPERDRIVE.connectionString)
 	try {
-		const rows = await sql.unsafe(matchesQuery, [track]);
+		const rows = await matchesQuery(sql, track);
 		return new Response(JSON.stringify({ matches: rows }), {
 			status: 200,
 			headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' },

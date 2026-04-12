@@ -5,7 +5,7 @@ import avgBase from '../../queries/track/gate-history-avg-base.sql?raw';
 import winBase from '../../queries/track/gate-history-win-base.sql?raw';
 import overallAvgBase from '../../queries/track/gate-history-overall-avg-base.sql?raw';
 import overallWinBase from '../../queries/track/gate-history-overall-win-base.sql?raw';
-import leaguesQuery from '../../queries/track/gate-history-leagues.sql?raw';
+import leaguesQuery from '../../queries/track/gate-history-leagues.sql?params';
 
 export const prerender = false;
 
@@ -33,30 +33,30 @@ export const GET: APIRoute = async ({ url, params }) => {
 	try {
 		const [avgRows, winRows, overallAvgRows, overallWinRows, leagueRows] = await Promise.all([
 			sql`
-				${sql.unsafe(avgBase)}
+				${avgBase}
 				AND m.track_city = ${track}
 				${leagueCond}
 				GROUP BY m.season
 				ORDER BY m.season
 			`,
 			sql`
-				${sql.unsafe(winBase)}
+				${winBase}
 				AND m.track_city = ${track}
 				${leagueCond}
 				GROUP BY m.season
 				ORDER BY m.season
 			`,
 			sql`
-				${sql.unsafe(overallAvgBase)}
+				${overallAvgBase}
 				AND m.track_city = ${track}
 				${leagueCond}
 			`,
 			sql`
-				${sql.unsafe(overallWinBase)}
+				${overallWinBase}
 				AND m.track_city = ${track}
 				${leagueCond}
 			`,
-			sql.unsafe(leaguesQuery, [track]),
+			leaguesQuery(sql, track),
 		]);
 
 		const oa = (overallAvgRows[0] as Record<string, number | null>) ?? {};

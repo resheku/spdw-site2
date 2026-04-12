@@ -1,8 +1,8 @@
 import type { APIRoute } from 'astro';
 import postgres from 'postgres';
 import { env } from 'cloudflare:workers';
-import summaryQuery from '../../queries/track/teams-summary.sql?raw';
-import byTeamQuery from '../../queries/track/teams-by-team.sql?raw';
+import summaryQuery from '../../queries/track/teams-summary.sql?params';
+import byTeamQuery from '../../queries/track/teams-by-team.sql?params';
 
 export const prerender = false;
 
@@ -22,8 +22,8 @@ export const GET: APIRoute = async ({ params }) => {
 	const sql = postgres(env.HYPERDRIVE.connectionString)
 	try {
 		const [summaryRows, teamRows] = await Promise.all([
-			sql.unsafe(summaryQuery, [track]),
-			sql.unsafe(byTeamQuery, [track]),
+			summaryQuery(sql, track),
+			byTeamQuery(sql, track),
 		]);
 
 		return new Response(

@@ -21,7 +21,7 @@ export const GET: APIRoute = async ({ url }) => {
 		const [rows, heatsRows] = await Promise.all([
 			sql`${filtersQuery}`,
 			sql`
-				${sql.unsafe(filtersHeatsBase)}
+				${filtersHeatsBase}
 				${teams.length ? sql`AND "Team" ILIKE ANY(${teams.map((t) => `%${t}%`)})` : sql``}
 				${leagues.length ? sql`AND "League" = ANY(${leagues})` : sql``}
 				${seasons.length ? sql`AND "Season" = ANY(${seasons.map(Number)})` : sql``}

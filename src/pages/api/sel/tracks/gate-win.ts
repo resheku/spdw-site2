@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import postgres from 'postgres';
 import { env } from 'cloudflare:workers';
 import gateWinBase from '../queries/tracks/gate-win-base.sql?raw';
-import gateWinMajority from '../queries/tracks/gate-win-majority.sql?raw';
+import gateWinMajority from '../queries/tracks/gate-win-majority.sql?params';
 
 export const prerender = false;
 
@@ -20,10 +20,11 @@ export const GET: APIRoute = async ({ url }) => {
 		let rows;
 
 		if (selectedSeasons.length === 1 && selectedLeagues.length === 1) {
-			rows = await sql.unsafe(gateWinMajority, [
+			rows = await gateWinMajority(
+				sql,
 				parseInt(selectedSeasons[0], 10),
 				selectedLeagues[0],
-			]);
+			);
 		} else {
 			const seasonCond =
 				selectedSeasons.length === 1
@@ -40,7 +41,7 @@ export const GET: APIRoute = async ({ url }) => {
 
 			rows = await sql`
 				WITH raw_counts AS (
-					${sql.unsafe(gateWinBase)}
+					${gateWinBase}
 					${seasonCond}
 					${leagueCond}
 					GROUP BY m.track_city

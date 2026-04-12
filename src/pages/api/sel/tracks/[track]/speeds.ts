@@ -1,8 +1,8 @@
 import type { APIRoute } from 'astro';
 import postgres from 'postgres';
 import { env } from 'cloudflare:workers';
-import matchAvgQuery from '../../queries/track/speeds-match-avg.sql?raw';
-import topSpeedsQuery from '../../queries/track/speeds-top.sql?raw';
+import matchAvgQuery from '../../queries/track/speeds-match-avg.sql?params';
+import topSpeedsQuery from '../../queries/track/speeds-top.sql?params';
 
 export const prerender = false;
 
@@ -22,8 +22,8 @@ export const GET: APIRoute = async ({ params }) => {
 	const sql = postgres(env.HYPERDRIVE.connectionString)
 	try {
 		const [matchAvgRows, topSpeedRows] = await Promise.all([
-			sql.unsafe(matchAvgQuery, [track]),
-			sql.unsafe(topSpeedsQuery, [track]),
+			matchAvgQuery(sql, track),
+			topSpeedsQuery(sql, track),
 		]);
 		return new Response(JSON.stringify({ matchAverages: matchAvgRows, topSpeeds: topSpeedRows }), {
 			status: 200,

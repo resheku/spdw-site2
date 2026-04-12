@@ -64,7 +64,7 @@ export const GET: APIRoute = async ({ url }) => {
 			: sql``;
 
 		const stats = await sql`
-			${sql.unsafe(statsBase)}
+			${statsBase}
 			${search ? sql`AND LOWER("Name") LIKE ${'%' + search + '%'}` : sql``}
 			${teams.length ? sql`AND "Team" ILIKE ANY(${teams.map((t) => `%${t}%`)})` : sql``}
 			${leagues.length ? sql`AND "League" = ANY(${leagues})` : sql``}

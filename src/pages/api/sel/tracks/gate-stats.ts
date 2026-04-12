@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import postgres from 'postgres';
 import { env } from 'cloudflare:workers';
 import gateStatsBase from '../queries/tracks/gate-stats-base.sql?raw';
-import gateStatsMajority from '../queries/tracks/gate-stats-majority.sql?raw';
+import gateStatsMajority from '../queries/tracks/gate-stats-majority.sql?params';
 
 export const prerender = false;
 
@@ -20,10 +20,11 @@ export const GET: APIRoute = async ({ url }) => {
 		let rows;
 
 		if (selectedSeasons.length === 1 && selectedLeagues.length === 1) {
-			rows = await sql.unsafe(gateStatsMajority, [
+			rows = await gateStatsMajority(
+				sql,
 				parseInt(selectedSeasons[0], 10),
 				selectedLeagues[0],
-			]);
+			);
 		} else {
 			const seasonCond =
 				selectedSeasons.length === 1
@@ -40,7 +41,7 @@ export const GET: APIRoute = async ({ url }) => {
 
 			rows = await sql`
 				WITH base AS (
-					${sql.unsafe(gateStatsBase)}
+					${gateStatsBase}
 					${seasonCond}
 					${leagueCond}
 					GROUP BY m.track_city

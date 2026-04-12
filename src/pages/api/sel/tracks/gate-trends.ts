@@ -17,13 +17,13 @@ export const GET: APIRoute = async ({ url }) => {
 	try {
 		const [avgRows, winRows] = await Promise.all([
 			sql`
-				${sql.unsafe(avgBase)}
+				${avgBase}
 				${selectedLeagues.length ? sql`AND m.match_type_shortname = ANY(${selectedLeagues})` : sql``}
 				GROUP BY m.season
 				ORDER BY m.season
 			`,
 			sql`
-				${sql.unsafe(winBase)}
+				${winBase}
 				${selectedLeagues.length ? sql`AND m.match_type_shortname = ANY(${selectedLeagues})` : sql``}
 				GROUP BY m.season
 				ORDER BY m.season

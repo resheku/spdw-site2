@@ -1,11 +1,9 @@
-import type { APIRoute } from 'astro';
-import postgres from 'postgres';
-import { env } from 'cloudflare:workers';
+import { createHandler } from '../../../../../lib/api';
 import matchesQuery from '../../queries/track/matches.sql?params';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ params }) => {
+export const GET = createHandler(async (sql, { params }) => {
 	const track = params.track ?? '';
 
 	if (!track) {
@@ -15,24 +13,6 @@ export const GET: APIRoute = async ({ params }) => {
 		});
 	}
 
-	if (!env.HYPERDRIVE?.connectionString) {
-		return new Response('Hyperdrive not bound', { status: 500 });
-	}
-	const sql = postgres(env.HYPERDRIVE.connectionString)
-	try {
-		const rows = await matchesQuery(sql, track);
-		return new Response(JSON.stringify({ matches: rows }), {
-			status: 200,
-			headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' },
-		});
-	} catch (error) {
-		console.error('[track/matches] Error:', error);
-		return new Response(
-			JSON.stringify({
-				error: 'Failed to fetch track matches',
-				details: error instanceof Error ? error.message : String(error),
-			}),
-			{ status: 500, headers: { 'Content-Type': 'application/json' } }
-		);
-	}
-};
+	const rows = await matchesQuery(sql, track);
+	return { matches: rows };
+});

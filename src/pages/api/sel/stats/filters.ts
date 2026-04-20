@@ -1,17 +1,10 @@
-import type { APIRoute } from 'astro';
-import postgres from 'postgres';
-import { env } from 'cloudflare:workers';
+import { createHandler } from '../../../../lib/api';
 import filtersQuery from '../queries/stats/filters.sql?raw';
 import filtersHeatsBase from '../queries/stats/filters-heats-base.sql?raw';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ url }) => {
-	if (!env.HYPERDRIVE?.connectionString) {
-		return new Response('Hyperdrive not bound', { status: 500 });
-	}
-	const sql = postgres(env.HYPERDRIVE.connectionString)
-	try {
+export const GET = createHandler(async (sql, { url }) => {
 		// Get query parameters for heats range (exclude heats itself when computing range)
 		const teams = url.searchParams.get('team')?.split(',').filter(Boolean) || [];
 		const leagues = url.searchParams.get('league')?.split(',').filter(Boolean) || [];
@@ -168,24 +161,5 @@ export const GET: APIRoute = async ({ url }) => {
 			heatsRange,
 		};
 
-		return new Response(JSON.stringify(filterMapping), {
-			status: 200,
-			headers: {
-				'Content-Type': 'application/json',
-				'Cache-Control': 'public, max-age=600', // Cache for 10 minutes
-			},
-		});
-	} catch (error) {
-		console.error('Database error:', error);
-		return new Response(
-			JSON.stringify({
-				error: 'Failed to fetch filter options',
-				details: error instanceof Error ? error.message : String(error),
-			}),
-			{
-				status: 500,
-				headers: { 'Content-Type': 'application/json' },
-			}
-		);
-	}
-};
+		return filterMapping;
+}, { cacheControl: 'public, max-age=600' });

@@ -1,49 +1,22 @@
-import type { APIRoute } from 'astro';
-import postgres from 'postgres';
-import { env } from 'cloudflare:workers';
+import { createHandler } from '../../../../lib/api';
 import latestSeasonQuery from './queries/max-speeds-latest-season.sql?raw';
 import thisSeasonQuery from './queries/max-speeds-latest.sql?params';
 import allTimeQuery from './queries/max-speeds-all-time.sql?raw';
 
 export const prerender = false;
 
-export const GET: APIRoute = async () => {
-	if (!env.HYPERDRIVE?.connectionString) {
-		return new Response('Hyperdrive not bound', { status: 500 });
-	}
-	const sql = postgres(env.HYPERDRIVE.connectionString)
-	try {
-		const startTime = Date.now();
+export const GET = createHandler(async (sql) => {
+	const startTime = Date.now();
 
-		const [latestSeasonRow] = await sql`${latestSeasonQuery}`;
-		const latestSeason = (latestSeasonRow?.latest_season as number) ?? new Date().getFullYear();
+	const [latestSeasonRow] = await sql`${latestSeasonQuery}`;
+	const latestSeason = (latestSeasonRow?.latest_season as number) ?? new Date().getFullYear();
 
-		const [thisSeasonRows, allTimeRows] = await Promise.all([
-			thisSeasonQuery(sql, latestSeason),
-			sql`${allTimeQuery}`,
-		]);
+	const [thisSeasonRows, allTimeRows] = await Promise.all([
+		thisSeasonQuery(sql, latestSeason),
+		sql`${allTimeQuery}`,
+	]);
 
-		console.log(`[max-speeds] Queries: ${Date.now() - startTime}ms`);
+	console.log(`[max-speeds] Queries: ${Date.now() - startTime}ms`);
 
-
-		return new Response(JSON.stringify({ thisSeason: thisSeasonRows, allTime: allTimeRows }), {
-			status: 200,
-			headers: {
-				'Content-Type': 'application/json',
-				'Cache-Control': 'public, max-age=300',
-			},
-		});
-	} catch (error) {
-		console.error('Database error:', error);
-		return new Response(
-			JSON.stringify({
-				error: 'Failed to fetch max speeds',
-				details: error instanceof Error ? error.message : String(error),
-			}),
-			{
-				status: 500,
-				headers: { 'Content-Type': 'application/json' },
-			}
-		);
-	}
-};
+	return { thisSeason: thisSeasonRows, allTime: allTimeRows };
+});

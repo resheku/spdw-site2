@@ -1,5 +1,5 @@
 import type { APIContext, APIRoute } from 'astro';
-import postgres from 'postgres';
+import type postgres from 'postgres';
 import { env } from 'cloudflare:workers';
 import { getDb } from './db';
 

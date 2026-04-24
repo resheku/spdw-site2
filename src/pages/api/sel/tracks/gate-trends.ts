@@ -10,7 +10,7 @@ export const GET = createHandler(async (sql, { url }) => {
 		selectedLeagues.length === 1
 			? sql`AND m.match_type_shortname = ${selectedLeagues[0]}`
 			: selectedLeagues.length > 1
-				? sql`AND m.match_type_shortname IN (${sql(selectedLeagues)})`
+				? sql`AND m.match_type_shortname = ANY(${selectedLeagues})`
 				: sql``;
 
 	const [avgPoints, winPct] = await Promise.all([

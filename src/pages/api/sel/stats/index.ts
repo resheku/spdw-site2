@@ -17,49 +17,36 @@ export const GET = createHandler(async (sql, { url }) => {
 	const sortColumns = url.searchParams.get('sortColumn')?.split(',').filter(Boolean) || [];
 	const sortDirections = url.searchParams.get('sortDirection')?.split(',').filter(Boolean) || [];
 
-	const whereClauses: string[] = ['1=1'];
-	const params: unknown[] = [];
+	const searchFrag = search ? sql`AND LOWER("Name") LIKE ${'%' + search + '%'}` : sql``;
+	const teamFrag = teams.length > 0 ? sql`AND "Team" LIKE ANY(${teams.map((t) => '%' + t + '%')})` : sql``;
+	const leagueFrag = leagues.length > 0 ? sql`AND "League" = ANY(${leagues})` : sql``;
+	const seasonFrag = seasons.length > 0 ? sql`AND "Season" = ANY(${seasons.map(Number)})` : sql``;
 
-	if (search) {
-		params.push('%' + search + '%');
-		whereClauses.push(`LOWER("Name") LIKE $${params.length}`);
-	}
-
-	if (teams.length > 0) {
-		const teamConditions = teams.map((t) => {
-			params.push('%' + t + '%');
-			return `"Team" LIKE $${params.length}`;
-		});
-		whereClauses.push(`(${teamConditions.join(' OR ')})`);
-	}
-
-	if (leagues.length > 0) {
-		const placeholders = leagues.map((_, i) => `$${params.length + i + 1}`).join(', ');
-		leagues.forEach((l) => params.push(l));
-		whereClauses.push(`"League" IN (${placeholders})`);
-	}
-
-	if (seasons.length > 0) {
-		const placeholders = seasons.map((_, i) => `$${params.length + i + 1}`).join(', ');
-		seasons.map(Number).forEach((s) => params.push(s));
-		whereClauses.push(`"Season" IN (${placeholders})`);
-	}
-
-	const orderClauses: string[] = [];
-	sortColumns.forEach((column, index) => {
-		if (validColumns.includes(column)) {
-			const direction = (sortDirections[index] || 'desc') === 'asc' ? 'ASC' : 'DESC';
-			const col = `"${column}"`;
-			if (specialEmptyHandling.includes(column)) {
-				orderClauses.push(`CASE WHEN ${col} IS NULL THEN 1 ELSE 0 END`);
-			}
-			orderClauses.push(`${col} ${direction}`);
+	const orderParts = sortColumns.flatMap((column, index) => {
+		if (!validColumns.includes(column)) return [];
+		const dirFrag = sortDirections[index] === 'asc' ? sql`ASC` : sql`DESC`;
+		const parts = [];
+		if (specialEmptyHandling.includes(column)) {
+			parts.push(sql`CASE WHEN ${sql(column)} IS NULL THEN 1 ELSE 0 END`);
 		}
+		parts.push(sql`${sql(column)} ${dirFrag}`);
+		return parts;
 	});
-	const orderStr = orderClauses.length > 0 ? `ORDER BY ${orderClauses.join(', ')}` : '';
 
-	const query = `SELECT * FROM sel.stats WHERE ${whereClauses.join(' AND ')} ${orderStr}`;
-	const stats = await sql.unsafe(query, params as Parameters<typeof sql.unsafe>[1]);
+	const orderFrag =
+		orderParts.length > 0
+			? sql`ORDER BY ${orderParts.reduce((acc, frag, i) => (i === 0 ? frag : sql`${acc}, ${frag}`))}`
+			: sql``;
+
+	const stats = await sql`
+		SELECT * FROM sel.stats
+		WHERE 1=1
+			${searchFrag}
+			${teamFrag}
+			${leagueFrag}
+			${seasonFrag}
+		${orderFrag}
+	`;
 
 	return { stats, totalCount: stats.length };
 }, { cacheControl: 'public, max-age=300' });

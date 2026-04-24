@@ -26,14 +26,14 @@ export const GET = createHandler(async (sql, { url }) => {
 		selectedSeasons.length === 1
 			? sql`AND m.season = ${parseInt(selectedSeasons[0], 10)}`
 			: selectedSeasons.length > 1
-				? sql`AND m.season IN (${sql(selectedSeasons.map(Number))})`
+				? sql`AND m.season = ANY(${selectedSeasons.map(Number)})`
 				: sql``;
 
 	const leagueFrag =
 		selectedLeagues.length === 1
 			? sql`AND m.match_type_shortname = ${selectedLeagues[0]}`
 			: selectedLeagues.length > 1
-				? sql`AND m.match_type_shortname IN (${sql(selectedLeagues)})`
+				? sql`AND m.match_type_shortname = ANY(${selectedLeagues})`
 				: sql``;
 
 	const majorityTrackFrag = needsMajority

@@ -17,7 +17,7 @@ export const GET = createHandler(async (sql, { url, params }) => {
 
 	const leagueFrag =
 		selectedLeagues.length > 0
-			? sql`AND m.match_type_shortname IN (${sql(selectedLeagues)})`
+			? sql`AND m.match_type_shortname = ANY(${selectedLeagues})`
 			: sql``;
 
 	const [avgResult, winResult, overallAvgResult, overallWinResult, leaguesResult] =

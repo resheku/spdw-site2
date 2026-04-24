@@ -15,29 +15,18 @@ export const GET = createHandler(async (sql, { url }) => {
 		ORDER BY "Season" DESC, "Team" ASC, "League" ASC
 	`;
 
-	const heatsParams: unknown[] = [];
-	const heatsWhere: string[] = ['"Heats" IS NOT NULL', '"Heats" > 0'];
+	const teamFrag = teams.length > 0 ? sql`AND "Team" LIKE ANY(${teams.map((t) => '%' + t + '%')})` : sql``;
+	const leagueFrag = leagues.length > 0 ? sql`AND "League" = ANY(${leagues})` : sql``;
+	const seasonFrag = seasons.length > 0 ? sql`AND "Season" = ANY(${seasons.map(Number)})` : sql``;
 
-	if (teams.length > 0) {
-		const teamConditions = teams.map((t) => {
-			heatsParams.push('%' + t + '%');
-			return `"Team" LIKE $${heatsParams.length}`;
-		});
-		heatsWhere.push(`(${teamConditions.join(' OR ')})`);
-	}
-	if (leagues.length > 0) {
-		const placeholders = leagues.map((_, i) => `$${heatsParams.length + i + 1}`).join(', ');
-		leagues.forEach((l) => heatsParams.push(l));
-		heatsWhere.push(`"League" IN (${placeholders})`);
-	}
-	if (seasons.length > 0) {
-		const placeholders = seasons.map((_, i) => `$${heatsParams.length + i + 1}`).join(', ');
-		seasons.map(Number).forEach((s) => heatsParams.push(s));
-		heatsWhere.push(`"Season" IN (${placeholders})`);
-	}
-
-	const heatsQuery = `SELECT MIN("Heats") AS "minHeats", MAX("Heats") AS "maxHeats" FROM sel.stats WHERE ${heatsWhere.join(' AND ')}`;
-	const [heatsResult] = await sql.unsafe(heatsQuery, heatsParams as Parameters<typeof sql.unsafe>[1]);
+	const [heatsResult] = await sql`
+		SELECT MIN("Heats") AS "minHeats", MAX("Heats") AS "maxHeats"
+		FROM sel.stats
+		WHERE "Heats" IS NOT NULL AND "Heats" > 0
+			${teamFrag}
+			${leagueFrag}
+			${seasonFrag}
+	`;
 	const heatsRange = {
 		min: (heatsResult?.minHeats as number) || 0,
 		max: (heatsResult?.maxHeats as number) || 100,

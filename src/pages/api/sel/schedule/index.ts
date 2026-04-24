@@ -24,25 +24,19 @@ export const GET = createHandler(async (sql, { url }) => {
 
 	const dbSortCol = VALID_SORT_COLUMNS[sortCol] ?? 'datetime';
 
-	const whereClauses: string[] = [];
-	const queryParams: unknown[] = [];
+	const leagueFrag = leagues.length > 0 ? sql`AND match_type_shortname = ANY(${leagues})` : sql``;
+	const seasonFrag = seasons.length > 0 ? sql`AND season = ANY(${seasons})` : sql``;
 
-	if (leagues.length > 0) {
-		const placeholders = leagues.map((_, i) => `$${queryParams.length + i + 1}`).join(', ');
-		leagues.forEach((l) => queryParams.push(l));
-		whereClauses.push(`match_type_shortname IN (${placeholders})`);
-	}
-	if (seasons.length > 0) {
-		const placeholders = seasons.map((_, i) => `$${queryParams.length + i + 1}`).join(', ');
-		seasons.forEach((s) => queryParams.push(s));
-		whereClauses.push(`season IN (${placeholders})`);
-	}
+	const orderFrag =
+		dbSortCol === 'attendance'
+			? sortDir === 'ASC'
+				? sql`ORDER BY CASE WHEN attendance IS NULL THEN 1 ELSE 0 END, attendance ASC`
+				: sql`ORDER BY CASE WHEN attendance IS NULL THEN 1 ELSE 0 END, attendance DESC`
+			: sortDir === 'ASC'
+				? sql`ORDER BY ${sql(dbSortCol)} ASC`
+				: sql`ORDER BY ${sql(dbSortCol)} DESC`;
 
-	const where = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-	const nullLast = dbSortCol === 'attendance' ? `CASE WHEN attendance IS NULL THEN 1 ELSE 0 END, ` : '';
-	const orderBy = `ORDER BY ${nullLast}${dbSortCol} ${sortDir}`;
-
-	const query = `
+	const schedule = await sql`
 		SELECT
 			match_id,
 			round,
@@ -64,10 +58,10 @@ export const GET = createHandler(async (sql, { url }) => {
 			season,
 			track_city AS track
 		FROM matches
-		${where}
-		${orderBy}
+		WHERE 1=1
+			${leagueFrag}
+			${seasonFrag}
+		${orderFrag}
 	`;
-
-	const schedule = await sql.unsafe(query, queryParams as Parameters<typeof sql.unsafe>[1]);
 	return { schedule };
 }, { cacheControl: 'public, max-age=300' });

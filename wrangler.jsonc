@@ -6,10 +6,7 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "spdw-site",
 	"compatibility_date": "2026-03-28",
-	"compatibility_flags": [
-		"nodejs_compat_v2",
-		"global_fetch_strictly_public"
-	],
+	"compatibility_flags": ["nodejs_compat_v2", "global_fetch_strictly_public"],
 	"assets": {
 		"binding": "ASSETS",
 		"directory": "./dist",
@@ -43,7 +40,7 @@
 	"hyperdrive": [
 		{
 			"binding": "HYPERDRIVE",
-			"id": "26b2fd0e0fac4526bfe81fa1d7024999"
-		}
-	]
+			"id": "26b2fd0e0fac4526bfe81fa1d7024999",
+		},
+	],
 }

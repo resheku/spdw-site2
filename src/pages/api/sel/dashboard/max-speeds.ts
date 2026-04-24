@@ -2,23 +2,24 @@ import { createHandler } from '../../../../lib/api';
 
 export const prerender = false;
 
-export const GET = createHandler(async (sql) => {
-	const startTime = Date.now();
+export const GET = createHandler(
+	async (sql) => {
+		const startTime = Date.now();
 
-	const seasonStart = Date.now();
-	const [latestSeasonRow] = await sql`
+		const seasonStart = Date.now();
+		const [latestSeasonRow] = await sql`
 		SELECT MAX("Season") AS latest_season
 		FROM sel.stats
 		WHERE "League" = 'PGEE'
 		AND "Max Speed" IS NOT NULL
 	`;
-	console.log(`[max-speeds] Latest season query: ${Date.now() - seasonStart}ms`);
+		console.log(`[max-speeds] Latest season query: ${Date.now() - seasonStart}ms`);
 
-	const latestSeason = (latestSeasonRow?.latest_season as number) || new Date().getFullYear();
+		const latestSeason = (latestSeasonRow?.latest_season as number) || new Date().getFullYear();
 
-	const queriesStart = Date.now();
-	const [thisSeason, allTime] = await Promise.all([
-		sql`
+		const queriesStart = Date.now();
+		const [thisSeason, allTime] = await Promise.all([
+			sql`
 			WITH top_speeds AS (
 				SELECT
 					t.match_id,
@@ -55,7 +56,7 @@ export const GET = createHandler(async (sql) => {
 			ORDER BY ts.max_speed DESC
 			LIMIT 10
 		`,
-		sql`
+			sql`
 			WITH top_speeds AS (
 				SELECT
 					t.match_id,
@@ -90,9 +91,11 @@ export const GET = createHandler(async (sql) => {
 			ORDER BY ts.max_speed DESC
 			LIMIT 10
 		`,
-	]);
-	console.log(`[max-speeds] Both queries: ${Date.now() - queriesStart}ms`);
+		]);
+		console.log(`[max-speeds] Both queries: ${Date.now() - queriesStart}ms`);
 
-	console.log(`[max-speeds] Total time: ${Date.now() - startTime}ms`);
-	return { thisSeason, allTime };
-}, { cacheControl: 'public, max-age=300' });
+		console.log(`[max-speeds] Total time: ${Date.now() - startTime}ms`);
+		return { thisSeason, allTime };
+	},
+	{ cacheControl: 'public, max-age=300' }
+);

@@ -15,28 +15,29 @@ const VALID_SORT_COLUMNS: Record<string, string> = {
 	season: 'season',
 };
 
-export const GET = createHandler(async (sql, { url }) => {
-	const params = url.searchParams;
-	const leagues = params.get('league')?.split(',').filter(Boolean) ?? [];
-	const seasons = params.get('season')?.split(',').filter(Boolean).map(Number) ?? [];
-	const sortCol = params.get('sortColumn') ?? 'date';
-	const sortDir = params.get('sortDirection')?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+export const GET = createHandler(
+	async (sql, { url }) => {
+		const params = url.searchParams;
+		const leagues = params.get('league')?.split(',').filter(Boolean) ?? [];
+		const seasons = params.get('season')?.split(',').filter(Boolean).map(Number) ?? [];
+		const sortCol = params.get('sortColumn') ?? 'date';
+		const sortDir = params.get('sortDirection')?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
-	const dbSortCol = VALID_SORT_COLUMNS[sortCol] ?? 'datetime';
+		const dbSortCol = VALID_SORT_COLUMNS[sortCol] ?? 'datetime';
 
-	const leagueFrag = leagues.length > 0 ? sql`AND match_type_shortname = ANY(${leagues})` : sql``;
-	const seasonFrag = seasons.length > 0 ? sql`AND season = ANY(${seasons})` : sql``;
+		const leagueFrag = leagues.length > 0 ? sql`AND match_type_shortname = ANY(${leagues})` : sql``;
+		const seasonFrag = seasons.length > 0 ? sql`AND season = ANY(${seasons})` : sql``;
 
-	const orderFrag =
-		dbSortCol === 'attendance'
-			? sortDir === 'ASC'
-				? sql`ORDER BY CASE WHEN attendance IS NULL THEN 1 ELSE 0 END, attendance ASC`
-				: sql`ORDER BY CASE WHEN attendance IS NULL THEN 1 ELSE 0 END, attendance DESC`
-			: sortDir === 'ASC'
-				? sql`ORDER BY ${sql(dbSortCol)} ASC`
-				: sql`ORDER BY ${sql(dbSortCol)} DESC`;
+		const orderFrag =
+			dbSortCol === 'attendance'
+				? sortDir === 'ASC'
+					? sql`ORDER BY CASE WHEN attendance IS NULL THEN 1 ELSE 0 END, attendance ASC`
+					: sql`ORDER BY CASE WHEN attendance IS NULL THEN 1 ELSE 0 END, attendance DESC`
+				: sortDir === 'ASC'
+					? sql`ORDER BY ${sql(dbSortCol)} ASC`
+					: sql`ORDER BY ${sql(dbSortCol)} DESC`;
 
-	const schedule = await sql`
+		const schedule = await sql`
 		SELECT
 			match_id,
 			round,
@@ -63,5 +64,7 @@ export const GET = createHandler(async (sql, { url }) => {
 			${seasonFrag}
 		${orderFrag}
 	`;
-	return { schedule };
-}, { cacheControl: 'public, max-age=300' });
+		return { schedule };
+	},
+	{ cacheControl: 'public, max-age=300' }
+);

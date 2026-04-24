@@ -2,18 +2,19 @@ import { createHandler } from '../../../../../lib/api';
 
 export const prerender = false;
 
-export const GET = createHandler(async (sql, { params }) => {
-	const track = params.track ?? '';
+export const GET = createHandler(
+	async (sql, { params }) => {
+		const track = params.track ?? '';
 
-	if (!track) {
-		return new Response(JSON.stringify({ error: 'Track not specified' }), {
-			status: 400,
-			headers: { 'Content-Type': 'application/json' },
-		});
-	}
+		if (!track) {
+			return new Response(JSON.stringify({ error: 'Track not specified' }), {
+				status: 400,
+				headers: { 'Content-Type': 'application/json' },
+			});
+		}
 
-	const [matchAverages, topSpeeds] = await Promise.all([
-		sql`
+		const [matchAverages, topSpeeds] = await Promise.all([
+			sql`
 			SELECT
 				m.match_id AS "matchId",
 				SUBSTRING(m.datetime, 1, 10) AS date,
@@ -36,7 +37,7 @@ export const GET = createHandler(async (sql, { params }) => {
 			         m.home_team_id, m.away_team_id
 			ORDER BY m.datetime
 		`,
-		sql`
+			sql`
 			SELECT
 				l.rider_name || ' ' || l.rider_surname AS "Name",
 				CASE
@@ -59,7 +60,9 @@ export const GET = createHandler(async (sql, { params }) => {
 			ORDER BY t.max_speed DESC
 			LIMIT 20
 		`,
-	]);
+		]);
 
-	return { matchAverages, topSpeeds };
-}, { cacheControl: 'public, max-age=300' });
+		return { matchAverages, topSpeeds };
+	},
+	{ cacheControl: 'public, max-age=300' }
+);

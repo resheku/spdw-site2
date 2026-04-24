@@ -2,11 +2,12 @@ import { createHandler } from '../../../../lib/api';
 
 export const prerender = false;
 
-export const GET = createHandler(async (sql) => {
-	const startTime = Date.now();
+export const GET = createHandler(
+	async (sql) => {
+		const startTime = Date.now();
 
-	const [thisSeason, allTime] = await Promise.all([
-		sql`
+		const [thisSeason, allTime] = await Promise.all([
+			sql`
 			SELECT
 				"Name",
 				"Team",
@@ -21,7 +22,7 @@ export const GET = createHandler(async (sql) => {
 			ORDER BY "Average" DESC
 			LIMIT 10
 		`,
-		sql`
+			sql`
 			SELECT
 				"Name",
 				"Team",
@@ -35,8 +36,10 @@ export const GET = createHandler(async (sql) => {
 			ORDER BY "Average" DESC
 			LIMIT 10
 		`,
-	]);
+		]);
 
-	console.log(`[best-averages] Total time: ${Date.now() - startTime}ms`);
-	return { thisSeason, allTime };
-}, { cacheControl: 'public, max-age=300' });
+		console.log(`[best-averages] Total time: ${Date.now() - startTime}ms`);
+		return { thisSeason, allTime };
+	},
+	{ cacheControl: 'public, max-age=300' }
+);

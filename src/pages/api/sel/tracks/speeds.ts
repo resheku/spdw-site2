@@ -2,8 +2,9 @@ import { createHandler } from '../../../../lib/api';
 
 export const prerender = false;
 
-export const GET = createHandler(async (sql) => {
-	const rows = await sql`
+export const GET = createHandler(
+	async (sql) => {
+		const rows = await sql`
 		WITH season_avgs AS (
 			SELECT
 				m.track_city AS track,
@@ -25,12 +26,14 @@ export const GET = createHandler(async (sql) => {
 		ORDER BY average DESC
 	`;
 
-	const seasons: number[] = rows.length > 0 ? (rows[0].all_seasons as number[]) : [];
-	const tracks = rows.map((r) => ({
-		Track: r.track as string,
-		Average: r.average as number | null,
-		seasons: r.seasons as Record<string, number>,
-	}));
+		const seasons: number[] = rows.length > 0 ? (rows[0].all_seasons as number[]) : [];
+		const tracks = rows.map((r) => ({
+			Track: r.track as string,
+			Average: r.average as number | null,
+			seasons: r.seasons as Record<string, number>,
+		}));
 
-	return { tracks, seasons };
-}, { cacheControl: 'public, max-age=300' });
+		return { tracks, seasons };
+	},
+	{ cacheControl: 'public, max-age=300' }
+);

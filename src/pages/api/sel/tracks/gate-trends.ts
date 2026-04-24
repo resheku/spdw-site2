@@ -2,19 +2,20 @@ import { createHandler } from '../../../../lib/api';
 
 export const prerender = false;
 
-export const GET = createHandler(async (sql, { url }) => {
-	const leagueParam = url.searchParams.get('league');
-	const selectedLeagues = leagueParam ? leagueParam.split(',').filter(Boolean) : [];
+export const GET = createHandler(
+	async (sql, { url }) => {
+		const leagueParam = url.searchParams.get('league');
+		const selectedLeagues = leagueParam ? leagueParam.split(',').filter(Boolean) : [];
 
-	const leagueFrag =
-		selectedLeagues.length === 1
-			? sql`AND m.match_type_shortname = ${selectedLeagues[0]}`
-			: selectedLeagues.length > 1
-				? sql`AND m.match_type_shortname = ANY(${selectedLeagues})`
-				: sql``;
+		const leagueFrag =
+			selectedLeagues.length === 1
+				? sql`AND m.match_type_shortname = ${selectedLeagues[0]}`
+				: selectedLeagues.length > 1
+					? sql`AND m.match_type_shortname = ANY(${selectedLeagues})`
+					: sql``;
 
-	const [avgPoints, winPct] = await Promise.all([
-		sql`
+		const [avgPoints, winPct] = await Promise.all([
+			sql`
 			SELECT
 				m.season AS season,
 				ROUND(AVG(CASE WHEN h.gate = 'a' THEN h.points END), 2) AS "A",
@@ -34,7 +35,7 @@ export const GET = createHandler(async (sql, { url }) => {
 			GROUP BY m.season
 			ORDER BY m.season
 		`,
-		sql`
+			sql`
 			SELECT
 				m.season AS season,
 				ROUND(SUM(CASE WHEN h.gate = 'a' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
@@ -55,7 +56,9 @@ export const GET = createHandler(async (sql, { url }) => {
 			GROUP BY m.season
 			ORDER BY m.season
 		`,
-	]);
+		]);
 
-	return { avgPoints, winPct };
-}, { cacheControl: 'public, max-age=300' });
+		return { avgPoints, winPct };
+	},
+	{ cacheControl: 'public, max-age=300' }
+);

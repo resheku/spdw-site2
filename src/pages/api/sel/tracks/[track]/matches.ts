@@ -2,17 +2,18 @@ import { createHandler } from '../../../../../lib/api';
 
 export const prerender = false;
 
-export const GET = createHandler(async (sql, { params }) => {
-	const track = params.track ?? '';
+export const GET = createHandler(
+	async (sql, { params }) => {
+		const track = params.track ?? '';
 
-	if (!track) {
-		return new Response(JSON.stringify({ error: 'Track not specified' }), {
-			status: 400,
-			headers: { 'Content-Type': 'application/json' },
-		});
-	}
+		if (!track) {
+			return new Response(JSON.stringify({ error: 'Track not specified' }), {
+				status: 400,
+				headers: { 'Content-Type': 'application/json' },
+			});
+		}
 
-	const matches = await sql`
+		const matches = await sql`
 		SELECT
 			m.match_id AS id,
 			SUBSTRING(m.datetime, 1, 10) AS date,
@@ -39,5 +40,7 @@ export const GET = createHandler(async (sql, { params }) => {
 		ORDER BY m.datetime DESC
 	`;
 
-	return { matches };
-}, { cacheControl: 'public, max-age=300' });
+		return { matches };
+	},
+	{ cacheControl: 'public, max-age=300' }
+);

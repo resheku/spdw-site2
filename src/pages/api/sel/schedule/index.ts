@@ -58,7 +58,7 @@ export const GET = createHandler(
 			attendance,
 			season,
 			track_city AS track
-		FROM matches
+		FROM sel.matches
 		WHERE 1=1
 			${leagueFrag}
 			${seasonFrag}

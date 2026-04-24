@@ -10,8 +10,8 @@ export const GET = createHandler(
 				m.track_city AS track,
 				m.season AS season,
 				ROUND(AVG(CASE WHEN t.max_speed > 0 THEN t.max_speed END)::numeric, 2) AS avg_speed
-			FROM telemetry t
-			JOIN matches m ON t.match_id = m.match_id
+			FROM sel.telemetry t
+			JOIN sel.matches m ON t.match_id = m.match_id
 			WHERE t.max_speed IS NOT NULL AND t.max_speed > 0
 			  AND m.track_city IS NOT NULL
 			GROUP BY m.track_city, m.season

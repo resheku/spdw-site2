@@ -25,8 +25,8 @@ export const GET = createHandler(
 					t.match_id,
 					t.rider_id,
 					t.max_speed
-				FROM telemetry t
-				JOIN matches m ON t.match_id = m.match_id
+				FROM sel.telemetry t
+				JOIN sel.matches m ON t.match_id = m.match_id
 				WHERE t.max_speed IS NOT NULL
 				AND m.season = ${latestSeason}
 				ORDER BY t.max_speed DESC
@@ -45,8 +45,8 @@ export const GET = createHandler(
 				m.track_city AS "Track",
 				SUBSTRING(m.datetime, 1, 10) AS "Date"
 			FROM top_speeds ts
-			JOIN matches m ON ts.match_id = m.match_id
-			JOIN lineup l ON ts.match_id = l.match_id AND ts.rider_id = l.rider_id
+			JOIN sel.matches m ON ts.match_id = m.match_id
+			JOIN sel.lineup l ON ts.match_id = l.match_id AND ts.rider_id = l.rider_id
 			WHERE EXISTS (
 				SELECT 1 FROM sel.stats s
 				WHERE s."Season" = m.season
@@ -62,7 +62,7 @@ export const GET = createHandler(
 					t.match_id,
 					t.rider_id,
 					t.max_speed
-				FROM telemetry t
+				FROM sel.telemetry t
 				WHERE t.max_speed IS NOT NULL
 				ORDER BY t.max_speed DESC
 				LIMIT 50
@@ -80,8 +80,8 @@ export const GET = createHandler(
 				m.track_city AS "Track",
 				SUBSTRING(m.datetime, 1, 10) AS "Date"
 			FROM top_speeds ts
-			JOIN matches m ON ts.match_id = m.match_id
-			JOIN lineup l ON ts.match_id = l.match_id AND ts.rider_id = l.rider_id
+			JOIN sel.matches m ON ts.match_id = m.match_id
+			JOIN sel.lineup l ON ts.match_id = l.match_id AND ts.rider_id = l.rider_id
 			WHERE EXISTS (
 				SELECT 1 FROM sel.stats s
 				WHERE s."Season" = m.season

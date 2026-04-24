@@ -30,9 +30,9 @@ export const GET = createHandler(
 			m.away_match_score AS "awayScore",
 			ROUND(AVG(CASE WHEN l.team_id = m.home_team_id AND t.max_speed > 0 THEN t.max_speed END)::numeric, 2) AS "homeAvgSpeed",
 			ROUND(AVG(CASE WHEN l.team_id = m.away_team_id AND t.max_speed > 0 THEN t.max_speed END)::numeric, 2) AS "awayAvgSpeed"
-		FROM matches m
-		LEFT JOIN telemetry t ON t.match_id = m.match_id AND t.max_speed IS NOT NULL AND t.max_speed > 0
-		LEFT JOIN lineup l ON t.match_id = l.match_id AND t.rider_id = l.rider_id
+		FROM sel.matches m
+		LEFT JOIN sel.telemetry t ON t.match_id = m.match_id AND t.max_speed IS NOT NULL AND t.max_speed > 0
+		LEFT JOIN sel.lineup l ON t.match_id = l.match_id AND t.rider_id = l.rider_id
 		WHERE m.track_city = ${track}
 		GROUP BY m.match_id, m.datetime, m.match_type_shortname, m.match_type_name,
 		         m.match_subtype_shortname, m.home_team_id, m.home_team_shortcut, m.home_team_title,

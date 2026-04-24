@@ -33,8 +33,8 @@ export const GET = createHandler(
 						- ROUND(AVG(CASE WHEN h.gate = 'a' THEN h.points END)::numeric, 2)
 						- ROUND(AVG(CASE WHEN h.gate = 'b' THEN h.points END)::numeric, 2)
 						- ROUND(AVG(CASE WHEN h.gate = 'c' THEN h.points END)::numeric, 2))::numeric, 2)::float8 AS "D"
-				FROM heats h
-				JOIN matches m ON h.match_id = m.match_id
+				FROM sel.heats h
+				JOIN sel.matches m ON h.match_id = m.match_id
 				WHERE h.gate IN ('a','b','c','d') AND h.canceled = 0 AND h.points IS NOT NULL
 					AND m.track_city = ${track}
 					${leagueFrag}
@@ -51,8 +51,8 @@ export const GET = createHandler(
 						/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1)::float8 AS "C",
 					ROUND(SUM(CASE WHEN h.gate = 'd' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
 						/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1)::float8 AS "D"
-				FROM heats h
-				JOIN matches m ON h.match_id = m.match_id
+				FROM sel.heats h
+				JOIN sel.matches m ON h.match_id = m.match_id
 				WHERE h.gate IN ('a','b','c','d') AND h.canceled = 0 AND h.points IS NOT NULL
 					AND m.track_city = ${track}
 					${leagueFrag}
@@ -67,8 +67,8 @@ export const GET = createHandler(
 						- ROUND(AVG(CASE WHEN h.gate = 'a' THEN h.points END)::numeric, 2)
 						- ROUND(AVG(CASE WHEN h.gate = 'b' THEN h.points END)::numeric, 2)
 						- ROUND(AVG(CASE WHEN h.gate = 'c' THEN h.points END)::numeric, 2))::numeric, 2)::float8 AS "D"
-				FROM heats h
-				JOIN matches m ON h.match_id = m.match_id
+				FROM sel.heats h
+				JOIN sel.matches m ON h.match_id = m.match_id
 				WHERE h.gate IN ('a','b','c','d') AND h.canceled = 0 AND h.points IS NOT NULL
 					AND m.track_city = ${track}
 					${leagueFrag}
@@ -83,15 +83,15 @@ export const GET = createHandler(
 						/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1)::float8 AS "C",
 					ROUND(SUM(CASE WHEN h.gate = 'd' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
 						/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1)::float8 AS "D"
-				FROM heats h
-				JOIN matches m ON h.match_id = m.match_id
+				FROM sel.heats h
+				JOIN sel.matches m ON h.match_id = m.match_id
 				WHERE h.gate IN ('a','b','c','d') AND h.canceled = 0 AND h.points IS NOT NULL
 					AND m.track_city = ${track}
 					${leagueFrag}
 			`,
 				sql`
 				SELECT DISTINCT m.match_type_shortname AS code, m.match_type_name AS name
-				FROM matches m
+				FROM sel.matches m
 				WHERE m.track_city = ${track}
 				ORDER BY m.match_type_shortname
 			`,

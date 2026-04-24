@@ -20,7 +20,7 @@ export const GET = createHandler(async (sql, { params }) => {
 				SUM(CASE WHEN away_match_score > home_match_score THEN 1 ELSE 0 END) AS "awayWins",
 				ROUND(AVG(home_match_score), 1) AS "avgHomeScore",
 				ROUND(AVG(away_match_score), 1) AS "avgAwayScore"
-			FROM matches
+			FROM sel.matches
 			WHERE track_city = ${track}
 				AND home_match_score IS NOT NULL
 				AND away_match_score IS NOT NULL
@@ -37,7 +37,7 @@ export const GET = createHandler(async (sql, { params }) => {
 						ELSE 'L'
 					END AS result,
 					true AS "hasHome"
-				FROM matches
+				FROM sel.matches
 				WHERE track_city = ${track}
 					AND home_match_score IS NOT NULL
 				UNION ALL
@@ -51,7 +51,7 @@ export const GET = createHandler(async (sql, { params }) => {
 						ELSE 'L'
 					END AS result,
 					false AS "hasHome"
-				FROM matches
+				FROM sel.matches
 				WHERE track_city = ${track}
 					AND away_match_score IS NOT NULL
 			)

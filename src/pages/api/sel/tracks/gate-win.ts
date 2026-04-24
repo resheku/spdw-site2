@@ -16,7 +16,7 @@ export const GET = createHandler(
 				SELECT track_city FROM (
 					SELECT track_city, match_type_shortname,
 					       RANK() OVER (PARTITION BY track_city ORDER BY COUNT(*) DESC) AS rnk
-					FROM matches
+					FROM sel.matches
 					WHERE season = ${parseInt(selectedSeasons[0], 10)} AND match_subtype_shortname = 'MR'
 					GROUP BY track_city, match_type_shortname
 				) AS t WHERE t.rnk = 1 AND t.match_type_shortname = ${selectedLeagues[0]}
@@ -50,8 +50,8 @@ export const GET = createHandler(
 				SUM(CASE WHEN h.gate = 'b' AND h.points = 3 THEN 1 ELSE 0 END) AS wb,
 				SUM(CASE WHEN h.gate = 'c' AND h.points = 3 THEN 1 ELSE 0 END) AS wc,
 				SUM(CASE WHEN h.gate = 'd' AND h.points = 3 THEN 1 ELSE 0 END) AS wd
-			FROM heats h
-			JOIN matches m ON h.match_id = m.match_id
+			FROM sel.heats h
+			JOIN sel.matches m ON h.match_id = m.match_id
 			WHERE
 				h.gate IN ('a', 'b', 'c', 'd')
 				AND h.canceled = 0

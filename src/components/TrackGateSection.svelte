@@ -46,24 +46,18 @@
 	$: leagueOptions = leagues.map((l) => ({ value: l.code, label: l.name }));
 
 	$: avgSeasonRows = [
-		...avgPoints.map((r) => {
-			const a = r.A != null ? Number(r.A) : null;
-			const b = r.B != null ? Number(r.B) : null;
-			const c = r.C != null ? Number(r.C) : null;
-			const d = r.D != null ? Number(r.D) : null;
-			return {
-				Season: r.season,
-				A: a,
-				B: b,
-				C: c,
-				D: d,
-				'AC/BD': a != null && c != null ? `${(a + c).toFixed(2)}/${(b! + d!).toFixed(2)}` : null,
-				Bias:
-					a != null && b != null && c != null && d != null
-						? parseFloat((Math.max(a, b, c, d) - Math.min(a, b, c, d)).toFixed(2))
-						: null,
-			};
-		}),
+		...avgPoints.map((r) => ({
+			Season: r.season,
+			A: r.A,
+			B: r.B,
+			C: r.C,
+			D: r.D,
+			'AC/BD': r.A != null ? `${(r.A + r.C).toFixed(2)}/${(r.B + r.D).toFixed(2)}` : null,
+			Bias:
+				r.A != null
+					? parseFloat((Math.max(r.A, r.B, r.C, r.D) - Math.min(r.A, r.B, r.C, r.D)).toFixed(2))
+					: null,
+		})),
 		{
 			Season: 'Total Average',
 			A: overallAvg.A,
@@ -76,23 +70,17 @@
 	];
 
 	$: winSeasonRows = [
-		...winPct.map((r) => {
-			const a = r.A != null ? Number(r.A) : null;
-			const b = r.B != null ? Number(r.B) : null;
-			const c = r.C != null ? Number(r.C) : null;
-			const d = r.D != null ? Number(r.D) : null;
-			return {
-				Season: r.season,
-				A: a,
-				B: b,
-				C: c,
-				D: d,
-				Bias:
-					a != null && b != null && c != null && d != null
-						? parseFloat((Math.max(a, b, c, d) - Math.min(a, b, c, d)).toFixed(1))
-						: null,
-			};
-		}),
+		...winPct.map((r) => ({
+			Season: r.season,
+			A: r.A,
+			B: r.B,
+			C: r.C,
+			D: r.D,
+			Bias:
+				r.A != null
+					? parseFloat((Math.max(r.A, r.B, r.C, r.D) - Math.min(r.A, r.B, r.C, r.D)).toFixed(1))
+					: null,
+		})),
 		{
 			Season: 'Total Average',
 			A: overallWin.A,
@@ -192,27 +180,10 @@
 				overall: { avgPoints: typeof overallAvg; winPct: OverallGate };
 				leagues: { code: string; name: string }[];
 			};
-			const toNum = (v: unknown) => (v != null ? Number(v) : null);
-			const castGate = <T extends Record<string, unknown>>(o: T) => ({
-				...o,
-				A: toNum(o.A),
-				B: toNum(o.B),
-				C: toNum(o.C),
-				D: toNum(o.D),
-				Bias: toNum(o.Bias),
-			});
-
 			avgPoints = data.avgPoints ?? [];
 			winPct = data.winPct ?? [];
-			overallAvg = data.overall?.avgPoints
-				? {
-						...castGate(data.overall.avgPoints as Record<string, unknown>),
-						'AC/BD': (data.overall.avgPoints as typeof overallAvg)['AC/BD'],
-					}
-				: overallAvg;
-			overallWin = data.overall?.winPct
-				? (castGate(data.overall.winPct as Record<string, unknown>) as typeof overallWin)
-				: overallWin;
+			overallAvg = data.overall?.avgPoints ?? overallAvg;
+			overallWin = data.overall?.winPct ?? overallWin;
 			if (!staticLoaded) {
 				staticAvg = overallAvg;
 				staticWin = overallWin;

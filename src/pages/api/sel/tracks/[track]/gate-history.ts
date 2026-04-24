@@ -1,9 +1,4 @@
 import { createHandler } from '../../../../../lib/api';
-import avgBase from '../../queries/track/gate-history-avg-base.sql?raw';
-import winBase from '../../queries/track/gate-history-win-base.sql?raw';
-import overallAvgBase from '../../queries/track/gate-history-overall-avg-base.sql?raw';
-import overallWinBase from '../../queries/track/gate-history-overall-win-base.sql?raw';
-import leaguesQuery from '../../queries/track/gate-history-leagues.sql?params';
 
 export const prerender = false;
 
@@ -20,95 +15,126 @@ export const GET = createHandler(async (sql, { url, params }) => {
 	const leagueParam = url.searchParams.get('league');
 	const selectedLeagues = leagueParam ? leagueParam.split(',').filter(Boolean) : [];
 
-	const leagueCond = selectedLeagues.length
-		? sql`AND m.match_type_shortname = ANY(${selectedLeagues})`
-		: sql``;
+	const leagueFrag =
+		selectedLeagues.length > 0
+			? sql`AND m.match_type_shortname IN (${sql(selectedLeagues)})`
+			: sql``;
 
-	const [avgRows, winRows, overallAvgRows, overallWinRows, leagueRows] = await Promise.all([
-		sql`
-			${avgBase}
-			AND m.track_city = ${track}
-			${leagueCond}
-			GROUP BY m.season
-			ORDER BY m.season
-		`,
-		sql`
-			${winBase}
-			AND m.track_city = ${track}
-			${leagueCond}
-			GROUP BY m.season
-			ORDER BY m.season
-		`,
-		sql`
-			${overallAvgBase}
-			AND m.track_city = ${track}
-			${leagueCond}
-		`,
-		sql`
-			${overallWinBase}
-			AND m.track_city = ${track}
-			${leagueCond}
-		`,
-		leaguesQuery(sql, track),
-	]);
+	const [avgResult, winResult, overallAvgResult, overallWinResult, leaguesResult] =
+		await Promise.all([
+			sql`
+				SELECT
+					m.season AS season,
+					ROUND(AVG(CASE WHEN h.gate = 'a' THEN h.points END)::numeric, 2)::float8 AS "A",
+					ROUND(AVG(CASE WHEN h.gate = 'b' THEN h.points END)::numeric, 2)::float8 AS "B",
+					ROUND(AVG(CASE WHEN h.gate = 'c' THEN h.points END)::numeric, 2)::float8 AS "C",
+					ROUND((6.0
+						- ROUND(AVG(CASE WHEN h.gate = 'a' THEN h.points END)::numeric, 2)
+						- ROUND(AVG(CASE WHEN h.gate = 'b' THEN h.points END)::numeric, 2)
+						- ROUND(AVG(CASE WHEN h.gate = 'c' THEN h.points END)::numeric, 2))::numeric, 2)::float8 AS "D"
+				FROM heats h
+				JOIN matches m ON h.match_id = m.match_id
+				WHERE h.gate IN ('a','b','c','d') AND h.canceled = 0 AND h.points IS NOT NULL
+					AND m.track_city = ${track}
+					${leagueFrag}
+				GROUP BY m.season ORDER BY m.season
+			`,
+			sql`
+				SELECT
+					m.season AS season,
+					ROUND(SUM(CASE WHEN h.gate = 'a' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
+						/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1)::float8 AS "A",
+					ROUND(SUM(CASE WHEN h.gate = 'b' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
+						/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1)::float8 AS "B",
+					ROUND(SUM(CASE WHEN h.gate = 'c' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
+						/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1)::float8 AS "C",
+					ROUND(SUM(CASE WHEN h.gate = 'd' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
+						/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1)::float8 AS "D"
+				FROM heats h
+				JOIN matches m ON h.match_id = m.match_id
+				WHERE h.gate IN ('a','b','c','d') AND h.canceled = 0 AND h.points IS NOT NULL
+					AND m.track_city = ${track}
+					${leagueFrag}
+				GROUP BY m.season ORDER BY m.season
+			`,
+			sql`
+				SELECT
+					ROUND(AVG(CASE WHEN h.gate = 'a' THEN h.points END)::numeric, 2)::float8 AS "A",
+					ROUND(AVG(CASE WHEN h.gate = 'b' THEN h.points END)::numeric, 2)::float8 AS "B",
+					ROUND(AVG(CASE WHEN h.gate = 'c' THEN h.points END)::numeric, 2)::float8 AS "C",
+					ROUND((6.0
+						- ROUND(AVG(CASE WHEN h.gate = 'a' THEN h.points END)::numeric, 2)
+						- ROUND(AVG(CASE WHEN h.gate = 'b' THEN h.points END)::numeric, 2)
+						- ROUND(AVG(CASE WHEN h.gate = 'c' THEN h.points END)::numeric, 2))::numeric, 2)::float8 AS "D"
+				FROM heats h
+				JOIN matches m ON h.match_id = m.match_id
+				WHERE h.gate IN ('a','b','c','d') AND h.canceled = 0 AND h.points IS NOT NULL
+					AND m.track_city = ${track}
+					${leagueFrag}
+			`,
+			sql`
+				SELECT
+					ROUND(SUM(CASE WHEN h.gate = 'a' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
+						/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1)::float8 AS "A",
+					ROUND(SUM(CASE WHEN h.gate = 'b' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
+						/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1)::float8 AS "B",
+					ROUND(SUM(CASE WHEN h.gate = 'c' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
+						/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1)::float8 AS "C",
+					ROUND(SUM(CASE WHEN h.gate = 'd' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
+						/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1)::float8 AS "D"
+				FROM heats h
+				JOIN matches m ON h.match_id = m.match_id
+				WHERE h.gate IN ('a','b','c','d') AND h.canceled = 0 AND h.points IS NOT NULL
+					AND m.track_city = ${track}
+					${leagueFrag}
+			`,
+			sql`
+				SELECT DISTINCT m.match_type_shortname AS code, m.match_type_name AS name
+				FROM matches m
+				WHERE m.track_city = ${track}
+				ORDER BY m.match_type_shortname
+			`,
+		]);
 
-		const oa = (overallAvgRows[0] as Record<string, number | null>) ?? {};
-		const ow = (overallWinRows[0] as Record<string, number | null>) ?? {};
+	const oa = (overallAvgResult[0] as Record<string, number | null>) ?? {};
+	const ow = (overallWinResult[0] as Record<string, number | null>) ?? {};
 
-		const overallAvgBias =
-			oa.A != null && oa.B != null && oa.C != null && oa.D != null
-				? parseFloat(
-						(Math.max(oa.A, oa.B, oa.C, oa.D) - Math.min(oa.A, oa.B, oa.C, oa.D)).toFixed(2)
-					)
-				: null;
-		const overallWinBias =
-			ow.A != null && ow.B != null && ow.C != null && ow.D != null
-				? parseFloat(
-						(Math.max(ow.A, ow.B, ow.C, ow.D) - Math.min(ow.A, ow.B, ow.C, ow.D)).toFixed(1)
-					)
-				: null;
+	const overallAvgBias =
+		oa.A != null && oa.B != null && oa.C != null && oa.D != null
+			? parseFloat(
+					(Math.max(+oa.A, +oa.B, +oa.C, +oa.D) - Math.min(+oa.A, +oa.B, +oa.C, +oa.D)).toFixed(2)
+				)
+			: null;
+	const overallWinBias =
+		ow.A != null && ow.B != null && ow.C != null && ow.D != null
+			? parseFloat(
+					(Math.max(+ow.A, +ow.B, +ow.C, +ow.D) - Math.min(+ow.A, +ow.B, +ow.C, +ow.D)).toFixed(1)
+				)
+			: null;
 
-		const toNum = (v: number | null | undefined) => (v != null ? +v : null);
-
-		// Cast per-season rows (postgres NUMERIC arrives as strings)
-		const avgRowsCast = (avgRows as Record<string, unknown>[]).map((r) => ({
-			season: r.season,
-			A: toNum(r.A as number | null),
-			B: toNum(r.B as number | null),
-			C: toNum(r.C as number | null),
-			D: toNum(r.D as number | null),
-		}));
-		const winRowsCast = (winRows as Record<string, unknown>[]).map((r) => ({
-			season: r.season,
-			A: toNum(r.A as number | null),
-			B: toNum(r.B as number | null),
-			C: toNum(r.C as number | null),
-			D: toNum(r.D as number | null),
-		}));
-
-		return {
-			avgPoints: avgRowsCast,
-			winPct: winRowsCast,
-			overall: {
-				avgPoints: {
-					A: toNum(oa.A),
-					B: toNum(oa.B),
-					C: toNum(oa.C),
-					D: toNum(oa.D),
-					'AC/BD':
-						oa.A != null && oa.B != null && oa.C != null && oa.D != null
-							? `${(+oa.A + +oa.C).toFixed(2)}/${(+oa.B + +oa.D).toFixed(2)}`
-							: null,
-					Bias: overallAvgBias,
-				},
-				winPct: {
-					A: toNum(ow.A),
-					B: toNum(ow.B),
-					C: toNum(ow.C),
-					D: toNum(ow.D),
-					Bias: overallWinBias,
-				},
+	return {
+		avgPoints: avgResult,
+		winPct: winResult,
+		overall: {
+			avgPoints: {
+				A: oa.A,
+				B: oa.B,
+				C: oa.C,
+				D: oa.D,
+				'AC/BD':
+					oa.A != null && oa.B != null && oa.C != null && oa.D != null
+						? `${(+oa.A + +oa.C).toFixed(2)}/${(+oa.B + +oa.D).toFixed(2)}`
+						: null,
+				Bias: overallAvgBias,
 			},
-			leagues: leagueRows,
-		};
-});
+			winPct: {
+				A: ow.A,
+				B: ow.B,
+				C: ow.C,
+				D: ow.D,
+				Bias: overallWinBias,
+			},
+		},
+		leagues: leaguesResult,
+	};
+}, { cacheControl: 'public, max-age=300' });

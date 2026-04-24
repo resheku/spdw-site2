@@ -1,15 +1,15 @@
 import { createHandler } from '../../../../lib/api';
-import filtersLeaguesQuery from '../queries/schedule/filters-leagues.sql?raw';
-import filtersSeasonsQuery from '../queries/schedule/filters-seasons.sql?raw';
 
 export const prerender = false;
 
 export const GET = createHandler(async (sql) => {
-	const [leagueRows, seasonRows] = await Promise.all([
-		sql`${filtersLeaguesQuery}`,
-		sql`${filtersSeasonsQuery}`,
+	const [leaguesResult, seasonsResult] = await Promise.all([
+		sql`SELECT DISTINCT match_type_shortname AS shortname, match_type_name AS name FROM matches ORDER BY match_type_name`,
+		sql`SELECT DISTINCT season FROM matches ORDER BY season ASC`,
 	]);
-	const leagues = leagueRows.map((r) => ({ shortname: r.shortname, name: r.name }));
-	const seasons = seasonRows.map((r) => r.season);
+
+	const leagues = leaguesResult.map((r) => ({ shortname: r.shortname, name: r.name }));
+	const seasons = seasonsResult.map((r) => r.season);
+
 	return { leagues, seasons };
 }, { cacheControl: 'public, max-age=3600' });

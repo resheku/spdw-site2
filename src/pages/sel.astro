@@ -254,14 +254,19 @@ function resultClass(home: number, away: number, forHome: boolean): string {
 
 			<!-- Top Speed Section -->
 			<h3 class="mt-8 mb-4 text-2xl font-bold">
-				max speed <span class="text-muted-foreground text-base font-normal">(km/h)</span>
+				<a href={`/sel/max-speeds?season=${currentSeason}`} class="underline">max speed</a>
+				<span class="text-muted-foreground text-base font-normal">(km/h)</span>
 			</h3>
 
 			<div class="grid w-full grid-cols-1 gap-6 lg:grid-cols-2">
 				<!-- This Season Max Speeds -->
 				<div class="bg-background overflow-hidden rounded-lg">
 					<div class="border-border border-b px-4 py-3">
-						<h3 class="text-lg font-semibold">{currentSeason}</h3>
+						<h3 class="text-lg font-semibold">
+							<a href={`/sel/max-speeds?season=${currentSeason}`} class="underline">
+								{currentSeason}
+							</a>
+						</h3>
 					</div>
 					<div class="overflow-x-auto">
 						<table class="w-full text-sm">
@@ -296,7 +301,11 @@ function resultClass(home: number, away: number, forHome: boolean): string {
 				<!-- All Time Max Speeds -->
 				<div class="bg-background overflow-hidden rounded-lg">
 					<div class="border-border border-b px-4 py-3">
-						<h3 class="text-lg font-semibold">{maxSpeedRange || 'All Seasons'}</h3>
+						<h3 class="text-lg font-semibold">
+							<a href="/sel/max-speeds" class="underline">
+								{maxSpeedRange || 'All Seasons'}
+							</a>
+						</h3>
 					</div>
 					<div class="overflow-x-auto">
 						<table class="w-full text-sm">

@@ -3,11 +3,10 @@ import Layout from '../layouts/Layout.astro';
 
 let latestSeason: number | null = null;
 try {
-	const res = await fetch(new URL('/api/sel/schedule/filters', Astro.url).toString());
+	const res = await fetch(new URL('/api/sel/seasons', Astro.url).toString());
 	if (res.ok) {
-		const data = (await res.json()) as { seasons: number[] };
-		const seasons = data.seasons ?? [];
-		if (seasons.length > 0) latestSeason = seasons[seasons.length - 1];
+		const seasons = (await res.json()) as number[];
+		if (Array.isArray(seasons) && seasons.length > 0) latestSeason = seasons[seasons.length - 1];
 	}
 } catch {
 	/* ignore */

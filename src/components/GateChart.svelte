@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import { Chart, type ChartConfiguration } from 'chart.js';
 	import 'chart.js/auto';
 
@@ -13,12 +13,11 @@
 
 	let { avgPoints, winPct }: { avgPoints: SeasonRow[]; winPct: SeasonRow[] } = $props();
 
-	let avgCanvas: HTMLCanvasElement;
-	let winCanvas: HTMLCanvasElement;
+	let avgCanvas: HTMLCanvasElement | undefined = $state();
+	let winCanvas: HTMLCanvasElement | undefined = $state();
 	let avgChart: Chart | null = null;
 	let winChart: Chart | null = null;
 
-	// Gate colors: A=red, B=blue, C=lightgray, D=yellow — match table header colors
 	const GATE_COLORS: Record<string, string> = {
 		A: '#ef4444',
 		B: '#3b82f6',
@@ -62,25 +61,42 @@
 		};
 	}
 
-	onMount(() => {
-		const labels = avgPoints.map((r) => String(r.season));
+	$effect(() => {
+		if (!avgCanvas || !winCanvas) return;
 
-		avgChart = new Chart(avgCanvas, {
-			type: 'line',
-			data: { labels, datasets: makeDatasets(avgPoints) },
-			options: baseOptions('Avg Points', ''),
-		} as ChartConfiguration<'line'>);
+		const ap = avgPoints;
+		const wp = winPct;
 
-		winChart = new Chart(winCanvas, {
-			type: 'line',
-			data: { labels: winPct.map((r) => String(r.season)), datasets: makeDatasets(winPct) },
-			options: baseOptions('Win %', '%'),
-		} as ChartConfiguration<'line'>);
+		if (!avgChart) {
+			avgChart = new Chart(avgCanvas, {
+				type: 'line',
+				data: { labels: ap.map((r) => String(r.season)), datasets: makeDatasets(ap) },
+				options: baseOptions('Avg Points', ''),
+			} as ChartConfiguration<'line'>);
+		} else {
+			avgChart.data.labels = ap.map((r) => String(r.season));
+			avgChart.data.datasets = makeDatasets(ap);
+			avgChart.update();
+		}
+
+		if (!winChart) {
+			winChart = new Chart(winCanvas, {
+				type: 'line',
+				data: { labels: wp.map((r) => String(r.season)), datasets: makeDatasets(wp) },
+				options: baseOptions('Win %', '%'),
+			} as ChartConfiguration<'line'>);
+		} else {
+			winChart.data.labels = wp.map((r) => String(r.season));
+			winChart.data.datasets = makeDatasets(wp);
+			winChart.update();
+		}
 	});
 
 	onDestroy(() => {
 		avgChart?.destroy();
+		avgChart = null;
 		winChart?.destroy();
+		winChart = null;
 	});
 </script>
 

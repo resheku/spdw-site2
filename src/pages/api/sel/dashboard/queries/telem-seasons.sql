@@ -1,4 +1,0 @@
-SELECT DISTINCT Season 
-FROM stats 
-WHERE "Max Speed" IS NOT NULL 
-ORDER BY Season ASC

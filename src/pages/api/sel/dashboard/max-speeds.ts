@@ -1,69 +1,83 @@
-import type { APIRoute } from 'astro';
-import { env } from 'cloudflare:workers';
-import latestSeasonQuery from './queries/max-speeds-latest-season.sql?raw';
-import thisSeasonQuery from './queries/max-speeds-latest.sql?raw';
-import allTimeQuery from './queries/max-speeds-all-time.sql?raw';
+import { createHandler } from '../../../../lib/api';
 
 export const prerender = false;
 
-export const GET: APIRoute = async () => {
-	const db = env.DB;
-
-	if (!db) {
-		return new Response(
-			JSON.stringify({
-				error: 'Database not available',
-			}),
-			{
-				status: 503,
-				headers: { 'Content-Type': 'application/json' },
-			}
-		);
-	}
-
-	try {
-		const startTime = Date.now();
-
-		// Get the latest season with telemetry data (PGEE league only)
-		const seasonStart = Date.now();
-		const latestSeasonResult = await db.prepare(latestSeasonQuery).first();
-		console.log(`[max-speeds] Latest season query: ${Date.now() - seasonStart}ms`);
-
-		const latestSeason = latestSeasonResult?.latest_season || new Date().getFullYear();
-
-		// Execute both queries in parallel
-		const queriesStart = Date.now();
-		const [thisSeasonResult, allTimeResult] = await Promise.all([
-			db.prepare(thisSeasonQuery).bind(latestSeason).all(),
-			db.prepare(allTimeQuery).all(),
+export const GET = createHandler(
+	async (sql) => {
+		const [thisSeason, allTime] = await Promise.all([
+			sql`
+			WITH season_filter AS (
+				SELECT MAX("Season") AS latest
+				FROM sel.stats
+				WHERE "League" = 'PGEE' AND "Max Speed" IS NOT NULL
+			),
+			top_speeds AS (
+				SELECT t.match_id, t.rider_id, t.max_speed
+				FROM sel.telemetry t
+				JOIN sel.matches m ON t.match_id = m.match_id
+				WHERE t.max_speed IS NOT NULL
+				  AND m.season = (SELECT latest FROM season_filter)
+				ORDER BY t.max_speed DESC
+				LIMIT 50
+			)
+			SELECT
+				ROW_NUMBER() OVER (ORDER BY ts.max_speed DESC) AS "No",
+				(l.rider_name || ' ' || l.rider_surname) AS "Name",
+				CASE
+					WHEN l.team_id = m.home_team_id THEN m.home_team_shortcut
+					WHEN l.team_id = m.away_team_id THEN m.away_team_shortcut
+					ELSE 'Unknown'
+				END AS "Team",
+				m.season AS "Season",
+				ts.max_speed AS "Speed",
+				m.track_city AS "Track",
+				SUBSTRING(m.datetime, 1, 10) AS "Date"
+			FROM top_speeds ts
+			JOIN sel.matches m ON ts.match_id = m.match_id
+			JOIN sel.lineup l ON ts.match_id = l.match_id AND ts.rider_id = l.rider_id
+			WHERE EXISTS (
+				SELECT 1 FROM sel.stats s
+				WHERE s."Season" = m.season
+				AND s."Name" = (l.rider_name || ' ' || l.rider_surname)
+				AND s."League" = 'PGEE'
+			)
+			ORDER BY ts.max_speed DESC
+			LIMIT 10
+		`,
+			sql`
+			WITH top_speeds AS (
+				SELECT t.match_id, t.rider_id, t.max_speed
+				FROM sel.telemetry t
+				WHERE t.max_speed IS NOT NULL
+				ORDER BY t.max_speed DESC
+				LIMIT 50
+			)
+			SELECT
+				ROW_NUMBER() OVER (ORDER BY ts.max_speed DESC) AS "No",
+				(l.rider_name || ' ' || l.rider_surname) AS "Name",
+				CASE
+					WHEN l.team_id = m.home_team_id THEN m.home_team_shortcut
+					WHEN l.team_id = m.away_team_id THEN m.away_team_shortcut
+					ELSE 'Unknown'
+				END AS "Team",
+				m.season AS "Season",
+				ts.max_speed AS "Speed",
+				m.track_city AS "Track",
+				SUBSTRING(m.datetime, 1, 10) AS "Date"
+			FROM top_speeds ts
+			JOIN sel.matches m ON ts.match_id = m.match_id
+			JOIN sel.lineup l ON ts.match_id = l.match_id AND ts.rider_id = l.rider_id
+			WHERE EXISTS (
+				SELECT 1 FROM sel.stats s
+				WHERE s."Season" = m.season
+				AND s."Name" = (l.rider_name || ' ' || l.rider_surname)
+				AND s."League" = 'PGEE'
+			)
+			ORDER BY ts.max_speed DESC
+			LIMIT 10
+		`,
 		]);
-		console.log(`[max-speeds] Both queries: ${Date.now() - queriesStart}ms`);
-
-		const data = {
-			thisSeason: thisSeasonResult.results || [],
-			allTime: allTimeResult.results || [],
-		};
-
-		console.log(`[max-speeds] Total time: ${Date.now() - startTime}ms`);
-
-		return new Response(JSON.stringify(data), {
-			status: 200,
-			headers: {
-				'Content-Type': 'application/json',
-				'Cache-Control': 'public, max-age=300',
-			},
-		});
-	} catch (error) {
-		console.error('Database error:', error);
-		return new Response(
-			JSON.stringify({
-				error: 'Failed to fetch max speeds',
-				details: error instanceof Error ? error.message : String(error),
-			}),
-			{
-				status: 500,
-				headers: { 'Content-Type': 'application/json' },
-			}
-		);
-	}
-};
+		return { thisSeason, allTime };
+	},
+	{ cacheControl: 'public, max-age=300' }
+);

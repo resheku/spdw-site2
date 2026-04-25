@@ -1,25 +1,35 @@
-import type { APIRoute } from 'astro';
-import { env } from 'cloudflare:workers';
+import { createHandler } from '../../../../lib/api';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ url }) => {
-	const db = env.DB;
+const validColumns = [
+	'Season',
+	'Name',
+	'Team',
+	'Average',
+	'Match',
+	'Heats',
+	'Points',
+	'Bonus',
+	'Home Avg.',
+	'Away Avg.',
+	'I',
+	'II',
+	'III',
+	'IV',
+	'R',
+	'T',
+	'M',
+	'X',
+	'F',
+	'Warn',
+	'Max Speed',
+	'League',
+];
+const specialEmptyHandling = ['Average', 'Home Avg.', 'Away Avg.', 'Max Speed'];
 
-	if (!db) {
-		return new Response(
-			JSON.stringify({
-				error: 'Database not available',
-			}),
-			{
-				status: 503,
-				headers: { 'Content-Type': 'application/json' },
-			}
-		);
-	}
-
-	try {
-		// Get query parameters (comma-separated values for filters)
+export const GET = createHandler(
+	async (sql, { url }) => {
 		const search = url.searchParams.get('search')?.toLowerCase() || '';
 		const teams = url.searchParams.get('team')?.split(',').filter(Boolean) || [];
 		const leagues = url.searchParams.get('league')?.split(',').filter(Boolean) || [];
@@ -27,110 +37,39 @@ export const GET: APIRoute = async ({ url }) => {
 		const sortColumns = url.searchParams.get('sortColumn')?.split(',').filter(Boolean) || [];
 		const sortDirections = url.searchParams.get('sortDirection')?.split(',').filter(Boolean) || [];
 
-		// Build SQL query with filters
-		let query = 'SELECT * FROM stats WHERE 1=1';
-		const params: (string | number)[] = [];
+		const searchFrag = search ? sql`AND LOWER("Name") LIKE ${'%' + search + '%'}` : sql``;
+		const teamFrag =
+			teams.length > 0 ? sql`AND "Team" LIKE ANY(${teams.map((t) => '%' + t + '%')})` : sql``;
+		const leagueFrag = leagues.length > 0 ? sql`AND "League" = ANY(${leagues})` : sql``;
+		const seasonFrag = seasons.length > 0 ? sql`AND "Season" = ANY(${seasons.map(Number)})` : sql``;
 
-		if (search) {
-			query += ' AND LOWER(Name) LIKE ?';
-			params.push(`%${search}%`);
-		}
-
-		if (teams.length > 0) {
-			const teamConditions = teams.map(() => 'Team LIKE ?').join(' OR ');
-			query += ` AND (${teamConditions})`;
-			params.push(...teams.map((t) => `%${t}%`));
-		}
-
-		if (leagues.length > 0) {
-			query += ` AND League IN (${leagues.map(() => '?').join(', ')})`;
-			params.push(...leagues);
-		}
-
-		if (seasons.length > 0) {
-			query += ` AND Season IN (${seasons.map(() => '?').join(', ')})`;
-			params.push(...seasons.map((s) => parseInt(s)));
-		}
-
-		// Add sorting
-		if (sortColumns.length > 0) {
-			const validColumns = [
-				'Season',
-				'Name',
-				'Team',
-				'Average',
-				'Match',
-				'Heats',
-				'Points',
-				'Bonus',
-				'Home Avg.',
-				'Away Avg.',
-				'I',
-				'II',
-				'III',
-				'IV',
-				'R',
-				'T',
-				'M',
-				'X',
-				'F',
-				'Warn',
-				'Max Speed',
-				'League',
-			];
-
-			const specialEmptyHandling = ['Average', 'Home Avg.', 'Away Avg.', 'Max Speed'];
-			const orderClauses: string[] = [];
-
-			sortColumns.forEach((column, index) => {
-				if (validColumns.includes(column)) {
-					const direction = (sortDirections[index] || 'desc') === 'asc' ? 'ASC' : 'DESC';
-					const columnName = column.includes(' ') || column.includes('.') ? `"${column}"` : column;
-
-					// Add NULL handling for special columns
-					if (specialEmptyHandling.includes(column)) {
-						orderClauses.push(`CASE WHEN ${columnName} IS NULL THEN 1 ELSE 0 END`);
-					}
-					orderClauses.push(`${columnName} ${direction}`);
-				}
-			});
-
-			if (orderClauses.length > 0) {
-				query += ` ORDER BY ${orderClauses.join(', ')}`;
+		const orderParts = sortColumns.flatMap((column, index) => {
+			if (!validColumns.includes(column)) return [];
+			const dirFrag = sortDirections[index] === 'asc' ? sql`ASC` : sql`DESC`;
+			const parts = [];
+			if (specialEmptyHandling.includes(column)) {
+				parts.push(sql`CASE WHEN ${sql(column)} IS NULL THEN 1 ELSE 0 END`);
 			}
-		}
+			parts.push(sql`${sql(column)} ${dirFrag}`);
+			return parts;
+		});
 
-		// Execute query
-		const result = await db
-			.prepare(query)
-			.bind(...params)
-			.all();
-		const stats = result.results || [];
+		const orderFrag =
+			orderParts.length > 0
+				? sql`ORDER BY ${orderParts.reduce((acc, frag, i) => (i === 0 ? frag : sql`${acc}, ${frag}`))}`
+				: sql``;
 
-		return new Response(
-			JSON.stringify({
-				stats,
-				totalCount: stats.length,
-			}),
-			{
-				status: 200,
-				headers: {
-					'Content-Type': 'application/json',
-					'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
-				},
-			}
-		);
-	} catch (error) {
-		console.error('Database error:', error);
-		return new Response(
-			JSON.stringify({
-				error: 'Failed to fetch stats',
-				details: error instanceof Error ? error.message : String(error),
-			}),
-			{
-				status: 500,
-				headers: { 'Content-Type': 'application/json' },
-			}
-		);
-	}
-};
+		const stats = await sql`
+		SELECT * FROM sel.stats
+		WHERE 1=1
+			${searchFrag}
+			${teamFrag}
+			${leagueFrag}
+			${seasonFrag}
+		${orderFrag}
+	`;
+
+		return { stats, totalCount: stats.length };
+	},
+	{ cacheControl: 'public, max-age=300' }
+);

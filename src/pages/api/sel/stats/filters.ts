@@ -1,65 +1,37 @@
-import type { APIRoute } from 'astro';
-import { env } from 'cloudflare:workers';
+import { createHandler } from '../../../../lib/api';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ url }) => {
-	const db = env.DB;
-
-	if (!db) {
-		return new Response(
-			JSON.stringify({
-				error: 'Database not available',
-			}),
-			{
-				status: 503,
-				headers: { 'Content-Type': 'application/json' },
-			}
-		);
-	}
-
-	try {
+export const GET = createHandler(
+	async (sql, { url }) => {
 		// Get query parameters for heats range (exclude heats itself when computing range)
 		const teams = url.searchParams.get('team')?.split(',').filter(Boolean) || [];
 		const leagues = url.searchParams.get('league')?.split(',').filter(Boolean) || [];
 		const seasons = url.searchParams.get('season')?.split(',').filter(Boolean) || [];
 
 		// Fetch all unique combinations of Team, League, Season
-		const result = await db
-			.prepare(
-				'SELECT DISTINCT Team, League, Season FROM stats ORDER BY Season DESC, Team ASC, League ASC'
-			)
-			.all();
-		const rows = result.results || [];
+		const rows = await sql`
+		SELECT DISTINCT "Team", "League", "Season"
+		FROM sel.stats
+		ORDER BY "Season" DESC, "Team" ASC, "League" ASC
+	`;
 
-		// Build query for heats range based on current filters (excluding heats filter itself)
-		let heatsQuery =
-			'SELECT MIN(Heats) as minHeats, MAX(Heats) as maxHeats FROM stats WHERE Heats IS NOT NULL AND Heats > 0';
-		const heatsParams: (string | number)[] = [];
+		const teamFrag =
+			teams.length > 0 ? sql`AND "Team" LIKE ANY(${teams.map((t) => '%' + t + '%')})` : sql``;
+		const leagueFrag = leagues.length > 0 ? sql`AND "League" = ANY(${leagues})` : sql``;
+		const seasonFrag = seasons.length > 0 ? sql`AND "Season" = ANY(${seasons.map(Number)})` : sql``;
 
-		if (teams.length > 0) {
-			const teamConditions = teams.map(() => 'Team LIKE ?').join(' OR ');
-			heatsQuery += ` AND (${teamConditions})`;
-			heatsParams.push(...teams.map((t) => `%${t}%`));
-		}
-
-		if (leagues.length > 0) {
-			heatsQuery += ` AND League IN (${leagues.map(() => '?').join(', ')})`;
-			heatsParams.push(...leagues);
-		}
-
-		if (seasons.length > 0) {
-			heatsQuery += ` AND Season IN (${seasons.map(() => '?').join(', ')})`;
-			heatsParams.push(...seasons.map((s) => parseInt(s)));
-		}
-
-		const heatsResult = await db
-			.prepare(heatsQuery)
-			.bind(...heatsParams)
-			.first();
+		const [heatsResult] = await sql`
+		SELECT MIN("Heats") AS "minHeats", MAX("Heats") AS "maxHeats"
+		FROM sel.stats
+		WHERE "Heats" IS NOT NULL AND "Heats" > 0
+			${teamFrag}
+			${leagueFrag}
+			${seasonFrag}
+	`;
 		const heatsRange = {
-			min: heatsResult?.minHeats || 0,
-			max: heatsResult?.maxHeats || 100,
+			min: (heatsResult?.minHeats as number) || 0,
+			max: (heatsResult?.maxHeats as number) || 100,
 		};
 
 		// Build comprehensive mapping structure
@@ -78,7 +50,7 @@ export const GET: APIRoute = async ({ url }) => {
 		const seasonLeagueToTeams: Record<string, Set<string>> = {};
 
 		// Process all rows to build mappings
-		rows.forEach((row: Record<string, unknown>) => {
+		rows.forEach((row) => {
 			const teamValue = row.Team as string;
 			const league = row.League as string;
 			const season = row.Season as number;
@@ -197,24 +169,7 @@ export const GET: APIRoute = async ({ url }) => {
 			heatsRange,
 		};
 
-		return new Response(JSON.stringify(filterMapping), {
-			status: 200,
-			headers: {
-				'Content-Type': 'application/json',
-				'Cache-Control': 'public, max-age=600', // Cache for 10 minutes
-			},
-		});
-	} catch (error) {
-		console.error('Database error:', error);
-		return new Response(
-			JSON.stringify({
-				error: 'Failed to fetch filter options',
-				details: error instanceof Error ? error.message : String(error),
-			}),
-			{
-				status: 500,
-				headers: { 'Content-Type': 'application/json' },
-			}
-		);
-	}
-};
+		return filterMapping;
+	},
+	{ cacheControl: 'public, max-age=600' }
+);

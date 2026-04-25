@@ -23,6 +23,8 @@
 		attendance: number | null;
 		season: number | null;
 		track: string | null;
+		statusId: number | null;
+		status: string | null;
 	};
 
 	export let initialData: ScheduleRow[] = [];
@@ -128,37 +130,66 @@
 	$: teamOptions = allTeamValues.map((t) => ({ value: t, label: t }));
 
 	// ── Filtering & sorting ─────────────────────────────────────────
-	$: filteredData = (() => {
-		let data = initialData;
-		if (selectedLeagues.length) data = data.filter((m) => selectedLeagues.includes(m.league));
+	function sortRows(
+		data: ScheduleRow[],
+		cols: Array<{ column: string; direction: string }>
+	): ScheduleRow[] {
+		if (cols.length === 0) return data;
+		return [...data].sort((a, b) => {
+			for (const { column, direction: dir } of cols) {
+				const av = getColValue(a, column);
+				const bv = getColValue(b, column);
+				if (av == null) {
+					if (bv == null) continue;
+					return 1;
+				}
+				if (bv == null) return -1;
+				const sign = dir === 'asc' ? 1 : -1;
+				const result =
+					typeof av === 'string'
+						? sign * av.localeCompare(bv as string)
+						: sign * ((av as number) - (bv as number));
+				if (result !== 0) return result;
+			}
+			return 0;
+		});
+	}
+
+	$: upcomingData = (() => {
+		let data = initialData.filter((m) => m.statusId === 0);
+		if (selectedLeagues.length) data = data.filter((m) => selectedLeagues.includes(m.league ?? ''));
 		if (selectedSeasons.length)
 			data = data.filter((m) => selectedSeasons.includes(String(m.season)));
-		if (selectedRounds.length) data = data.filter((m) => selectedRounds.includes(m.type));
-		if (selectedTracks.length) data = data.filter((m) => selectedTracks.includes(m.track));
+		if (selectedRounds.length) data = data.filter((m) => selectedRounds.includes(m.type ?? ''));
+		if (selectedTracks.length) data = data.filter((m) => selectedTracks.includes(m.track ?? ''));
 		if (selectedTeams.length)
 			data = data.filter(
-				(m) => selectedTeams.includes(m.homeTeamShort) || selectedTeams.includes(m.awayTeamShort)
+				(m) =>
+					selectedTeams.includes(m.homeTeamShort ?? '') ||
+					selectedTeams.includes(m.awayTeamShort ?? '')
 			);
-
-		if (sortColumns.length > 0) {
-			data = [...data].sort((a, b) => {
-				for (const { column, direction: dir } of sortColumns) {
-					const av = getColValue(a, column);
-					const bv = getColValue(b, column);
-					if (av == null) {
-						if (bv == null) continue;
-						return 1;
-					}
-					if (bv == null) return -1;
-					const sign = dir === 'asc' ? 1 : -1;
-					const result = typeof av === 'string' ? sign * av.localeCompare(bv) : sign * (av - bv);
-					if (result !== 0) return result;
-				}
-				return 0;
-			});
-		}
-		return data;
+		const cols = sortColumns.length > 0 ? sortColumns : [{ column: 'date', direction: 'asc' }];
+		return sortRows(data, cols);
 	})();
+
+	$: resultsData = (() => {
+		let data = initialData.filter((m) => m.statusId !== 0);
+		if (selectedLeagues.length) data = data.filter((m) => selectedLeagues.includes(m.league ?? ''));
+		if (selectedSeasons.length)
+			data = data.filter((m) => selectedSeasons.includes(String(m.season)));
+		if (selectedRounds.length) data = data.filter((m) => selectedRounds.includes(m.type ?? ''));
+		if (selectedTracks.length) data = data.filter((m) => selectedTracks.includes(m.track ?? ''));
+		if (selectedTeams.length)
+			data = data.filter(
+				(m) =>
+					selectedTeams.includes(m.homeTeamShort ?? '') ||
+					selectedTeams.includes(m.awayTeamShort ?? '')
+			);
+		const cols = sortColumns.length > 0 ? sortColumns : [{ column: 'date', direction: 'desc' }];
+		return sortRows(data, cols);
+	})();
+
+	$: filteredData = [...upcomingData, ...resultsData];
 
 	function getColValue(row: ScheduleRow, col: string): string | number | null {
 		switch (col) {
@@ -234,7 +265,7 @@
 	}
 
 	// ── Formatting helpers ──────────────────────────────────────────
-	function formatDate(dt: string): string {
+	function formatDate(dt: string | null | undefined): string {
 		if (!dt) return '';
 		return dt.slice(0, 16);
 	}
@@ -398,12 +429,15 @@
 	</div>
 </div>
 
-<!-- Table -->
+<!-- Results -->
+<h2 class="mb-2 text-lg font-semibold">Results</h2>
 <div class="border-border overflow-x-auto rounded-lg border">
 	<SortableTable
 		columns={scheduleColumns}
-		rows={filteredData}
-		externalSortColumns={sortColumns}
+		rows={resultsData}
+		externalSortColumns={sortColumns.length > 0
+			? sortColumns
+			: [{ column: 'date', direction: 'desc' }]}
 		onHeaderClick={handleSort}
 	>
 		{#snippet cell(m, col)}
@@ -428,6 +462,16 @@
 							)}">{resultLabel(m.homeScore, m.awayScore, false)}</span
 						>
 					</span>
+				{:else if m.statusId === 0}
+					<span
+						class="inline-block rounded bg-blue-500/15 px-1.5 py-0.5 text-[0.65rem] leading-none font-medium text-blue-600 dark:text-blue-400"
+						>Upcoming</span
+					>
+				{:else if m.status}
+					<span
+						class="bg-muted text-muted-foreground inline-block rounded px-1.5 py-0.5 text-[0.65rem] leading-none font-medium"
+						>{m.status}</span
+					>
 				{:else}
 					-
 				{/if}
@@ -441,3 +485,33 @@
 		{/snippet}
 	</SortableTable>
 </div>
+
+{#if upcomingData.length > 0}
+	<!-- Upcoming matches -->
+	<h2 class="mt-6 mb-2 text-lg font-semibold">Upcoming</h2>
+	<div class="border-border overflow-x-auto rounded-lg border">
+		<SortableTable
+			columns={scheduleColumns}
+			rows={upcomingData}
+			externalSortColumns={sortColumns.length > 0
+				? sortColumns
+				: [{ column: 'date', direction: 'asc' }]}
+			onHeaderClick={handleSort}
+		>
+			{#snippet cell(m, col)}
+				{#if col.key === 'datetime'}
+					<span class="font-mono text-xs">{formatDate((m as ScheduleRow).datetime)}</span>
+				{:else if col.key === 'homeScore'}
+					<span
+						class="inline-block rounded bg-blue-500/15 px-1.5 py-0.5 text-[0.65rem] leading-none font-medium text-blue-600 dark:text-blue-400"
+						>Upcoming</span
+					>
+				{:else if col.key === 'homeTotal'}
+					<span class="text-muted-foreground"></span>
+				{:else if col.key === 'attendance'}
+					{(m as ScheduleRow).attendance ? (m as ScheduleRow).attendance!.toLocaleString() : ''}
+				{/if}
+			{/snippet}
+		</SortableTable>
+	</div>
+{/if}

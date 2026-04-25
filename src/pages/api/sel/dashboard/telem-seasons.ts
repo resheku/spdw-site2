@@ -1,47 +1,18 @@
-import type { APIRoute } from 'astro';
-import { env } from 'cloudflare:workers';
-import telemSeasonsQuery from './queries/telem-seasons.sql?raw';
+import { createHandler } from '../../../../lib/api';
 
 export const prerender = false;
 
-export const GET: APIRoute = async () => {
-	const db = env.DB;
-
-	if (!db) {
-		return new Response(
-			JSON.stringify({
-				error: 'Database not available',
-			}),
-			{
-				status: 503,
-				headers: { 'Content-Type': 'application/json' },
-			}
-		);
-	}
-
-	try {
+export const GET = createHandler(
+	async (sql) => {
 		const startTime = Date.now();
-		const result = await db.prepare(telemSeasonsQuery).all();
+		const rows = await sql`
+		SELECT DISTINCT "Season"
+		FROM sel.stats
+		WHERE "Max Speed" IS NOT NULL
+		ORDER BY "Season" ASC
+	`;
 		console.log(`[telem-seasons] Query time: ${Date.now() - startTime}ms`);
-		const seasons = result.results?.map((row: Record<string, unknown>) => row.Season) || [];
-
-		return new Response(JSON.stringify(seasons), {
-			status: 200,
-			headers: {
-				'Content-Type': 'application/json',
-				'Cache-Control': 'public, max-age=3600',
-			},
-		});
-	} catch (error) {
-		console.error('Database error:', error);
-		return new Response(
-			JSON.stringify({
-				error: 'Failed to fetch telemetry seasons',
-			}),
-			{
-				status: 500,
-				headers: { 'Content-Type': 'application/json' },
-			}
-		);
-	}
-};
+		return rows.map((row) => row.Season);
+	},
+	{ cacheControl: 'public, max-age=3600' }
+);

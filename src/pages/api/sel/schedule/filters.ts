@@ -1,47 +1,18 @@
-import type { APIRoute } from 'astro';
-import { env } from 'cloudflare:workers';
+import { createHandler } from '../../../../lib/api';
 
 export const prerender = false;
 
-export const GET: APIRoute = async () => {
-	const db = env.DB;
-
-	if (!db) {
-		return new Response(JSON.stringify({ error: 'Database not available' }), {
-			status: 503,
-			headers: { 'Content-Type': 'application/json' },
-		});
-	}
-
-	try {
+export const GET = createHandler(
+	async (sql) => {
 		const [leaguesResult, seasonsResult] = await Promise.all([
-			db
-				.prepare(
-					`SELECT DISTINCT match_type_shortname AS shortname, match_type_name AS name
-					 FROM matches ORDER BY match_type_name`
-				)
-				.all(),
-			db.prepare(`SELECT DISTINCT season FROM matches ORDER BY season ASC`).all(),
+			sql`SELECT DISTINCT match_type_shortname AS shortname, match_type_name AS name FROM sel.matches ORDER BY match_type_name`,
+			sql`SELECT DISTINCT season FROM sel.schedule ORDER BY season ASC`,
 		]);
 
-		const leagues = (leaguesResult.results ?? []).map((r: Record<string, unknown>) => ({
-			shortname: r.shortname,
-			name: r.name,
-		}));
-		const seasons = (seasonsResult.results ?? []).map((r: Record<string, unknown>) => r.season);
+		const leagues = leaguesResult.map((r) => ({ shortname: r.shortname, name: r.name }));
+		const seasons = seasonsResult.map((r) => r.season);
 
-		return new Response(JSON.stringify({ leagues, seasons }), {
-			status: 200,
-			headers: {
-				'Content-Type': 'application/json',
-				'Cache-Control': 'public, max-age=3600',
-			},
-		});
-	} catch (error) {
-		console.error('[schedule/filters] Error:', error);
-		return new Response(JSON.stringify({ error: 'Failed to fetch schedule filters' }), {
-			status: 500,
-			headers: { 'Content-Type': 'application/json' },
-		});
-	}
-};
+		return { leagues, seasons };
+	},
+	{ cacheControl: 'public, max-age=3600' }
+);

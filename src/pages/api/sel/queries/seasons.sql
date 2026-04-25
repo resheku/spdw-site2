@@ -1,3 +1,0 @@
-SELECT DISTINCT Season 
-FROM stats 
-ORDER BY Season ASC

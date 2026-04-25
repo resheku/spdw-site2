@@ -21,12 +21,25 @@ type MaxSpeedRow = {
 	Date: string | null;
 	Season: number;
 };
+type MatchRow = {
+	match_id: number;
+	round: number | null;
+	datetime: string | null;
+	matchName: string | null;
+	homeTeamShort: string | null;
+	awayTeamShort: string | null;
+	homeScore: number | null;
+	awayScore: number | null;
+	statusId: number | null;
+};
 let seasons: number[] = [];
 let telemSeasons: number[] = [];
 let bestAveragesThisSeason: BestAvgRow[] = [];
 let bestAveragesAllTime: BestAvgRow[] = [];
 let maxSpeedsThisSeason: MaxSpeedRow[] = [];
 let maxSpeedsAllTime: MaxSpeedRow[] = [];
+let recentResults: MatchRow[] = [];
+let upcomingMatches: MatchRow[] = [];
 let currentSeason = new Date().getFullYear();
 
 try {
@@ -71,6 +84,23 @@ try {
 		currentSeason = seasons[seasons.length - 1];
 	}
 
+	// Fetch recent results and upcoming matches for current season (PGEE)
+	const [resultsRes, upcomingRes] = await Promise.all([
+		fetch(new URL(`/api/sel/schedule?league=PGEE&season=${currentSeason}&sortColumn=date&sortDirection=desc`, Astro.url).toString()),
+		fetch(new URL(`/api/sel/schedule?league=PGEE&season=${currentSeason}&sortColumn=date&sortDirection=asc`, Astro.url).toString()),
+	]);
+	if (resultsRes.ok) {
+		const data = (await resultsRes.json()) as { schedule: MatchRow[] };
+		recentResults = (data.schedule ?? []).filter((m) => m.statusId !== 0).slice(0, 4);
+	}
+	if (upcomingRes.ok) {
+		const data = (await upcomingRes.json()) as { schedule: MatchRow[] };
+		upcomingMatches = (data.schedule ?? [])
+			.filter((m) => m.statusId === 0)
+			.sort((a, b) => a.match_id - b.match_id)
+			.slice(0, 4);
+	}
+
 	console.log(`[sel page] Total time: ${Date.now() - pageStart}ms`);
 } catch (error) {
 	console.error('Error fetching dashboard data:', error);
@@ -80,6 +110,19 @@ try {
 const seasonRange = seasons.length > 0 ? `${seasons[0]} - ${currentSeason}` : '';
 const maxSpeedRange =
 	telemSeasons.length > 0 ? `${telemSeasons[0]} - ${telemSeasons[telemSeasons.length - 1]}` : '';
+
+function resultLabel(home: number, away: number, forHome: boolean): string {
+	const win = forHome ? home > away : away > home;
+	const loss = forHome ? home < away : away < home;
+	return win ? 'W' : loss ? 'L' : 'D';
+}
+function resultClass(home: number, away: number, forHome: boolean): string {
+	const win = forHome ? home > away : away > home;
+	const loss = forHome ? home < away : away < home;
+	if (win) return 'bg-green-500/20 text-green-600 dark:text-green-400';
+	if (loss) return 'bg-red-500/20 text-red-600 dark:text-red-400';
+	return 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400';
+}
 ---
 
 <Layout title="sel - spdw">
@@ -303,7 +346,59 @@ const maxSpeedRange =
 		<h2 class="mb-4 text-2xl font-bold">
 			<a href={`/sel/results?league=PGEE&season=${currentSeason}`} class="underline"> Results </a>
 		</h2>
-		<p class="text-muted-foreground text-sm">All matches by season and league.</p>
+		<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+			{recentResults.length > 0 && (
+				<div class="bg-background overflow-hidden rounded-lg">
+					<div class="border-border border-b px-4 py-3">
+						<h3 class="text-lg font-semibold">Results</h3>
+					</div>
+					<div class="overflow-x-auto">
+						<table class="w-full text-sm">
+							<tbody>
+								{recentResults.map((m) => (
+									<tr class="border-border hover:bg-muted/50 border-b last:border-0">
+										<td class="text-muted-foreground px-3 py-2 font-mono text-xs whitespace-nowrap">
+											{m.datetime ? m.datetime.slice(0, 10) : ''}
+										</td>
+										<td class="px-3 py-2">{m.matchName}</td>
+										<td class="px-3 py-2 text-right whitespace-nowrap">
+											{m.homeScore != null && m.awayScore != null ? (
+												<span class="inline-flex items-center gap-1">
+													<span class={`inline-block rounded px-1 py-0.5 text-[0.65rem] leading-none font-bold ${resultClass(m.homeScore, m.awayScore, true)}`}>{resultLabel(m.homeScore, m.awayScore, true)}</span>
+													<span class="font-medium">{m.homeScore}:{m.awayScore}</span>
+													<span class={`inline-block rounded px-1 py-0.5 text-[0.65rem] leading-none font-bold ${resultClass(m.homeScore, m.awayScore, false)}`}>{resultLabel(m.homeScore, m.awayScore, false)}</span>
+												</span>
+											) : ''}
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			)}
+			{upcomingMatches.length > 0 && (
+				<div class="bg-background overflow-hidden rounded-lg">
+					<div class="border-border border-b px-4 py-3">
+						<h3 class="text-lg font-semibold">Schedule</h3>
+					</div>
+					<div class="overflow-x-auto">
+						<table class="w-full text-sm">
+							<tbody>
+								{upcomingMatches.map((m) => (
+									<tr class="border-border hover:bg-muted/50 border-b last:border-0">
+										<td class="text-muted-foreground px-3 py-2 font-mono text-xs whitespace-nowrap">
+											{m.datetime ? m.datetime.slice(0, 10) : '—'}
+										</td>
+										<td class="px-3 py-2">{m.matchName}</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			)}
+		</div>
 	</div>
 
 	<!-- Tracks Section -->

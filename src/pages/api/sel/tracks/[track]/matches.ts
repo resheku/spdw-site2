@@ -34,9 +34,7 @@ export const GET = createHandler(
 		LEFT JOIN sel.telemetry t ON t.match_id = m.match_id AND t.max_speed IS NOT NULL AND t.max_speed > 0
 		LEFT JOIN sel.lineup l ON t.match_id = l.match_id AND t.rider_id = l.rider_id
 		WHERE m.track_city = ${track}
-		GROUP BY m.match_id, m.datetime, m.match_type_shortname, m.match_type_name,
-		         m.match_subtype_shortname, m.home_team_id, m.home_team_shortcut, m.home_team_title,
-		         m.away_team_id, m.away_team_shortcut, m.away_team_title, m.home_match_score, m.away_match_score
+		GROUP BY m.match_id
 		ORDER BY m.datetime DESC
 	`;
 

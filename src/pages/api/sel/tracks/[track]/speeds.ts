@@ -54,7 +54,7 @@ export const GET = createHandler(
 			FROM sel.telemetry t
 			JOIN sel.matches m ON t.match_id = m.match_id
 			JOIN sel.lineup l ON t.match_id = l.match_id AND t.rider_id = l.rider_id
-			LEFT JOIN sel.heats h ON t.heat_id = h.heat_id AND h.rider_id = t.rider_id
+			LEFT JOIN sel.heats h ON h.match_id = t.match_id AND h.heat_id = t.heat_id AND h.rider_id = t.rider_id
 			WHERE t.max_speed IS NOT NULL AND t.max_speed > 0
 			  AND m.track_city = ${track}
 			ORDER BY t.max_speed DESC

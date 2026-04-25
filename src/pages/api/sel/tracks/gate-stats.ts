@@ -48,10 +48,7 @@ export const GET = createHandler(
 				ROUND(AVG(CASE WHEN h.gate = 'a' THEN h.points END), 2) AS "A",
 				ROUND(AVG(CASE WHEN h.gate = 'b' THEN h.points END), 2) AS "B",
 				ROUND(AVG(CASE WHEN h.gate = 'c' THEN h.points END), 2) AS "C",
-				ROUND(6.0
-					- ROUND(AVG(CASE WHEN h.gate = 'a' THEN h.points END), 2)
-					- ROUND(AVG(CASE WHEN h.gate = 'b' THEN h.points END), 2)
-					- ROUND(AVG(CASE WHEN h.gate = 'c' THEN h.points END), 2), 2) AS "D"
+				ROUND(AVG(CASE WHEN h.gate = 'd' THEN h.points END), 2) AS "D"
 			FROM sel.heats h
 			JOIN sel.matches m ON h.match_id = m.match_id
 			WHERE
@@ -65,22 +62,24 @@ export const GET = createHandler(
 		),
 		totals AS (
 			SELECT
-				ROUND(AVG("A"), 2) AS "A",
+					ROUND(AVG("A"), 2) AS "A",
 				ROUND(AVG("B"), 2) AS "B",
 				ROUND(AVG("C"), 2) AS "C",
-				ROUND(6.0 - ROUND(AVG("A"), 2) - ROUND(AVG("B"), 2) - ROUND(AVG("C"), 2), 2) AS "D"
+				ROUND(AVG("D"), 2) AS "D"
 			FROM base
 		)
 		SELECT
-			"Track", "A", "B", "C", "D",
+			"Track",
+			"A"::float8 AS "A", "B"::float8 AS "B", "C"::float8 AS "C", "D"::float8 AS "D",
 			ROUND("A" + "C", 2)::text || '/' || ROUND("B" + "D", 2)::text AS "AC/BD",
-			ROUND(GREATEST("A", "B", "C", "D") - LEAST("A", "B", "C", "D"), 2) AS "Bias"
+			ROUND(GREATEST("A", "B", "C", "D") - LEAST("A", "B", "C", "D"), 2)::float8 AS "Bias"
 		FROM base
 		UNION ALL
 		SELECT
-			'Total Average', "A", "B", "C", "D",
+			'Total Average',
+			"A"::float8, "B"::float8, "C"::float8, "D"::float8,
 			ROUND("A" + "C", 2)::text || '/' || ROUND("B" + "D", 2)::text,
-			ROUND(GREATEST("A", "B", "C", "D") - LEAST("A", "B", "C", "D"), 2)
+			ROUND(GREATEST("A", "B", "C", "D") - LEAST("A", "B", "C", "D"), 2)::float8
 		FROM totals
 		ORDER BY "A" DESC
 	`;

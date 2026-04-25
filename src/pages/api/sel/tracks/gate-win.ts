@@ -70,17 +70,19 @@ export const GET = createHandler(
 				ROUND(wd * 100.0 / NULLIF(total_wins, 0), 1) AS "D"
 			FROM raw_counts
 		)
-		SELECT "Track", "A", "B", "C", "D",
-			ROUND(GREATEST("A", "B", "C", "D") - LEAST("A", "B", "C", "D"), 1) AS "Bias"
+		SELECT
+			"Track",
+			"A"::float8 AS "A", "B"::float8 AS "B", "C"::float8 AS "C", "D"::float8 AS "D",
+			ROUND(GREATEST("A", "B", "C", "D") - LEAST("A", "B", "C", "D"), 1)::float8 AS "Bias"
 		FROM base
 		UNION ALL
 		SELECT
 			'Total Average',
-			ROUND(AVG("A"), 1),
-			ROUND(AVG("B"), 1),
-			ROUND(AVG("C"), 1),
-			ROUND(AVG("D"), 1),
-			ROUND(GREATEST(AVG("A"), AVG("B"), AVG("C"), AVG("D")) - LEAST(AVG("A"), AVG("B"), AVG("C"), AVG("D")), 1)
+			ROUND(AVG("A"), 1)::float8,
+			ROUND(AVG("B"), 1)::float8,
+			ROUND(AVG("C"), 1)::float8,
+			ROUND(AVG("D"), 1)::float8,
+			ROUND(GREATEST(AVG("A"), AVG("B"), AVG("C"), AVG("D")) - LEAST(AVG("A"), AVG("B"), AVG("C"), AVG("D")), 1)::float8
 		FROM base
 		ORDER BY "A" DESC
 	`;

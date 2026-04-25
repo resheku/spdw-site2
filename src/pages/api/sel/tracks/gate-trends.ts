@@ -14,38 +14,21 @@ export const GET = createHandler(
 					? sql`AND m.match_type_shortname = ANY(${selectedLeagues})`
 					: sql``;
 
-		const [avgPoints, winPct] = await Promise.all([
-			sql`
+		const rows = await sql`
 			SELECT
 				m.season AS season,
-				ROUND(AVG(CASE WHEN h.gate = 'a' THEN h.points END), 2) AS "A",
-				ROUND(AVG(CASE WHEN h.gate = 'b' THEN h.points END), 2) AS "B",
-				ROUND(AVG(CASE WHEN h.gate = 'c' THEN h.points END), 2) AS "C",
-				ROUND(6.0
-					- ROUND(AVG(CASE WHEN h.gate = 'a' THEN h.points END), 2)
-					- ROUND(AVG(CASE WHEN h.gate = 'b' THEN h.points END), 2)
-					- ROUND(AVG(CASE WHEN h.gate = 'c' THEN h.points END), 2), 2) AS "D"
-			FROM sel.heats h
-			JOIN sel.matches m ON h.match_id = m.match_id
-			WHERE
-				h.gate IN ('a', 'b', 'c', 'd')
-				AND h.canceled = 0
-				AND h.points IS NOT NULL
-				${leagueFrag}
-			GROUP BY m.season
-			ORDER BY m.season
-		`,
-			sql`
-			SELECT
-				m.season AS season,
+				ROUND(AVG(CASE WHEN h.gate = 'a' THEN h.points END), 2) AS avg_a,
+				ROUND(AVG(CASE WHEN h.gate = 'b' THEN h.points END), 2) AS avg_b,
+				ROUND(AVG(CASE WHEN h.gate = 'c' THEN h.points END), 2) AS avg_c,
+				ROUND(AVG(CASE WHEN h.gate = 'd' THEN h.points END), 2) AS avg_d,
 				ROUND(SUM(CASE WHEN h.gate = 'a' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
-					/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1) AS "A",
+					/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1) AS win_a,
 				ROUND(SUM(CASE WHEN h.gate = 'b' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
-					/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1) AS "B",
+					/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1) AS win_b,
 				ROUND(SUM(CASE WHEN h.gate = 'c' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
-					/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1) AS "C",
+					/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1) AS win_c,
 				ROUND(SUM(CASE WHEN h.gate = 'd' AND h.points = 3 THEN 1 ELSE 0 END) * 100.0
-					/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1) AS "D"
+					/ NULLIF(SUM(CASE WHEN h.points = 3 THEN 1 ELSE 0 END), 0), 1) AS win_d
 			FROM sel.heats h
 			JOIN sel.matches m ON h.match_id = m.match_id
 			WHERE
@@ -55,8 +38,22 @@ export const GET = createHandler(
 				${leagueFrag}
 			GROUP BY m.season
 			ORDER BY m.season
-		`,
-		]);
+		`;
+
+		const avgPoints = rows.map((r) => ({
+			season: r.season,
+			A: r.avg_a,
+			B: r.avg_b,
+			C: r.avg_c,
+			D: r.avg_d,
+		}));
+		const winPct = rows.map((r) => ({
+			season: r.season,
+			A: r.win_a,
+			B: r.win_b,
+			C: r.win_c,
+			D: r.win_d,
+		}));
 
 		return { avgPoints, winPct };
 	},

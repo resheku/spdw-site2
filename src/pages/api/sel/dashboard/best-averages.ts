@@ -8,17 +8,25 @@ export const GET = createHandler(
 
 		const [thisSeason, allTime] = await Promise.all([
 			sql`
+			WITH params AS (
+				SELECT MAX("Season") AS latest FROM sel.stats WHERE "League" = 'PGEE'
+			),
+			threshold AS (
+				SELECT GREATEST(5, MAX("Heats") / 3) AS val
+				FROM sel.stats, params
+				WHERE "League" = 'PGEE' AND "Season" = params.latest
+			)
 			SELECT
 				"Name",
 				"Team",
 				"Season",
 				"Average",
 				ROW_NUMBER() OVER (ORDER BY "Average" DESC) AS "No"
-			FROM sel.stats
+			FROM sel.stats, params, threshold
 			WHERE "Average" IS NOT NULL
-				AND "Heats" >= GREATEST(5, (SELECT MAX("Heats") FROM sel.stats WHERE "League" = 'PGEE' AND "Season" = (SELECT MAX("Season") FROM sel.stats WHERE "League" = 'PGEE')) / 3)
 				AND "League" = 'PGEE'
-				AND "Season" = (SELECT MAX("Season") FROM sel.stats WHERE "League" = 'PGEE')
+				AND "Season" = params.latest
+				AND "Heats" >= threshold.val
 			ORDER BY "Average" DESC
 			LIMIT 10
 		`,

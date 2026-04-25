@@ -19,19 +19,20 @@ export const GET = createHandler(
 		SELECT
 			track,
 			json_object_agg(season::text, avg_speed) AS seasons,
-			ROUND(AVG(avg_speed)::numeric, 2) AS average,
-			(SELECT json_agg(s ORDER BY s) FROM (SELECT DISTINCT season AS s FROM season_avgs) AS sq) AS all_seasons
+			ROUND(AVG(avg_speed)::numeric, 2) AS average
 		FROM season_avgs
 		GROUP BY track
 		ORDER BY average DESC
 	`;
 
-		const seasons: number[] = rows.length > 0 ? (rows[0].all_seasons as number[]) : [];
 		const tracks = rows.map((r) => ({
 			Track: r.track as string,
 			Average: r.average as number | null,
 			seasons: r.seasons as Record<string, number>,
 		}));
+		const seasons = [...new Set(tracks.flatMap((t) => Object.keys(t.seasons).map(Number)))].sort(
+			(a, b) => a - b
+		);
 
 		return { tracks, seasons };
 	},

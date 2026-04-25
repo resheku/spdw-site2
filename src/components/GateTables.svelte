@@ -36,10 +36,7 @@
 		leagueOpen = false;
 	}
 
-	$: seasonOptions = seasons
-		.slice()
-		.reverse()
-		.map((s) => ({ value: String(s), label: String(s) }));
+	$: seasonOptions = seasons.map((s) => ({ value: String(s), label: String(s) }));
 	$: leagueOptions = leagues.map((l) => ({ value: l.code, label: l.name }));
 	let gateStats: GateStatsRow[] = [];
 	let gateWin: GateWinRow[] = [];
@@ -50,20 +47,76 @@
 
 	const gateColumns = [
 		{ key: 'Track', label: 'Track', align: 'left' as const, isLink: true },
-		{ key: 'A', label: 'Gate A', align: 'right' as const, decimals: 2, heatmap: true },
-		{ key: 'B', label: 'Gate B', align: 'right' as const, decimals: 2, heatmap: true },
-		{ key: 'C', label: 'Gate C', align: 'right' as const, decimals: 2, heatmap: true },
-		{ key: 'D', label: 'Gate D', align: 'right' as const, decimals: 2, heatmap: true },
+		{
+			key: 'A',
+			label: 'Gate A',
+			align: 'right' as const,
+			decimals: 2,
+			heatmap: true,
+			headerColor: '#fca5a5',
+		},
+		{
+			key: 'B',
+			label: 'Gate B',
+			align: 'right' as const,
+			decimals: 2,
+			heatmap: true,
+			headerColor: '#93c5fd',
+		},
+		{
+			key: 'C',
+			label: 'Gate C',
+			align: 'right' as const,
+			decimals: 2,
+			heatmap: true,
+			headerColor: '#d1d5db',
+		},
+		{
+			key: 'D',
+			label: 'Gate D',
+			align: 'right' as const,
+			decimals: 2,
+			heatmap: true,
+			headerColor: '#fde047',
+		},
 		{ key: 'AC/BD', label: 'AC/BD', align: 'right' as const, width: '4rem' },
 		{ key: 'Bias', label: 'Bias', align: 'right' as const, decimals: 2, heatmapInvert: true },
 	];
 
 	const gateWinColumns = [
 		{ key: 'Track', label: 'Track', align: 'left' as const, isLink: true },
-		{ key: 'A', label: 'Gate A %', align: 'right' as const, decimals: 1, heatmap: true },
-		{ key: 'B', label: 'Gate B %', align: 'right' as const, decimals: 1, heatmap: true },
-		{ key: 'C', label: 'Gate C %', align: 'right' as const, decimals: 1, heatmap: true },
-		{ key: 'D', label: 'Gate D %', align: 'right' as const, decimals: 1, heatmap: true },
+		{
+			key: 'A',
+			label: 'Gate A %',
+			align: 'right' as const,
+			decimals: 1,
+			heatmap: true,
+			headerColor: '#fca5a5',
+		},
+		{
+			key: 'B',
+			label: 'Gate B %',
+			align: 'right' as const,
+			decimals: 1,
+			heatmap: true,
+			headerColor: '#93c5fd',
+		},
+		{
+			key: 'C',
+			label: 'Gate C %',
+			align: 'right' as const,
+			decimals: 1,
+			heatmap: true,
+			headerColor: '#d1d5db',
+		},
+		{
+			key: 'D',
+			label: 'Gate D %',
+			align: 'right' as const,
+			decimals: 1,
+			heatmap: true,
+			headerColor: '#fde047',
+		},
 		{ key: 'Bias', label: 'Bias', align: 'right' as const, decimals: 1, heatmapInvert: true },
 	];
 
@@ -104,16 +157,17 @@
 	}
 
 	onMount(async () => {
-		const filtersRes = await fetch('/api/sel/tracks/gate-filters');
-		if (filtersRes.ok) {
-			const data = (await filtersRes.json()) as {
-				seasons: number[];
-				leagues: { code: string; name: string }[];
-			};
-			seasons = data.seasons ?? [];
-			leagues = data.leagues ?? [];
-		}
-		await Promise.all([fetchData(), fetchTrends()]);
+		const filtersPromise = fetch('/api/sel/tracks/gate-filters').then(async (res) => {
+			if (res.ok) {
+				const data = (await res.json()) as {
+					seasons: number[];
+					leagues: { code: string; name: string }[];
+				};
+				seasons = data.seasons ?? [];
+				leagues = data.leagues ?? [];
+			}
+		});
+		await Promise.all([filtersPromise, fetchData(), fetchTrends()]);
 	});
 </script>
 
@@ -156,29 +210,25 @@
 
 <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
 	<div>
-		<h3 class="text-muted-foreground mb-2 text-base font-semibold">Gate points average</h3>
-		<div class="border-border overflow-x-auto rounded-lg border">
-			<SortableTable
-				columns={gateColumns}
-				rows={gateStats}
-				pinnedBottom="Total Average"
-				defaultSortKey="Bias"
-				defaultSortDir="asc"
-				showRowNumber
-			/>
-		</div>
+		<h3 class="mb-2 text-base font-semibold">Gate points average</h3>
+		<SortableTable
+			columns={gateColumns}
+			rows={gateStats}
+			pinnedBottom="Total Average"
+			defaultSortKey="Bias"
+			defaultSortDir="asc"
+			showRowNumber
+		/>
 	</div>
 	<div>
-		<h3 class="text-muted-foreground mb-2 text-base font-semibold">Gate win percentage</h3>
-		<div class="border-border overflow-x-auto rounded-lg border">
-			<SortableTable
-				columns={gateWinColumns}
-				rows={gateWin}
-				pinnedBottom="Total Average"
-				defaultSortKey="Bias"
-				defaultSortDir="asc"
-				showRowNumber
-			/>
-		</div>
+		<h3 class="mb-2 text-base font-semibold">Gate win percentage</h3>
+		<SortableTable
+			columns={gateWinColumns}
+			rows={gateWin}
+			pinnedBottom="Total Average"
+			defaultSortKey="Bias"
+			defaultSortDir="asc"
+			showRowNumber
+		/>
 	</div>
 </div>

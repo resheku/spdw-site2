@@ -188,6 +188,7 @@
 			key: 'Average',
 			label: 'Average',
 			align: 'right' as const,
+			decimals: 3,
 			alwaysVisible: true,
 		},
 		{

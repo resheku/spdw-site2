@@ -80,11 +80,27 @@
 		});
 	})();
 
+	function resultClass(home: number | null, away: number | null, forHome: boolean): string {
+		if (home == null || away == null) return '';
+		const win = forHome ? home > away : away > home;
+		const loss = forHome ? home < away : away < home;
+		if (win) return 'bg-green-500/20 text-green-600 dark:text-green-400';
+		if (loss) return 'bg-red-500/20 text-red-600 dark:text-red-400';
+		return 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400';
+	}
+
+	function resultLabel(home: number | null, away: number | null, forHome: boolean): string {
+		if (home == null || away == null) return '';
+		const win = forHome ? home > away : away > home;
+		const loss = forHome ? home < away : away < home;
+		return win ? 'W' : loss ? 'L' : 'D';
+	}
+
 	$: totalPages = Math.ceil(sorted.length / PAGE_SIZE);
 	$: pageRows = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
 	const columns = [
-		{ key: 'date', sortKey: 'date', label: 'Date', align: 'left' as const, noWrap: true },
+		{ key: 'date', sortKey: 'date', label: 'Date', align: 'left' as const, noWrap: true, customCell: true },
 		{
 			key: 'league',
 			sortKey: 'league',
@@ -139,34 +155,28 @@
 			onHeaderClick={handleSort}
 		>
 			{#snippet cell(m, col)}
-				{#if col.key === 'league'}
+				{#if col.key === 'date'}
+					<span class="font-mono text-xs">{m.date}</span>
+				{:else if col.key === 'league'}
 					<span class="bg-muted rounded px-1.5 py-0.5 font-mono text-xs">{m.league}</span>
 				{:else if col.key === 'matchSubtype'}
 					{#if m.matchSubtype}
 						<span class="bg-muted rounded px-1.5 py-0.5 font-mono text-xs">{m.matchSubtype}</span>
 					{/if}
 				{:else if col.key === 'home'}
-					{@const homeWin = m.homeScore != null && m.awayScore != null && m.homeScore > m.awayScore}
-					{@const awayWin = m.homeScore != null && m.awayScore != null && m.awayScore > m.homeScore}
-					<span
-						class="font-medium {homeWin
-							? 'text-green-600 dark:text-green-400'
-							: awayWin
-								? 'text-red-500 dark:text-red-400'
-								: ''}">{m.home}</span
-					>
+					<span class="font-medium">{m.home}</span>
 				{:else if col.key === 'homeScore'}
-					<span class="font-mono font-semibold">{m.homeScore ?? '–'}:{m.awayScore ?? '–'}</span>
+					{#if m.homeScore != null && m.awayScore != null}
+						<span class="inline-flex items-center gap-1.5">
+							<span class="inline-block rounded px-1 py-0.5 text-[0.65rem] leading-none font-bold {resultClass(m.homeScore, m.awayScore, true)}">{resultLabel(m.homeScore, m.awayScore, true)}</span>
+							<span class="font-medium">{m.homeScore}:{m.awayScore}</span>
+							<span class="inline-block rounded px-1 py-0.5 text-[0.65rem] leading-none font-bold {resultClass(m.homeScore, m.awayScore, false)}">{resultLabel(m.homeScore, m.awayScore, false)}</span>
+						</span>
+					{:else}
+						-
+					{/if}
 				{:else if col.key === 'away'}
-					{@const homeWin = m.homeScore != null && m.awayScore != null && m.homeScore > m.awayScore}
-					{@const awayWin = m.homeScore != null && m.awayScore != null && m.awayScore > m.homeScore}
-					<span
-						class="font-medium {awayWin
-							? 'text-green-600 dark:text-green-400'
-							: homeWin
-								? 'text-red-500 dark:text-red-400'
-								: ''}">{m.away}</span
-					>
+					<span class="font-medium">{m.away}</span>
 				{/if}
 			{/snippet}
 		</SortableTable>

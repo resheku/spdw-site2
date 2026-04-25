@@ -32,31 +32,12 @@ let currentSeason = new Date().getFullYear();
 try {
 	const pageStart = Date.now();
 
-	// First fetch seasons to determine the actual current season
-	const seasonsStart = Date.now();
-	const seasonsRes = await fetch(new URL('/api/sel/seasons', Astro.url));
-	const telemSeasonsRes = await fetch(new URL('/api/sel/dashboard/telem-seasons', Astro.url));
-	console.log(`[sel page] Seasons fetch: ${Date.now() - seasonsStart}ms`);
-
-	if (seasonsRes.ok) {
-		const seasonsData = await seasonsRes.json();
-		seasons = Array.isArray(seasonsData) ? seasonsData : [];
-	}
-	if (telemSeasonsRes.ok) {
-		const telemData = await telemSeasonsRes.json();
-		telemSeasons = Array.isArray(telemData) ? telemData : [];
-	}
-
-	// Use the latest season from the database as current season
-	if (seasons.length > 0) {
-		currentSeason = seasons[seasons.length - 1];
-	}
-
-	// Now fetch the rest of the data with the correct current season
 	const dataStart = Date.now();
-	const [avgRes, speedRes] = await Promise.all([
+	const [avgRes, speedRes, seasonsRes, telemSeasonsRes] = await Promise.all([
 		fetch(new URL('/api/sel/dashboard/best-averages', Astro.url)),
 		fetch(new URL('/api/sel/dashboard/max-speeds', Astro.url)),
+		fetch(new URL('/api/sel/seasons', Astro.url)),
+		fetch(new URL('/api/sel/dashboard/telem-seasons', Astro.url)),
 	]);
 	console.log(`[sel page] Data fetch: ${Date.now() - dataStart}ms`);
 
@@ -75,6 +56,19 @@ try {
 		};
 		maxSpeedsThisSeason = Array.isArray(data.thisSeason) ? data.thisSeason : [];
 		maxSpeedsAllTime = Array.isArray(data.allTime) ? data.allTime : [];
+	}
+	if (seasonsRes.ok) {
+		const seasonsData = await seasonsRes.json();
+		seasons = Array.isArray(seasonsData) ? seasonsData : [];
+	}
+	if (telemSeasonsRes.ok) {
+		const telemData = await telemSeasonsRes.json();
+		telemSeasons = Array.isArray(telemData) ? telemData : [];
+	}
+
+	// Use the latest season from the database as current season
+	if (seasons.length > 0) {
+		currentSeason = seasons[seasons.length - 1];
 	}
 
 	console.log(`[sel page] Total time: ${Date.now() - pageStart}ms`);

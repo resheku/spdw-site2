@@ -102,16 +102,17 @@
 	}
 
 	onMount(async () => {
-		const filtersRes = await fetch('/api/sel/tracks/gate-filters');
-		if (filtersRes.ok) {
-			const data = (await filtersRes.json()) as {
-				seasons: number[];
-				leagues: { code: string; name: string }[];
-			};
-			seasons = data.seasons ?? [];
-			leagues = data.leagues ?? [];
-		}
-		await Promise.all([fetchData(), fetchTrends()]);
+		const filtersPromise = fetch('/api/sel/tracks/gate-filters').then(async (res) => {
+			if (res.ok) {
+				const data = (await res.json()) as {
+					seasons: number[];
+					leagues: { code: string; name: string }[];
+				};
+				seasons = data.seasons ?? [];
+				leagues = data.leagues ?? [];
+			}
+		});
+		await Promise.all([filtersPromise, fetchData(), fetchTrends()]);
 	});
 </script>
 

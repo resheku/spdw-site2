@@ -1,5 +1,15 @@
 ---
 import Layout from '../layouts/Layout.astro';
+
+let latestSeason: number | null = null;
+try {
+	const res = await fetch(new URL('/api/sel/schedule/filters', Astro.url).toString());
+	if (res.ok) {
+		const data = await res.json() as { seasons: number[] };
+		const seasons = data.seasons ?? [];
+		if (seasons.length > 0) latestSeason = seasons[seasons.length - 1];
+	}
+} catch { /* ignore */ }
 ---
 
 <Layout title="spdw">
@@ -26,6 +36,6 @@ import Layout from '../layouts/Layout.astro';
 		<br />
 		<a href="/sel" class="spdw-link">sel</a>
 		<br />
-		<a href="/sel/schedule?league=PGEE&season=2025" class="spdw-link">schedule</a>
+		<a href={`/sel/results?league=PGEE${latestSeason ? `&season=${latestSeason}` : ''}`} class="spdw-link">results</a>
 	</div>
 </Layout>

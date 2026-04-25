@@ -58,12 +58,12 @@ try {
 		error = 'Failed to load schedule';
 	}
 } catch (err) {
-	console.error('[schedule page] Error:', err);
-	error = 'Failed to load schedule';
+	console.error('[results page] Error:', err);
+	error = 'Failed to load results';
 }
 ---
 
-<Layout title="SEL Schedule - spdw">
+<Layout title="SEL Results - spdw">
 	<div class="p-4">
 		<nav aria-label="breadcrumb">
 			<ol
@@ -110,7 +110,7 @@ try {
 						class="text-foreground font-normal"
 						role="link"
 						aria-disabled="true"
-						aria-current="page">schedule</span
+						aria-current="page">results</span
 					>
 				</li>
 			</ol>
@@ -118,7 +118,7 @@ try {
 	</div>
 
 	<div class="max-w-full px-4 pb-8">
-		<h1 class="mb-6 text-2xl font-bold">SEL Schedule</h1>
+		<h1 class="mb-6 text-2xl font-bold">SEL Results</h1>
 
 		{
 			error ? (

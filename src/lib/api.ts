@@ -33,6 +33,8 @@ export function createHandler(
 				}),
 				{ status: 500, headers: { 'Content-Type': 'application/json' } }
 			);
+		} finally {
+			await sql.end();
 		}
 	};
 }

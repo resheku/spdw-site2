@@ -4,31 +4,19 @@ export const prerender = false;
 
 export const GET = createHandler(
 	async (sql) => {
-		const startTime = Date.now();
-
-		const seasonStart = Date.now();
-		const [latestSeasonRow] = await sql`
-		SELECT MAX("Season") AS latest_season
-		FROM sel.stats
-		WHERE "League" = 'PGEE'
-		AND "Max Speed" IS NOT NULL
-	`;
-		console.log(`[max-speeds] Latest season query: ${Date.now() - seasonStart}ms`);
-
-		const latestSeason = (latestSeasonRow?.latest_season as number) || new Date().getFullYear();
-
-		const queriesStart = Date.now();
 		const [thisSeason, allTime] = await Promise.all([
 			sql`
-			WITH top_speeds AS (
-				SELECT
-					t.match_id,
-					t.rider_id,
-					t.max_speed
+			WITH season_filter AS (
+				SELECT MAX("Season") AS latest
+				FROM sel.stats
+				WHERE "League" = 'PGEE' AND "Max Speed" IS NOT NULL
+			),
+			top_speeds AS (
+				SELECT t.match_id, t.rider_id, t.max_speed
 				FROM sel.telemetry t
 				JOIN sel.matches m ON t.match_id = m.match_id
 				WHERE t.max_speed IS NOT NULL
-				AND m.season = ${latestSeason}
+				  AND m.season = (SELECT latest FROM season_filter)
 				ORDER BY t.max_speed DESC
 				LIMIT 50
 			)
@@ -58,10 +46,7 @@ export const GET = createHandler(
 		`,
 			sql`
 			WITH top_speeds AS (
-				SELECT
-					t.match_id,
-					t.rider_id,
-					t.max_speed
+				SELECT t.match_id, t.rider_id, t.max_speed
 				FROM sel.telemetry t
 				WHERE t.max_speed IS NOT NULL
 				ORDER BY t.max_speed DESC
@@ -92,9 +77,6 @@ export const GET = createHandler(
 			LIMIT 10
 		`,
 		]);
-		console.log(`[max-speeds] Both queries: ${Date.now() - queriesStart}ms`);
-
-		console.log(`[max-speeds] Total time: ${Date.now() - startTime}ms`);
 		return { thisSeason, allTime };
 	},
 	{ cacheControl: 'public, max-age=300' }

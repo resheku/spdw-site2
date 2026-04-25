@@ -50,10 +50,8 @@ export const GET = createHandler(
 				: sql``;
 		const leagueFrag =
 			leagues.length > 0 ? sql`AND m.match_type_shortname = ANY(${leagues})` : sql``;
-		const seasonFrag =
-			seasons.length > 0 ? sql`AND m.season = ANY(${seasons.map(Number)})` : sql``;
-		const trackFrag =
-			tracks.length > 0 ? sql`AND m.track_city = ANY(${tracks})` : sql``;
+		const seasonFrag = seasons.length > 0 ? sql`AND m.season = ANY(${seasons.map(Number)})` : sql``;
+		const trackFrag = tracks.length > 0 ? sql`AND m.track_city = ANY(${tracks})` : sql``;
 
 		const offset = page * PAGE_SIZE;
 

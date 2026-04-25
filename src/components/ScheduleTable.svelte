@@ -158,7 +158,8 @@
 	$: upcomingData = (() => {
 		let data = initialData.filter((m) => m.statusId === 0);
 		if (selectedLeagues.length) data = data.filter((m) => selectedLeagues.includes(m.league ?? ''));
-		if (selectedSeasons.length) data = data.filter((m) => selectedSeasons.includes(String(m.season)));
+		if (selectedSeasons.length)
+			data = data.filter((m) => selectedSeasons.includes(String(m.season)));
 		if (selectedRounds.length) data = data.filter((m) => selectedRounds.includes(m.type ?? ''));
 		if (selectedTracks.length) data = data.filter((m) => selectedTracks.includes(m.track ?? ''));
 		if (selectedTeams.length)
@@ -174,7 +175,8 @@
 	$: resultsData = (() => {
 		let data = initialData.filter((m) => m.statusId !== 0);
 		if (selectedLeagues.length) data = data.filter((m) => selectedLeagues.includes(m.league ?? ''));
-		if (selectedSeasons.length) data = data.filter((m) => selectedSeasons.includes(String(m.season)));
+		if (selectedSeasons.length)
+			data = data.filter((m) => selectedSeasons.includes(String(m.season)));
 		if (selectedRounds.length) data = data.filter((m) => selectedRounds.includes(m.type ?? ''));
 		if (selectedTracks.length) data = data.filter((m) => selectedTracks.includes(m.track ?? ''));
 		if (selectedTeams.length)
@@ -433,7 +435,9 @@
 	<SortableTable
 		columns={scheduleColumns}
 		rows={resultsData}
-		externalSortColumns={sortColumns.length > 0 ? sortColumns : [{ column: 'date', direction: 'desc' }]}
+		externalSortColumns={sortColumns.length > 0
+			? sortColumns
+			: [{ column: 'date', direction: 'desc' }]}
 		onHeaderClick={handleSort}
 	>
 		{#snippet cell(m, col)}
@@ -459,9 +463,15 @@
 						>
 					</span>
 				{:else if m.statusId === 0}
-					<span class="inline-block rounded px-1.5 py-0.5 text-[0.65rem] leading-none font-medium bg-blue-500/15 text-blue-600 dark:text-blue-400">Upcoming</span>
+					<span
+						class="inline-block rounded bg-blue-500/15 px-1.5 py-0.5 text-[0.65rem] leading-none font-medium text-blue-600 dark:text-blue-400"
+						>Upcoming</span
+					>
 				{:else if m.status}
-					<span class="inline-block rounded px-1.5 py-0.5 text-[0.65rem] leading-none font-medium bg-muted text-muted-foreground">{m.status}</span>
+					<span
+						class="bg-muted text-muted-foreground inline-block rounded px-1.5 py-0.5 text-[0.65rem] leading-none font-medium"
+						>{m.status}</span
+					>
 				{:else}
 					-
 				{/if}
@@ -477,26 +487,31 @@
 </div>
 
 {#if upcomingData.length > 0}
-<!-- Upcoming matches -->
-<h2 class="mt-6 mb-2 text-lg font-semibold">Upcoming</h2>
-<div class="border-border overflow-x-auto rounded-lg border">
-	<SortableTable
-		columns={scheduleColumns}
-		rows={upcomingData}
-		externalSortColumns={sortColumns.length > 0 ? sortColumns : [{ column: 'date', direction: 'asc' }]}
-		onHeaderClick={handleSort}
-	>
-		{#snippet cell(m, col)}
-			{#if col.key === 'datetime'}
-				<span class="font-mono text-xs">{formatDate((m as ScheduleRow).datetime)}</span>
-			{:else if col.key === 'homeScore'}
-				<span class="inline-block rounded px-1.5 py-0.5 text-[0.65rem] leading-none font-medium bg-blue-500/15 text-blue-600 dark:text-blue-400">Upcoming</span>
-			{:else if col.key === 'homeTotal'}
-				<span class="text-muted-foreground"></span>
-			{:else if col.key === 'attendance'}
-				{(m as ScheduleRow).attendance ? (m as ScheduleRow).attendance!.toLocaleString() : ''}
-			{/if}
-		{/snippet}
-	</SortableTable>
-</div>
+	<!-- Upcoming matches -->
+	<h2 class="mt-6 mb-2 text-lg font-semibold">Upcoming</h2>
+	<div class="border-border overflow-x-auto rounded-lg border">
+		<SortableTable
+			columns={scheduleColumns}
+			rows={upcomingData}
+			externalSortColumns={sortColumns.length > 0
+				? sortColumns
+				: [{ column: 'date', direction: 'asc' }]}
+			onHeaderClick={handleSort}
+		>
+			{#snippet cell(m, col)}
+				{#if col.key === 'datetime'}
+					<span class="font-mono text-xs">{formatDate((m as ScheduleRow).datetime)}</span>
+				{:else if col.key === 'homeScore'}
+					<span
+						class="inline-block rounded bg-blue-500/15 px-1.5 py-0.5 text-[0.65rem] leading-none font-medium text-blue-600 dark:text-blue-400"
+						>Upcoming</span
+					>
+				{:else if col.key === 'homeTotal'}
+					<span class="text-muted-foreground"></span>
+				{:else if col.key === 'attendance'}
+					{(m as ScheduleRow).attendance ? (m as ScheduleRow).attendance!.toLocaleString() : ''}
+				{/if}
+			{/snippet}
+		</SortableTable>
+	</div>
 {/if}

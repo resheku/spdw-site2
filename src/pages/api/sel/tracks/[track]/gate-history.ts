@@ -54,13 +54,38 @@ export const GET = createHandler(
 		]);
 
 		const seasonRows = gateRows.filter((r) => r.season != null);
-		const overallRow = (gateRows.find((r) => r.season == null) ?? {}) as Record<string, number | null>;
+		const overallRow = (gateRows.find((r) => r.season == null) ?? {}) as Record<
+			string,
+			number | null
+		>;
 
-		const avgResult = seasonRows.map((r) => ({ season: r.season, A: r.avg_a, B: r.avg_b, C: r.avg_c, D: r.avg_d }));
-		const winResult = seasonRows.map((r) => ({ season: r.season, A: r.win_a, B: r.win_b, C: r.win_c, D: r.win_d }));
+		const avgResult = seasonRows.map((r) => ({
+			season: r.season,
+			A: r.avg_a,
+			B: r.avg_b,
+			C: r.avg_c,
+			D: r.avg_d,
+		}));
+		const winResult = seasonRows.map((r) => ({
+			season: r.season,
+			A: r.win_a,
+			B: r.win_b,
+			C: r.win_c,
+			D: r.win_d,
+		}));
 
-		const oa = { A: overallRow.avg_a, B: overallRow.avg_b, C: overallRow.avg_c, D: overallRow.avg_d };
-		const ow = { A: overallRow.win_a, B: overallRow.win_b, C: overallRow.win_c, D: overallRow.win_d };
+		const oa = {
+			A: overallRow.avg_a,
+			B: overallRow.avg_b,
+			C: overallRow.avg_c,
+			D: overallRow.avg_d,
+		};
+		const ow = {
+			A: overallRow.win_a,
+			B: overallRow.win_b,
+			C: overallRow.win_c,
+			D: overallRow.win_d,
+		};
 
 		const overallAvgBias =
 			oa.A != null && oa.B != null && oa.C != null && oa.D != null

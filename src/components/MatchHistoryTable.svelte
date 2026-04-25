@@ -100,7 +100,14 @@
 	$: pageRows = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
 	const columns = [
-		{ key: 'date', sortKey: 'date', label: 'Date', align: 'left' as const, noWrap: true, customCell: true },
+		{
+			key: 'date',
+			sortKey: 'date',
+			label: 'Date',
+			align: 'left' as const,
+			noWrap: true,
+			customCell: true,
+		},
 		{
 			key: 'league',
 			sortKey: 'league',
@@ -168,9 +175,21 @@
 				{:else if col.key === 'homeScore'}
 					{#if m.homeScore != null && m.awayScore != null}
 						<span class="inline-flex items-center gap-1.5">
-							<span class="inline-block rounded px-1 py-0.5 text-[0.65rem] leading-none font-bold {resultClass(m.homeScore, m.awayScore, true)}">{resultLabel(m.homeScore, m.awayScore, true)}</span>
+							<span
+								class="inline-block rounded px-1 py-0.5 text-[0.65rem] leading-none font-bold {resultClass(
+									m.homeScore,
+									m.awayScore,
+									true
+								)}">{resultLabel(m.homeScore, m.awayScore, true)}</span
+							>
 							<span class="font-medium">{m.homeScore}:{m.awayScore}</span>
-							<span class="inline-block rounded px-1 py-0.5 text-[0.65rem] leading-none font-bold {resultClass(m.homeScore, m.awayScore, false)}">{resultLabel(m.homeScore, m.awayScore, false)}</span>
+							<span
+								class="inline-block rounded px-1 py-0.5 text-[0.65rem] leading-none font-bold {resultClass(
+									m.homeScore,
+									m.awayScore,
+									false
+								)}">{resultLabel(m.homeScore, m.awayScore, false)}</span
+							>
 						</span>
 					{:else}
 						-

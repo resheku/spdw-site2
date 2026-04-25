@@ -40,8 +40,20 @@ export const GET = createHandler(
 			ORDER BY m.season
 		`;
 
-		const avgPoints = rows.map((r) => ({ season: r.season, A: r.avg_a, B: r.avg_b, C: r.avg_c, D: r.avg_d }));
-		const winPct = rows.map((r) => ({ season: r.season, A: r.win_a, B: r.win_b, C: r.win_c, D: r.win_d }));
+		const avgPoints = rows.map((r) => ({
+			season: r.season,
+			A: r.avg_a,
+			B: r.avg_b,
+			C: r.avg_c,
+			D: r.avg_d,
+		}));
+		const winPct = rows.map((r) => ({
+			season: r.season,
+			A: r.win_a,
+			B: r.win_b,
+			C: r.win_c,
+			D: r.win_d,
+		}));
 
 		return { avgPoints, winPct };
 	},

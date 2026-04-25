@@ -399,8 +399,10 @@
 		value: l,
 		label: l,
 	}));
-	$: seasonOptions = [...(filterMapping?.all?.seasons ?? [])]
-		.map((s: number) => ({ value: String(s), label: String(s) }));
+	$: seasonOptions = [...(filterMapping?.all?.seasons ?? [])].map((s: number) => ({
+		value: String(s),
+		label: String(s),
+	}));
 
 	function getValidOptions(target: string, other1: string[], other2: string[]): string[] {
 		if (!filterMapping) return [];

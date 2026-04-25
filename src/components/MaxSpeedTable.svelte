@@ -254,7 +254,10 @@
 					<th class="text-muted-foreground px-2 py-2 text-right font-medium">#</th>
 					{#each columns as col (col.key)}
 						<th
-							class="text-muted-foreground cursor-pointer select-none whitespace-nowrap px-2 py-2 font-medium hover:text-foreground {col.align === 'right' ? 'text-right' : 'text-left'}"
+							class="text-muted-foreground hover:text-foreground cursor-pointer px-2 py-2 font-medium whitespace-nowrap select-none {col.align ===
+							'right'
+								? 'text-right'
+								: 'text-left'}"
 							on:click={() => onSort(col.key)}
 						>
 							{col.label}
@@ -298,7 +301,6 @@
 						<td class="px-2 py-1.5 text-right tabular-nums">
 							{row['L4'] != null ? (row['L4'] as number).toFixed(3) : '-'}
 						</td>
-
 					</tr>
 				{/each}
 			</tbody>
@@ -331,7 +333,9 @@
 				return start + i;
 			}) as p (p)}
 				<button
-					class="border-border rounded border px-2.5 py-1 {p === page ? 'bg-foreground text-background' : 'hover:bg-muted'}"
+					class="border-border rounded border px-2.5 py-1 {p === page
+						? 'bg-foreground text-background'
+						: 'hover:bg-muted'}"
 					disabled={isLoading}
 					on:click={() => goToPage(p)}>{p + 1}</button
 				>

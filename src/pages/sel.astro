@@ -86,8 +86,18 @@ try {
 
 	// Fetch recent results and upcoming matches for current season (PGEE)
 	const [resultsRes, upcomingRes] = await Promise.all([
-		fetch(new URL(`/api/sel/schedule?league=PGEE&season=${currentSeason}&sortColumn=date&sortDirection=desc`, Astro.url).toString()),
-		fetch(new URL(`/api/sel/schedule?league=PGEE&season=${currentSeason}&sortColumn=date&sortDirection=asc`, Astro.url).toString()),
+		fetch(
+			new URL(
+				`/api/sel/schedule?league=PGEE&season=${currentSeason}&sortColumn=date&sortDirection=desc`,
+				Astro.url
+			).toString()
+		),
+		fetch(
+			new URL(
+				`/api/sel/schedule?league=PGEE&season=${currentSeason}&sortColumn=date&sortDirection=asc`,
+				Astro.url
+			).toString()
+		),
 	]);
 	if (resultsRes.ok) {
 		const data = (await resultsRes.json()) as { schedule: MatchRow[] };
@@ -356,57 +366,73 @@ function resultClass(home: number, away: number, forHome: boolean): string {
 			<a href={`/sel/results?league=PGEE&season=${currentSeason}`} class="underline"> Results </a>
 		</h2>
 		<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-			{recentResults.length > 0 && (
-				<div class="bg-background overflow-hidden rounded-lg">
-					<div class="border-border border-b px-4 py-3">
-						<h3 class="text-lg font-semibold">Results</h3>
+			{
+				recentResults.length > 0 && (
+					<div class="bg-background overflow-hidden rounded-lg">
+						<div class="border-border border-b px-4 py-3">
+							<h3 class="text-lg font-semibold">Results</h3>
+						</div>
+						<div class="overflow-x-auto">
+							<table class="w-full text-sm">
+								<tbody>
+									{recentResults.map((m) => (
+										<tr class="border-border hover:bg-muted/50 border-b last:border-0">
+											<td class="text-muted-foreground px-3 py-2 font-mono text-xs whitespace-nowrap">
+												{m.datetime ? m.datetime.slice(0, 10) : ''}
+											</td>
+											<td class="px-3 py-2">{m.matchName}</td>
+											<td class="px-3 py-2 text-right whitespace-nowrap">
+												{m.homeScore != null && m.awayScore != null ? (
+													<span class="inline-flex items-center gap-1">
+														<span
+															class={`inline-block rounded px-1 py-0.5 text-[0.65rem] leading-none font-bold ${resultClass(m.homeScore, m.awayScore, true)}`}
+														>
+															{resultLabel(m.homeScore, m.awayScore, true)}
+														</span>
+														<span class="font-medium">
+															{m.homeScore}:{m.awayScore}
+														</span>
+														<span
+															class={`inline-block rounded px-1 py-0.5 text-[0.65rem] leading-none font-bold ${resultClass(m.homeScore, m.awayScore, false)}`}
+														>
+															{resultLabel(m.homeScore, m.awayScore, false)}
+														</span>
+													</span>
+												) : (
+													''
+												)}
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
 					</div>
-					<div class="overflow-x-auto">
-						<table class="w-full text-sm">
-							<tbody>
-								{recentResults.map((m) => (
-									<tr class="border-border hover:bg-muted/50 border-b last:border-0">
-										<td class="text-muted-foreground px-3 py-2 font-mono text-xs whitespace-nowrap">
-											{m.datetime ? m.datetime.slice(0, 10) : ''}
-										</td>
-										<td class="px-3 py-2">{m.matchName}</td>
-										<td class="px-3 py-2 text-right whitespace-nowrap">
-											{m.homeScore != null && m.awayScore != null ? (
-												<span class="inline-flex items-center gap-1">
-													<span class={`inline-block rounded px-1 py-0.5 text-[0.65rem] leading-none font-bold ${resultClass(m.homeScore, m.awayScore, true)}`}>{resultLabel(m.homeScore, m.awayScore, true)}</span>
-													<span class="font-medium">{m.homeScore}:{m.awayScore}</span>
-													<span class={`inline-block rounded px-1 py-0.5 text-[0.65rem] leading-none font-bold ${resultClass(m.homeScore, m.awayScore, false)}`}>{resultLabel(m.homeScore, m.awayScore, false)}</span>
-												</span>
-											) : ''}
-										</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
+				)
+			}
+			{
+				upcomingMatches.length > 0 && (
+					<div class="bg-background overflow-hidden rounded-lg">
+						<div class="border-border border-b px-4 py-3">
+							<h3 class="text-lg font-semibold">Schedule</h3>
+						</div>
+						<div class="overflow-x-auto">
+							<table class="w-full text-sm">
+								<tbody>
+									{upcomingMatches.map((m) => (
+										<tr class="border-border hover:bg-muted/50 border-b last:border-0">
+											<td class="text-muted-foreground px-3 py-2 font-mono text-xs whitespace-nowrap">
+												{m.datetime ? m.datetime.slice(0, 10) : '—'}
+											</td>
+											<td class="px-3 py-2">{m.matchName}</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
 					</div>
-				</div>
-			)}
-			{upcomingMatches.length > 0 && (
-				<div class="bg-background overflow-hidden rounded-lg">
-					<div class="border-border border-b px-4 py-3">
-						<h3 class="text-lg font-semibold">Schedule</h3>
-					</div>
-					<div class="overflow-x-auto">
-						<table class="w-full text-sm">
-							<tbody>
-								{upcomingMatches.map((m) => (
-									<tr class="border-border hover:bg-muted/50 border-b last:border-0">
-										<td class="text-muted-foreground px-3 py-2 font-mono text-xs whitespace-nowrap">
-											{m.datetime ? m.datetime.slice(0, 10) : '—'}
-										</td>
-										<td class="px-3 py-2">{m.matchName}</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
-					</div>
-				</div>
-			)}
+				)
+			}
 		</div>
 	</div>
 

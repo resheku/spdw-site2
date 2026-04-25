@@ -18,8 +18,8 @@ export const GET = createHandler(async (sql, { params }) => {
 				COUNT(*) AS total,
 				SUM(CASE WHEN home_match_score > away_match_score THEN 1 ELSE 0 END) AS "homeWins",
 				SUM(CASE WHEN away_match_score > home_match_score THEN 1 ELSE 0 END) AS "awayWins",
-				ROUND(AVG(home_match_score), 1) AS "avgHomeScore",
-				ROUND(AVG(away_match_score), 1) AS "avgAwayScore"
+				ROUND(AVG(home_match_score), 1)::float AS "avgHomeScore",
+				ROUND(AVG(away_match_score), 1)::float AS "avgAwayScore"
 			FROM sel.matches
 			WHERE track_city = ${track}
 				AND home_match_score IS NOT NULL
@@ -62,8 +62,8 @@ export const GET = createHandler(async (sql, { params }) => {
 				SUM(CASE WHEN result = 'D' THEN 1 ELSE 0 END) AS draws,
 				SUM(CASE WHEN result = 'L' THEN 1 ELSE 0 END) AS losses,
 				SUM(CASE WHEN result = 'W' THEN 2 WHEN result = 'D' THEN 1 ELSE 0 END) AS pts,
-				ROUND(AVG(scored), 1) AS "avgPts",
-				ROUND(100.0 * SUM(CASE WHEN result = 'W' THEN 1 ELSE 0 END) / COUNT(*), 1) AS "winPct",
+				ROUND(AVG(scored), 1)::float AS "avgPts",
+				ROUND(100.0 * SUM(CASE WHEN result = 'W' THEN 1 ELSE 0 END) / COUNT(*), 1)::float AS "winPct",
 				bool_or("hasHome") AS "hasHome"
 			FROM match_results
 			GROUP BY team

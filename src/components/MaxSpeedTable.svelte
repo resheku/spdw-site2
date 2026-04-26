@@ -20,6 +20,8 @@
 		L2: number | null;
 		L3: number | null;
 		L4: number | null;
+		'Z-Score': number | null;
+		'Speed Index': number | null;
 	};
 
 	type FilterData = {
@@ -94,6 +96,8 @@
 		{ key: 'L2', label: 'L2', align: 'right' as const },
 		{ key: 'L3', label: 'L3', align: 'right' as const },
 		{ key: 'L4', label: 'L4', align: 'right' as const },
+		{ key: 'Z-Score', label: 'Z-Score', align: 'right' as const },
+		{ key: 'Speed Index', label: 'Spd Idx', align: 'right' as const },
 	];
 
 	// ── Data fetching ─────────────────────────────────────────────────────────
@@ -300,6 +304,12 @@
 						</td>
 						<td class="px-2 py-1.5 text-right tabular-nums">
 							{row['L4'] != null ? (row['L4'] as number).toFixed(3) : '-'}
+						</td>
+						<td class="px-2 py-1.5 text-right tabular-nums">
+							{row['Z-Score'] != null ? (row['Z-Score'] as number).toFixed(3) : '-'}
+						</td>
+						<td class="px-2 py-1.5 text-right tabular-nums">
+							{row['Speed Index'] != null ? (row['Speed Index'] as number).toFixed(4) : '-'}
 						</td>
 					</tr>
 				{/each}

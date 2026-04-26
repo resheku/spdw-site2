@@ -90,9 +90,9 @@ export const GET = createHandler(
 				t.l3_time AS "L3",
 				t.l4_time AS "L4",
 				CASE WHEN ts.track_stddev > 0
-					THEN ROUND(CAST((t.max_speed - ts.track_mean) / ts.track_stddev AS NUMERIC), 3)
+					THEN (t.max_speed - ts.track_mean) / ts.track_stddev
 					ELSE NULL END AS "Z-Score",
-				ROUND(CAST(t.max_speed / NULLIF(ts.track_mean, 0) AS NUMERIC), 4) AS "Speed Index"
+				t.max_speed / NULLIF(ts.track_mean, 0) AS "Speed Index"
 			FROM sel.telemetry t
 			JOIN sel.matches m ON t.match_id = m.match_id
 			JOIN sel.lineup l ON t.match_id = l.match_id AND t.rider_id = l.rider_id

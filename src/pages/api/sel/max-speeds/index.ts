@@ -55,16 +55,6 @@ export const GET = createHandler(
 
 		const [rows, countResult] = await Promise.all([
 			sql`
-			WITH track_stats AS (
-				SELECT
-					m2.track_city,
-					AVG(t2.max_speed)         AS track_mean,
-					STDDEV_SAMP(t2.max_speed) AS track_stddev
-				FROM sel.telemetry t2
-				JOIN sel.matches m2 ON t2.match_id = m2.match_id
-				WHERE t2.max_speed IS NOT NULL AND t2.max_speed > 0
-				GROUP BY m2.track_city
-			)
 			SELECT
 				m.home_team_shortcut || ' vs ' || m.away_team_shortcut AS "Match",
 				m.season AS "Season",
@@ -92,7 +82,17 @@ export const GET = createHandler(
 				ON h.match_id = t.match_id
 				AND h.heat_id = t.heat_id
 				AND h.rider_id = t.rider_id
-			JOIN track_stats ts ON ts.track_city = m.track_city
+			JOIN LATERAL (
+				SELECT
+					AVG(t2.max_speed)         AS track_mean,
+					STDDEV_SAMP(t2.max_speed) AS track_stddev
+				FROM sel.telemetry t2
+				JOIN sel.matches m2 ON t2.match_id = m2.match_id
+				WHERE t2.max_speed IS NOT NULL
+				  AND t2.max_speed > 0
+				  AND m2.track_city = m.track_city
+				  AND m2.datetime <= m.datetime
+			) ts ON true
 			WHERE t.max_speed IS NOT NULL AND t.max_speed > 0
 				${searchFrag}
 				${teamFrag}

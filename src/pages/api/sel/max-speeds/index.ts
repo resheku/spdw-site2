@@ -69,12 +69,12 @@ export const GET = createHandler(
 				t.max_speed AS "Max Speed",
 				h.points AS "Points",
 				UPPER(h.gate) AS "Gate",
-				ts.track_mean AS "Track Avg",
-				t.max_speed - ts.track_mean AS "Diff",
-				CASE WHEN ts.track_stddev > 0
-					THEN (t.max_speed - ts.track_mean) / ts.track_stddev
+				ts.track_mean_asof AS "Track Avg",
+				t.max_speed - ts.track_mean_asof AS "Diff",
+				CASE WHEN ts.track_stddev_asof > 0
+					THEN (t.max_speed - ts.track_mean_asof) / ts.track_stddev_asof
 					ELSE NULL END AS "Z-Score",
-				t.max_speed / NULLIF(ts.track_mean, 0) AS "Speed Index"
+				t.max_speed / NULLIF(ts.track_mean_asof, 0) AS "Speed Index"
 			FROM sel.telemetry t
 			JOIN sel.matches m ON t.match_id = m.match_id
 			JOIN sel.lineup l ON t.match_id = l.match_id AND t.rider_id = l.rider_id
@@ -82,17 +82,7 @@ export const GET = createHandler(
 				ON h.match_id = t.match_id
 				AND h.heat_id = t.heat_id
 				AND h.rider_id = t.rider_id
-			JOIN LATERAL (
-				SELECT
-					AVG(t2.max_speed)         AS track_mean,
-					STDDEV_SAMP(t2.max_speed) AS track_stddev
-				FROM sel.telemetry t2
-				JOIN sel.matches m2 ON t2.match_id = m2.match_id
-				WHERE t2.max_speed IS NOT NULL
-				  AND t2.max_speed > 0
-				  AND m2.track_city = m.track_city
-				  AND m2.datetime <= m.datetime
-			) ts ON true
+			JOIN sel.spdw_telemetry_stats ts ON ts.match_id = m.match_id
 			WHERE t.max_speed IS NOT NULL AND t.max_speed > 0
 				${searchFrag}
 				${teamFrag}

@@ -13,14 +13,12 @@ const validSortColumns: Record<string, string> = {
 	'Max Speed': 'Max Speed',
 	Points: 'Points',
 	Gate: 'Gate',
-	Time: 'Time',
-	Reaction: 'Reaction',
-	L1: 'L1',
-	L2: 'L2',
-	L3: 'L3',
-	L4: 'L4',
 	Season: 'Season',
 	Match: 'Match',
+	'Track Avg': 'Track Avg',
+	'Diff': 'Diff',
+	'Z-Score': 'Z-Score',
+	'Speed Index': 'Speed Index',
 };
 
 export const GET = createHandler(
@@ -71,12 +69,12 @@ export const GET = createHandler(
 				t.max_speed AS "Max Speed",
 				h.points AS "Points",
 				UPPER(h.gate) AS "Gate",
-				t.heat_time AS "Time",
-				t.reaction AS "Reaction",
-				t.l1_time AS "L1",
-				t.l2_time AS "L2",
-				t.l3_time AS "L3",
-				t.l4_time AS "L4"
+				ts.track_mean_asof AS "Track Avg",
+				t.max_speed - ts.track_mean_asof AS "Diff",
+				CASE WHEN ts.track_stddev_asof > 0
+					THEN (t.max_speed - ts.track_mean_asof) / ts.track_stddev_asof
+					ELSE NULL END AS "Z-Score",
+				t.max_speed / NULLIF(ts.track_mean_asof, 0) AS "Speed Index"
 			FROM sel.telemetry t
 			JOIN sel.matches m ON t.match_id = m.match_id
 			JOIN sel.lineup l ON t.match_id = l.match_id AND t.rider_id = l.rider_id
@@ -84,6 +82,7 @@ export const GET = createHandler(
 				ON h.match_id = t.match_id
 				AND h.heat_id = t.heat_id
 				AND h.rider_id = t.rider_id
+			JOIN sel.spdw_telemetry_stats ts ON ts.match_id = m.match_id
 			WHERE t.max_speed IS NOT NULL AND t.max_speed > 0
 				${searchFrag}
 				${teamFrag}

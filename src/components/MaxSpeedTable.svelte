@@ -14,12 +14,10 @@
 		'Max Speed': number | null;
 		Points: number | null;
 		Gate: string | null;
-		Time: number | null;
-		Reaction: number | null;
-		L1: number | null;
-		L2: number | null;
-		L3: number | null;
-		L4: number | null;
+		'Track Avg': number | null;
+		'Diff': number | null;
+		'Z-Score': number | null;
+		'Speed Index': number | null;
 	};
 
 	type FilterData = {
@@ -88,12 +86,10 @@
 		{ key: 'Points', label: 'Pts', align: 'right' as const },
 		{ key: 'Track', label: 'Track', align: 'left' as const },
 		{ key: 'Gate', label: 'Gate', align: 'right' as const },
-		{ key: 'Reaction', label: 'Reaction', align: 'right' as const },
-		{ key: 'Time', label: 'Time', align: 'right' as const },
-		{ key: 'L1', label: 'L1', align: 'right' as const },
-		{ key: 'L2', label: 'L2', align: 'right' as const },
-		{ key: 'L3', label: 'L3', align: 'right' as const },
-		{ key: 'L4', label: 'L4', align: 'right' as const },
+		{ key: 'Track Avg', label: 'Track Avg', align: 'right' as const },
+		{ key: 'Diff', label: 'Diff', align: 'right' as const },
+		{ key: 'Z-Score', label: 'Z-Score', align: 'right' as const },
+		{ key: 'Speed Index', label: 'Spd Idx', align: 'right' as const },
 	];
 
 	// ── Data fetching ─────────────────────────────────────────────────────────
@@ -284,22 +280,22 @@
 						<td class="px-2 py-1.5 text-left">{fmt(row['Track'])}</td>
 						<td class="px-2 py-1.5 text-right tabular-nums">{fmt(row['Gate'])}</td>
 						<td class="px-2 py-1.5 text-right tabular-nums">
-							{row['Reaction'] != null ? (row['Reaction'] as number).toFixed(3) : '-'}
+							{row['Track Avg'] != null ? (row['Track Avg'] as number).toFixed(2) : '-'}
 						</td>
 						<td class="px-2 py-1.5 text-right tabular-nums">
-							{row['Time'] != null ? (row['Time'] as number).toFixed(3) : '-'}
+							{#if row['Diff'] != null}
+								<span class={(row['Diff'] as number) >= 0 ? 'text-green-500' : 'text-red-500'}>
+									{(row['Diff'] as number) >= 0 ? '+' : ''}{(row['Diff'] as number).toFixed(2)}
+								</span>
+							{:else}
+								-
+							{/if}
 						</td>
 						<td class="px-2 py-1.5 text-right tabular-nums">
-							{row['L1'] != null ? (row['L1'] as number).toFixed(3) : '-'}
+							{row['Z-Score'] != null ? (row['Z-Score'] as number).toFixed(3) : '-'}
 						</td>
 						<td class="px-2 py-1.5 text-right tabular-nums">
-							{row['L2'] != null ? (row['L2'] as number).toFixed(3) : '-'}
-						</td>
-						<td class="px-2 py-1.5 text-right tabular-nums">
-							{row['L3'] != null ? (row['L3'] as number).toFixed(3) : '-'}
-						</td>
-						<td class="px-2 py-1.5 text-right tabular-nums">
-							{row['L4'] != null ? (row['L4'] as number).toFixed(3) : '-'}
+							{row['Speed Index'] != null ? (row['Speed Index'] as number).toFixed(4) : '-'}
 						</td>
 					</tr>
 				{/each}
